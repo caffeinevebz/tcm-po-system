@@ -38,11 +38,47 @@
             "Neha Agencies", "Charu Marketing", "Laxmi Stores"
         ];
 
+        // FULL INVENTORY IMPORTED FROM EXCEL SHEETS
         const INVENTORY = {
-            "Fruits and Vegetables": ["Apple (सेव)", "Avocado (अवोकेडो)", "Iceberg Lettuce", "Mushroom (मशरुम)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)"],
-            "Coffee and Matcha": ["Full House Green (Arabica Coffee)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"],
-            "Groceries": ["Amul Butter", "Biscoff Spread", "Sunflower Oil (15 Ltr)", "Black Olive (3 Kg)", "Spagetti Pasta (Agnesi)"],
-            "Packing and Consumables": ["Brown Paper Bag (Extra Large) (16 x 12)", "Hot coffee cup cups with lids (180 ML)", "Pizza Boxes", "Printed Butter Paper Roll"]
+            "Fruits and Vegetables": [
+                "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", 
+                "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", 
+                "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", 
+                "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", 
+                "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", 
+                "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", 
+                "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", 
+                "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", 
+                "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", 
+                "Spinach (पालक)", "Spring onion (प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", 
+                "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)"
+            ],
+            "Coffee and Matcha": [
+                "Full House Green (Arabica Coffee) (Dark Roast)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"
+            ],
+            "Groceries": [
+                "Aata", "Ajinomoto", "Aluminium Foil", "Amul Butter", "Amul Cheese Slice (Large Pack)", 
+                "Amul Cream", "Amul Mithai Mate (400 gms)", "Amul Pizza Cheese Blend (Shredded)", 
+                "Amul Processed Cheese", "Aromate Powder", "Besan", "Bisleri Vedica (500ml)", 
+                "Biscoff Biscuit", "Biscoff Spread", "Black Olive (3 Kg)", "Black Pepper (आखी)", 
+                "Black Salt (काला नमक)", "Blueberry (Frozen) (Delishh)", "Brown Rice", "Brown Sugar", 
+                "Brownie Premix", "Cashewnut (Kaju Tukdi)", "Rice Paper", "Ricotta Cheese", 
+                "Sesame Seeds (सफेद तिल)", "Soda", "Soya Chaap", "Soya Chunks", "Spagetti Pasta (Agnesi)", 
+                "Spring Roll Sheets", "Sugar", "Sugarfree Sachets", "Sugar Sachet (White)", 
+                "Sugar Sachet (Brown)", "Suji", "Sukhi Lal Mirchi", "Sundried Tomato", "Sunflower Oil (15 Ltr)", 
+                "Sunflower Seeds", "Sushi Rice", "Sushi Vinegar", "Sweet Corn", "Table Rice", "Taco Shells", 
+                "Tahina Paste", "Tata Salt", "Tea (खुल्ली)", "Tempura Batter Mix", "Tomato Ketchup Refill (2 kg)", 
+                "Tomato Ketchup Sachet"
+            ],
+            "Packing and Consumables": [
+                "Brown Paper Bag (Extra Large) (16 x 12)", "Cap", "Chopsticks", "Cling Wrap (Large)", 
+                "Extra Large Garbage Bag", "Hot coffee cup cups with lids (180 ML)", "Hot coffee cup lid (250 ML)", 
+                "Kitchen Duster", "Medium Grabage Bag", "Paper Straw (10mm)", "Pizza Boxes", 
+                "Plastic Bend Straw (Mocktails)", "Plastic Disposable Glasses with Black Lid (350ML)", 
+                "Plastic Food Container wid Lid (650ML)", "Printed Butter Paper Roll", 
+                "Silver Foil Food Container wid Lid (650ML)", "Silver Foil Food Container wid Lid (400ML) - small", 
+                "Silver Foil", "Wooden Fork", "Wooden stiring sticks for hot coffee"
+            ]
         };
 
         const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin"];
@@ -103,7 +139,6 @@
                 }
             };
 
-            // NEW FUNCTION: Delete PO completely
             const deletePO = (poId) => {
                 if(window.confirm("Are you sure you want to permanently delete this PO? This cannot be undone.")) {
                     setPos(pos.filter(po => po.id !== poId));
@@ -120,11 +155,10 @@
                 window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
             };
 
-            // NEW SECURITY: Role Switcher with PIN
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN to access dashboard:");
-                    if (pin === "1701") { // CHANGE THIS NUMBER TO YOUR SECRET PIN
+                    if (pin === "1701") { 
                         setRole('owner');
                     } else if (pin !== null) {
                         alert("Incorrect PIN. Access Denied.");
@@ -159,6 +193,9 @@
             const [selectedSupplier, setSelectedSupplier] = useState('');
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
+            
+            // NEW: Search State
+            const [searchTerm, setSearchTerm] = useState('');
 
             const addItem = (item) => { if (!cart.find(i => i.name === item)) setCart([...cart, { name: item, qty: 1, unit: 'Kg' }]); };
             const updateQty = (index, delta) => { const newCart = [...cart]; newCart[index].qty = Math.max(1, newCart[index].qty + delta); setCart(newCart); };
@@ -169,32 +206,68 @@
                 if (!selectedSupplier) return alert('Please select a supplier.');
                 if (cart.length === 0) return alert('Cart is empty.');
                 onSubmit(selectedSupplier, cart);
-                setCart([]); setSelectedSupplier('');
+                setCart([]); setSelectedSupplier(''); setSearchTerm('');
             };
+
+            // SEARCH LOGIC
+            let displayedItems = [];
+            if (searchTerm.trim() !== '') {
+                // If searching, combine all items and filter by search term
+                const allItemNames = Object.values(inventory).flat();
+                displayedItems = [...new Set(allItemNames)].filter(item => 
+                    item.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+            } else {
+                // Otherwise, show selected category
+                displayedItems = inventory[selectedCategory];
+            }
 
             return (
                 <div className="animate-fade-in">
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Draft New Order</h2>
-                    <select className="w-full p-3 mb-6 border border-hunter bg-white rounded" value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
+                    
+                    <label className="block text-sm font-bold mb-1">Select Supplier</label>
+                    <select className="w-full p-3 mb-4 border border-hunter bg-white rounded shadow-sm" value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
                         <option value="">-- Choose Supplier --</option>
                         {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
 
-                    <div className="flex overflow-x-auto space-x-2 mb-4 pb-2">
-                        {Object.keys(inventory).map(cat => (
-                            <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-4 py-2 text-sm rounded-full border ${selectedCategory === cat ? 'bg-hunter text-parchment' : 'bg-white text-hunter border-hunter'}`}>
-                                {cat.split(' ')[0]}
-                            </button>
-                        ))}
+                    {/* NEW SEARCH BAR */}
+                    <div className="relative mb-4 shadow-sm">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span className="text-gray-400">🔍</span>
+                        </div>
+                        <input 
+                            type="text" 
+                            className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:outline-none focus:ring-2 focus:ring-antiqueGold"
+                            placeholder="Search ingredients, items..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
                     </div>
 
-                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-6 h-48 overflow-y-auto">
-                        {inventory[selectedCategory].map(item => (
-                            <div key={item} className="flex justify-between items-center py-2 border-b last:border-0">
-                                <span className="text-sm">{item}</span>
-                                <button onClick={() => addItem(item)} className="text-antiqueGold text-xl font-bold px-2">+</button>
-                            </div>
-                        ))}
+                    {/* Hide Categories if searching to keep UI clean */}
+                    {!searchTerm && (
+                        <div className="flex overflow-x-auto space-x-2 mb-4 pb-2">
+                            {Object.keys(inventory).map(cat => (
+                                <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-4 py-2 text-sm rounded-full border ${selectedCategory === cat ? 'bg-hunter text-parchment' : 'bg-white text-hunter border-hunter'}`}>
+                                    {cat.split(' ')[0]}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-6 h-64 overflow-y-auto">
+                        {displayedItems.length === 0 ? (
+                            <p className="text-gray-500 text-sm text-center py-4">No items found matching "{searchTerm}"</p>
+                        ) : (
+                            displayedItems.map(item => (
+                                <div key={item} className="flex justify-between items-center py-2 border-b last:border-0">
+                                    <span className="text-sm pr-2">{item}</span>
+                                    <button onClick={() => addItem(item)} className="text-antiqueGold text-xl font-bold px-3 hover:scale-110 transition">+</button>
+                                </div>
+                            ))
+                        )}
                     </div>
 
                     {cart.length > 0 && (
@@ -207,18 +280,18 @@
                                         <button onClick={() => removeItem(idx)} className="text-red-300 text-xs">✕</button>
                                     </div>
                                     <div className="flex items-center space-x-3">
-                                        <div className="flex items-center bg-white text-hunter rounded overflow-hidden">
-                                            <button onClick={() => updateQty(idx, -1)} className="px-3 py-1 bg-gray-200">-</button>
+                                        <div className="flex items-center bg-white text-hunter rounded overflow-hidden shadow-sm">
+                                            <button onClick={() => updateQty(idx, -1)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300">-</button>
                                             <span className="px-3 py-1 font-bold w-12 text-center">{item.qty}</span>
-                                            <button onClick={() => updateQty(idx, 1)} className="px-3 py-1 bg-gray-200">+</button>
+                                            <button onClick={() => updateQty(idx, 1)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300">+</button>
                                         </div>
-                                        <select className="text-hunter bg-white p-1 rounded w-24 text-sm" value={item.unit} onChange={(e) => updateUnit(idx, e.target.value)}>
+                                        <select className="text-hunter bg-white p-1 rounded w-24 text-sm shadow-sm" value={item.unit} onChange={(e) => updateUnit(idx, e.target.value)}>
                                             {units.map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
                                     </div>
                                 </div>
                             ))}
-                            <button onClick={handleSubmit} className="w-full mt-4 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg">
+                            <button onClick={handleSubmit} className="w-full mt-4 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg transition">
                                 Submit for Approval
                             </button>
                         </div>
@@ -263,7 +336,7 @@
                                     </div>
                                     <p className="text-sm text-gray-600 mb-3"><strong>To:</strong> {po.supplier}</p>
                                     <ul className="text-sm mb-4 bg-gray-50 p-3 rounded">
-                                        {po.items.map((item, idx) => <li key={idx} className="flex justify-between border-b pb-1 mb-1 last:border-0 last:pb-0 last:mb-0"><span>{item.name}</span><span className="font-bold">{item.qty} {item.unit}</span></li>)}
+                                        {po.items.map((item, idx) => <li key={idx} className="flex justify-between border-b pb-1 mb-1 last:border-0 last:pb-0 last:mb-0"><span className="pr-2">{item.name}</span><span className="font-bold whitespace-nowrap">{item.qty} {item.unit}</span></li>)}
                                     </ul>
                                     <div className="flex space-x-2 mt-4">
                                         <button onClick={() => onReject(po.id)} className="w-1/3 bg-red-50 text-red-700 font-bold py-3 rounded border shadow-sm hover:bg-red-100 transition">Reject</button>
