@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Caffeine Ministry - PO System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        parchment: '#fcfbf7',
+                        hunter: '#1b4332',
+                        antiqueGold: '#b8860b',
+                    },
+                    fontFamily: {
+                        serif: ['"Playfair Display"', 'serif'],
+                        sans: ['system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #fcfbf7; color: #1b4332; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- Mock Database derived from your CSVs ---
+        const SUPPLIERS = [
+            "Rare Beans Company", "Aditya Industries", "Renu Devi & Sons", 
+            "Cash Purchase", "Viman Hospitality and Entertainment Private Limited", 
+            "Neha Agencies", "Charu Marketing", "Laxmi Stores"
+        ];
+
+        const INVENTORY = {
+            "Fruits and Vegetables": ["Apple (सेव)", "Avocado (अवोकेडो)", "Iceberg Lettuce", "Mushroom (मशरुम)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)"],
+            "Coffee and Matcha": ["Full House Green (Arabica Coffee)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"],
+            "Groceries": ["Amul Butter", "Biscoff Spread", "Sunflower Oil (15 Ltr)", "Black Olive (3 Kg)", "Spagetti Pasta (Agnesi)"],
+            "Packing and Consumables": ["Brown Paper Bag (Extra Large) (16 x 12)", "Hot coffee cup cups with lids (180 ML)", "Pizza Boxes", "Printed Butter Paper Roll"]
+        };
+
+        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin"];
+
+        function App() {
+            // App State
+            const [role, setRole] = useState('staff'); // 'staff' or 'owner'
+            const [pos, setPos] = useState([]);
+            const [poCounter, setPoCounter] = useState({ month: '', count: 1 });
+
+            // Load data from localStorage on mount
+            useEffect(() => {
+                const savedPOs = JSON.parse(localStorage.getItem('tcm_pos')) || [];
+                const savedCounter = JSON.parse(localStorage.getItem('tcm_counter')) || getInitialCounter();
+                setPos(savedPOs);
+                setPoCounter(savedCounter);
+            }, []);
+
+            // Save data whenever it changes
+            useEffect(() => {
+                localStorage.setItem('tcm_pos', JSON.stringify(pos));
+                localStorage.setItem('tcm_counter', JSON.stringify(poCounter));
+            }, [pos, poCounter]);
+
+            const getInitialCounter = () => {
+                const now = new Date();
+                const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
+                return { month: monthYear, count: 1 };
+            };
+
+            const generatePONumber = () => {
+                const now = new Date();
+                const currentMonthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
+                
+                let newCount = poCounter.count;
+                if (poCounter.month !== currentMonthYear) {
+                    newCount = 1; // Month changed, reset sequence
+                }
+                
+                const paddedCount = String(newCount).padStart(3, '0');
+                const newPoNumber = `TCM/${currentMonthYear}/${paddedCount}`;
+                
+                // Update counter for next time
+                setPoCounter({ month: currentMonthYear, count: newCount + 1 });
+                
+                return newPoNumber;
+            };
+
+            const submitDraftPO = (supplier, items) => {
+                const newPo = {
+                    id: generatePONumber(), 
+                    supplier,
+                    items,
+                    status: 'Pending',
+                    date: new Date().toLocaleDateString('en-GB')
+                };
+                setPos([newPo, ...pos]);
+                alert('Purchase Order submitted for Owner approval!');
+            };
+
+            const approvePO = (poId) => {
+                const updatedPOs = pos.map(po => {
+                    if (po.id === poId) {
+                        return { ...po, status: 'Approved' };
+                    }
+                    return po;
+                });
+                setPos(updatedPOs);
+                
+                // Trigger WhatsApp
+                const approvedPO = updatedPOs.find(p => p.id === poId);
+                sendWhatsApp(approvedPO);
+            };
+
+            // UPDATED FUNCTION: Reject PO with Reason
+            const rejectPO = (poId) => {
+                const reason = window.prompt("Reason for rejection (optional, but helpful for staff):");
+                
+                // If user clicks cancel, reason is null, so we abort.
+                if(reason !== null) {
+                    const updatedPOs = pos.map(po => {
+                        if (po.id === poId) {
+                            return { 
+                                ...po, 
+                                status: 'Rejected', 
+                                rejectReason: reason.trim() === "" ? "No specific reason provided." : reason 
+                            };
+                        }
+                        return po;
+                    });
+                    setPos(updatedPOs);
+                }
+            };
+
+            const sendWhatsApp = (po) => {
+                if(po.supplier === "Cash Purchase") {
+                    alert("Internal Cash Purchase approved. No WhatsApp message sent.");
+                    return;
+                }
+
+                const itemList = po.items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
+                
+                const message = `*Subject:* New Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nPlease confirm receipt of this order.\n\nThank you,\nTeam Caffeine Ministry`;
+
+                const encodedMessage = encodeURIComponent(message);
+                window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+            };
+
+            return (
+                <div className="min-h-screen bg-parchment pb-20">
+                    <header className="bg-hunter text-parchment p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
+                        <div>
+                            <h1 className="text-2xl font-serif font-bold tracking-wide">The Caffeine Ministry</h1>
+                            <p className="text-xs text-antiqueGold uppercase tracking-widest font-sans">Purchase Orders</p>
+                        </div>
+                        <button 
+                            onClick={() => setRole(role === 'staff' ? 'owner' : 'staff')}
+                            className="bg-antiqueGold text-hunter text-sm font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition"
+                        >
+                            Switch to {role === 'staff' ? 'Owner' : 'Staff'}
+                        </button>
+                    </header>
+
+                    <main className="max-w-md mx-auto mt-6 px-4">
+                        {role === 'staff' ? (
+                            <StaffView suppliers={SUPPLIERS} inventory={INVENTORY} units={UNITS} onSubmit={submitDraftPO} pos={pos} />
+                        ) : (
+                            <OwnerView pos={pos} onApprove={approvePO} onReject={rejectPO} />
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        // --- STAFF COMPONENT ---
+        function StaffView({ suppliers, inventory, units, onSubmit, pos }) {
+            const [selectedSupplier, setSelectedSupplier] = useState('');
+            const [cart, setCart] = useState([]);
+            const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
+
+            const addItem = (item) => {
+                if (!cart.find(i => i.name === item)) {
+                    setCart([...cart, { name: item, qty: 1, unit: 'Kg' }]);
+                }
+            };
+
+            const updateQty = (index, delta) => {
+                const newCart = [...cart];
+                newCart[index].qty = Math.max(1, newCart[index].qty + delta);
+                setCart(newCart);
+            };
+
+            const updateUnit = (index, unit) => {
+                const newCart = [...cart];
+                newCart[index].unit = unit;
+                setCart(newCart);
+            };
+
+            const removeItem = (index) => {
+                setCart(cart.filter((_, i) => i !== index));
+            };
+
+            const handleSubmit = () => {
+                if (!selectedSupplier) return alert('Please select a supplier.');
+                if (cart.length === 0) return alert('Cart is empty.');
+                onSubmit(selectedSupplier, cart);
+                setCart([]);
+                setSelectedSupplier('');
+            };
+
+            return (
+                <div className="animate-fade-in">
+                    <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Draft New Order</h2>
+                    
+                    <label className="block text-sm font-bold mb-1">Select Supplier</label>
+                    <select 
+                        className="w-full p-3 mb-6 border border-hunter bg-white rounded shadow-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold"
+                        value={selectedSupplier} 
+                        onChange={e => setSelectedSupplier(e.target.value)}
+                    >
+                        <option value="">-- Choose Supplier --</option>
+                        {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+
+                    <div className="flex overflow-x-auto space-x-2 mb-4 pb-2">
+                        {Object.keys(inventory).map(cat => (
+                            <button 
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={`whitespace-nowrap px-4 py-2 text-sm rounded-full border ${selectedCategory === cat ? 'bg-hunter text-parchment' : 'bg-white text-hunter border-hunter'}`}
+                            >
+                                {cat.split(' ')[0]}
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-6 h-48 overflow-y-auto">
+                        {inventory[selectedCategory].map(item => (
+                            <div key={item} className="flex justify-between items-center py-2 border-b last:border-0">
+                                <span className="text-sm">{item}</span>
+                                <button onClick={() => addItem(item)} className="text-antiqueGold text-xl font-bold px-2">+</button>
+                            </div>
+                        ))}
+                    </div>
+
+                    {cart.length > 0 && (
+                        <div className="bg-hunter text-parchment rounded-lg p-4 shadow-md mb-6">
+                            <h3 className="font-serif font-bold text-lg mb-3">Order Cart</h3>
+                            {cart.map((item, idx) => (
+                                <div key={idx} className="flex flex-col mb-3 bg-white/10 p-2 rounded">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-sm font-semibold">{item.name}</span>
+                                        <button onClick={() => removeItem(idx)} className="text-red-300 text-xs">✕</button>
+                                    </div>
+                                    <div className="flex items-center space-x-3">
+                                        <div className="flex items-center bg-white text-hunter rounded overflow-hidden">
+                                            <button onClick={() => updateQty(idx, -1)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300">-</button>
+                                            <span className="px-3 py-1 font-bold w-12 text-center">{item.qty}</span>
+                                            <button onClick={() => updateQty(idx, 1)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300">+</button>
+                                        </div>
+                                        <select 
+                                            className="text-hunter bg-white p-1 rounded w-24 text-sm"
+                                            value={item.unit}
+                                            onChange={(e) => updateUnit(idx, e.target.value)}
+                                        >
+                                            {units.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                            ))}
+                            <button onClick={handleSubmit} className="w-full mt-4 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 transition shadow-lg">
+                                Submit for Approval
+                            </button>
+                        </div>
+                    )}
+
+                    {/* NEW SECTION: Staff View of PO Statuses */}
+                    <div className="mt-8 pt-4 border-t border-gray-300">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Orders Status</h3>
+                        {pos.length === 0 ? (
+                            <p className="text-sm text-gray-500 italic">No orders submitted yet.</p>
+                        ) : (
+                            pos.slice(0, 5).map(po => (
+                                <div key={po.id} className={`bg-white p-3 rounded shadow-sm mb-2 border-l-4 ${po.status === 'Rejected' ? 'border-red-500' : po.status === 'Approved' ? 'border-green-500' : 'border-yellow-500'}`}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="font-bold text-sm">{po.id}</p>
+                                        <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                                            {po.status}
+                                        </span>
+                                    </div>
+                                    <p className="text-xs text-gray-500">{po.supplier}</p>
+                                    
+                                    {/* Display Rejection Reason to Staff */}
+                                    {po.status === 'Rejected' && po.rejectReason && (
+                                        <p className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">
+                                            <strong>Note from Owner:</strong> {po.rejectReason}
+                                        </p>
+                                    )}
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- OWNER COMPONENT ---
+        function OwnerView({ pos, onApprove, onReject }) {
+            const pendingPOs = pos.filter(po => po.status === 'Pending');
+            const historyPOs = pos.filter(po => po.status !== 'Pending');
+
+            return (
+                <div className="animate-fade-in">
+                    <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Owner Dashboard</h2>
+                    
+                    <div className="mb-8">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Approvals ({pendingPOs.length})</h3>
+                        {pendingPOs.length === 0 ? (
+                            <div className="bg-white p-6 rounded text-center border border-gray-200 shadow-sm text-gray-500 italic">
+                                ☕ Brewster says: All caught up! No pending orders.
+                            </div>
+                        ) : (
+                            pendingPOs.map(po => (
+                                <div key={po.id} className="bg-white rounded-lg shadow-md border border-hunter/20 p-4 mb-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="font-bold text-hunter">{po.id}</span>
+                                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending</span>
+                                    </div>
+                                    <p className="text-sm text-gray-600 mb-3"><strong>To:</strong> {po.supplier}</p>
+                                    <ul className="text-sm mb-4 space-y-1 bg-gray-50 p-3 rounded">
+                                        {po.items.map((item, idx) => (
+                                            <li key={idx} className="flex justify-between border-b border-gray-200 pb-1 last:border-0 last:pb-0">
+                                                <span>{item.name}</span>
+                                                <span className="font-bold">{item.qty} {item.unit}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                    
+                                    <div className="flex space-x-2 mt-4">
+                                        <button 
+                                            onClick={() => onReject(po.id)}
+                                            className="w-1/3 bg-red-50 text-red-700 font-bold py-3 rounded flex justify-center items-center shadow-sm hover:bg-red-100 border border-red-200 transition"
+                                        >
+                                            Reject
+                                        </button>
+                                        <button 
+                                            onClick={() => onApprove(po.id)}
+                                            className="w-2/3 bg-hunter text-parchment font-bold py-3 rounded flex justify-center items-center shadow-md hover:bg-green-900 transition"
+                                        >
+                                            Approve & Send
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+
+                    <div>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent History</h3>
+                        {historyPOs.slice(0, 5).map(po => (
+                            <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 ${po.status === 'Rejected' ? 'border-red-500' : 'border-hunter'}`}>
+                                <div className="flex justify-between items-center mb-1">
+                                    <div>
+                                        <p className="font-bold text-sm">{po.id}</p>
+                                        <p className="text-xs text-gray-500">{po.supplier}</p>
+                                    </div>
+                                    <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                                        {po.status}
+                                    </span>
+                                </div>
+                                
+                                {/* Display Rejection Reason to Owner */}
+                                {po.status === 'Rejected' && po.rejectReason && (
+                                    <p className="text-xs text-red-600 mt-2 italic bg-red-50 p-2 rounded">
+                                        Reason: {po.rejectReason}
+                                    </p>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
