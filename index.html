@@ -38,7 +38,6 @@
             "Neha Agencies", "Charu Marketing", "Laxmi Stores"
         ];
 
-        // FULL INVENTORY IMPORTED FROM EXCEL SHEETS
         const INVENTORY = {
             "Fruits and Vegetables": [
                 "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", 
@@ -145,6 +144,23 @@
                 }
             };
 
+            // NEW: Function to mark PO as Delivered with received quantities
+            const receivePO = (poId, receivedItemsData) => {
+                const updatedPOs = pos.map(po => {
+                    if (po.id === poId) {
+                        return { 
+                            ...po, 
+                            status: 'Delivered', 
+                            receivedItems: receivedItemsData,
+                            deliveryDate: new Date().toLocaleDateString('en-GB')
+                        };
+                    }
+                    return po;
+                });
+                setPos(updatedPOs);
+                alert('Delivery confirmed and saved to history!');
+            };
+
             const sendWhatsApp = (po) => {
                 if(po.supplier === "Cash Purchase") {
                     alert("Internal Cash Purchase approved. No WhatsApp message sent.");
@@ -158,7 +174,7 @@
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN to access dashboard:");
-                    if (pin === "1701") { 
+                    if (pin === "1234") { 
                         setRole('owner');
                     } else if (pin !== null) {
                         alert("Incorrect PIN. Access Denied.");
@@ -181,7 +197,7 @@
                     </header>
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
-                            <StaffView suppliers={SUPPLIERS} inventory={INVENTORY} units={UNITS} onSubmit={submitDraftPO} pos={pos} /> : 
+                            <StaffView suppliers={SUPPLIERS} inventory={INVENTORY} units={UNITS} onSubmit={submitDraftPO} pos={pos} onReceive={receivePO} /> : 
                             <OwnerView pos={pos} onApprove={approvePO} onReject={rejectPO} onDelete={deletePO} />
                         }
                     </main>
@@ -189,13 +205,15 @@
             );
         }
 
-        function StaffView({ suppliers, inventory, units, onSubmit, pos }) {
+        function StaffView({ suppliers, inventory, units, onSubmit, pos, onReceive }) {
             const [selectedSupplier, setSelectedSupplier] = useState('');
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
-            
-            // NEW: Search State
             const [searchTerm, setSearchTerm] = useState('');
+            
+            // NEW: State for the Receiving Checklist Modal
+            const [receivingPO, setReceivingPO] = useState(null);
+            const [receivedQuantities, setReceivedQuantities] = useState({});
 
             const addItem = (item) => { if (!cart.find(i => i.name === item)) setCart([...cart, { name: item, qty: 1, unit: 'Kg' }]); };
             const updateQty = (index, delta) => { const newCart = [...cart]; newCart[index].qty = Math.max(1, newCart[index].qty + delta); setCart(newCart); };
@@ -209,21 +227,100 @@
                 setCart([]); setSelectedSupplier(''); setSearchTerm('');
             };
 
-            // SEARCH LOGIC
+            // NEW: Open the receiving modal and pre-fill with expected quantities
+            const openReceiveScreen = (po) => {
+                setReceivingPO(po);
+                const initialQty = {};
+                po.items.forEach((item, idx) => { initialQty[idx] = item.qty; });
+                setReceivedQuantities(initialQty);
+            };
+
+            const updateReceivedQty = (idx, value) => {
+                setReceivedQuantities({ ...receivedQuantities, [idx]: Number(value) });
+            };
+
+            const submitReceive = () => {
+                const receivedItemsData = receivingPO.items.map((item, idx) => ({
+                    ...item,
+                    receivedQty: receivedQuantities[idx]
+                }));
+                onReceive(receivingPO.id, receivedItemsData);
+                setReceivingPO(null); // Close modal
+            };
+
             let displayedItems = [];
             if (searchTerm.trim() !== '') {
-                // If searching, combine all items and filter by search term
                 const allItemNames = Object.values(inventory).flat();
-                displayedItems = [...new Set(allItemNames)].filter(item => 
-                    item.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+                displayedItems = [...new Set(allItemNames)].filter(item => item.toLowerCase().includes(searchTerm.toLowerCase()));
             } else {
-                // Otherwise, show selected category
                 displayedItems = inventory[selectedCategory];
+            }
+
+            const incomingPOs = pos.filter(po => po.status === 'Approved');
+
+            // If a PO is actively being received, show the checklist screen instead of the draft screen
+            if (receivingPO) {
+                return (
+                    <div className="animate-fade-in bg-white p-4 rounded-lg shadow-md border-t-4 border-hunter">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-serif font-bold text-hunter">Delivery Intake</h2>
+                            <button onClick={() => setReceivingPO(null)} className="text-red-500 font-bold">Cancel</button>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2"><strong>PO:</strong> {receivingPO.id}</p>
+                        <p className="text-sm text-gray-600 mb-4"><strong>Vendor:</strong> {receivingPO.supplier}</p>
+                        
+                        <div className="bg-gray-50 p-3 rounded mb-6 max-h-80 overflow-y-auto">
+                            <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-2 border-b pb-2">
+                                <span className="w-1/2">Item Name</span>
+                                <span className="w-1/4 text-center">Ordered</span>
+                                <span className="w-1/4 text-center">Received</span>
+                            </div>
+                            {receivingPO.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between items-center border-b py-3 last:border-0">
+                                    <span className="text-sm w-1/2 pr-2">{item.name}</span>
+                                    <span className="text-sm text-center w-1/4 text-gray-500">{item.qty} {item.unit}</span>
+                                    <div className="w-1/4 flex justify-center">
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            className="w-16 border border-hunter rounded p-1 text-center font-bold"
+                                            value={receivedQuantities[idx]}
+                                            onChange={(e) => updateReceivedQty(idx, e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">
+                            Confirm Delivery
+                        </button>
+                    </div>
+                );
             }
 
             return (
                 <div className="animate-fade-in">
+                    
+                    {/* NEW SECTION: Incoming Deliveries */}
+                    {incomingPOs.length > 0 && (
+                        <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">
+                                🚚 Incoming Deliveries
+                            </h3>
+                            {incomingPOs.map(po => (
+                                <div key={po.id} className="bg-white p-3 rounded shadow-sm mb-2 border-l-4 border-blue-500 flex justify-between items-center">
+                                    <div>
+                                        <p className="font-bold text-sm">{po.id}</p>
+                                        <p className="text-xs text-gray-600">{po.supplier}</p>
+                                    </div>
+                                    <button onClick={() => openReceiveScreen(po)} className="bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded hover:bg-blue-700 shadow-sm">
+                                        Receive
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Draft New Order</h2>
                     
                     <label className="block text-sm font-bold mb-1">Select Supplier</label>
@@ -232,21 +329,11 @@
                         {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
 
-                    {/* NEW SEARCH BAR */}
                     <div className="relative mb-4 shadow-sm">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span className="text-gray-400">🔍</span>
-                        </div>
-                        <input 
-                            type="text" 
-                            className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:outline-none focus:ring-2 focus:ring-antiqueGold"
-                            placeholder="Search ingredients, items..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">🔍</span></div>
+                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
                     </div>
 
-                    {/* Hide Categories if searching to keep UI clean */}
                     {!searchTerm && (
                         <div className="flex overflow-x-auto space-x-2 mb-4 pb-2">
                             {Object.keys(inventory).map(cat => (
@@ -258,16 +345,14 @@
                     )}
 
                     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-6 h-64 overflow-y-auto">
-                        {displayedItems.length === 0 ? (
-                            <p className="text-gray-500 text-sm text-center py-4">No items found matching "{searchTerm}"</p>
-                        ) : (
+                        {displayedItems.length === 0 ? <p className="text-gray-500 text-sm text-center py-4">No items found</p> : 
                             displayedItems.map(item => (
                                 <div key={item} className="flex justify-between items-center py-2 border-b last:border-0">
                                     <span className="text-sm pr-2">{item}</span>
                                     <button onClick={() => addItem(item)} className="text-antiqueGold text-xl font-bold px-3 hover:scale-110 transition">+</button>
                                 </div>
                             ))
-                        )}
+                        }
                     </div>
 
                     {cart.length > 0 && (
@@ -301,10 +386,10 @@
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Orders Status</h3>
                         {pos.length === 0 ? <p className="text-sm text-gray-500 italic">No orders submitted yet.</p> : 
                             pos.slice(0, 5).map(po => (
-                                <div key={po.id} className={`bg-white p-3 rounded shadow-sm mb-2 border-l-4 ${po.status === 'Rejected' ? 'border-red-500' : po.status === 'Approved' ? 'border-green-500' : 'border-yellow-500'}`}>
+                                <div key={po.id} className={`bg-white p-3 rounded shadow-sm mb-2 border-l-4 ${po.status === 'Rejected' ? 'border-red-500' : po.status === 'Approved' ? 'border-blue-500' : po.status === 'Delivered' ? 'border-green-500' : 'border-yellow-500'}`}>
                                     <div className="flex justify-between items-center mb-1">
                                         <p className="font-bold text-sm">{po.id}</p>
-                                        <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{po.status}</span>
+                                        <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Approved' ? 'bg-blue-100 text-blue-800' : po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{po.status}</span>
                                     </div>
                                     <p className="text-xs text-gray-500">{po.supplier}</p>
                                     {po.status === 'Rejected' && po.rejectReason && <p className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded"><strong>Note:</strong> {po.rejectReason}</p>}
@@ -350,13 +435,33 @@
                     <div>
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent History</h3>
                         {historyPOs.map(po => (
-                            <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Rejected' ? 'border-red-500' : 'border-hunter'}`}>
+                            <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Rejected' ? 'border-red-500' : po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
                                 <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg" title="Delete PO">🗑️</button>
                                 <div className="flex justify-between items-center mb-1 pr-6">
                                     <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-500">{po.supplier}</p></div>
-                                    <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>{po.status}</span>
+                                    <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{po.status}</span>
                                 </div>
                                 {po.status === 'Rejected' && po.rejectReason && <p className="text-xs text-red-600 mt-2 italic bg-red-50 p-2 rounded">Reason: {po.rejectReason}</p>}
+                                
+                                {/* NEW: Owner View of Delivery Variances */}
+                                {po.status === 'Delivered' && po.receivedItems && (
+                                    <div className="mt-2 border-t pt-2">
+                                        <p className="text-xs font-bold text-gray-600 mb-1">Receipt Details ({po.deliveryDate}):</p>
+                                        <ul className="text-xs space-y-1">
+                                            {po.receivedItems.map((item, idx) => {
+                                                const hasVariance = item.qty !== item.receivedQty;
+                                                return (
+                                                    <li key={idx} className={`flex justify-between p-1 rounded ${hasVariance ? 'bg-red-50 text-red-700 font-bold' : 'text-gray-500'}`}>
+                                                        <span className="truncate pr-2">{item.name}</span>
+                                                        <span className="whitespace-nowrap">
+                                                            {hasVariance ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}
+                                                        </span>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
