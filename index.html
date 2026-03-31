@@ -49,13 +49,12 @@
             measurementId: "G-PLG3WH801B"
         };
         
-        // Initialize Firebase only if it hasn't been already
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.firestore();
 
-        // --- DEFAULT DATA (Only used on very first load) ---
+        // --- DEFAULT DATA ---
         const DEFAULT_SUPPLIERS = [
             { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" },
             { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" },
@@ -104,7 +103,6 @@
                         });
                     }
 
-                    // 1. Listen to Settings (Inventory, Vendors, Counter)
                     unsubSettings = settingsRef.onSnapshot(doc => {
                         if (doc.exists) {
                             const data = doc.data();
@@ -115,14 +113,12 @@
                         }
                     });
 
-                    // 2. Listen to Master Requests
                     unsubReqs = db.collection('requests').onSnapshot(snap => {
                         const reqData = [];
                         snap.forEach(d => reqData.push(d.data()));
-                        setRequests(reqData.sort((a,b) => b.id.localeCompare(a.id))); // Sort newest first
+                        setRequests(reqData.sort((a,b) => b.id.localeCompare(a.id))); 
                     });
 
-                    // 3. Listen to Official POs
                     unsubPOs = db.collection('pos').onSnapshot(snap => {
                         const poData = [];
                         snap.forEach(d => poData.push(d.data()));
@@ -133,7 +129,6 @@
                 };
 
                 initializeDB();
-
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); };
             }, []);
 
@@ -144,7 +139,6 @@
                 if (poCounter.month !== currentMonthYear) { newCount = 1; }
                 const paddedCount = String(newCount).padStart(3, '0');
                 
-                // Update Cloud Counter instantly
                 db.collection('settings').doc('main').update({
                     poCounter: { month: currentMonthYear, count: newCount + 1 }
                 });
@@ -152,15 +146,11 @@
                 return `TCM/${currentMonthYear}/${paddedCount}`;
             };
 
-            // STAFF LOGIC
             const submitMasterRequest = (items) => {
                 const reqId = 'REQ-' + Math.floor(1000 + Math.random() * 9000);
                 const newReq = { id: reqId, items, date: new Date().toLocaleDateString('en-GB') };
-                
-                // Save to Cloud
                 db.collection('requests').doc(reqId).set(newReq);
                 
-                // WhatsApp Alert to Owner
                 if (ownerPhone && ownerPhone.trim() !== '') {
                     const itemList = items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
                     const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list for your approval and vendor assignment.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM App Dashboard.`;
@@ -181,30 +171,51 @@
                 alert('Delivery confirmed in database!');
             };
 
-            // OWNER LOGIC
-            const processRequestToPO = (reqId, selectedIndices, supplierObj) => {
-                const req = requests.find(r => r.id === reqId);
-                const poItems = req.items.filter((_, idx) => selectedIndices.includes(idx));
-                const remainingItems = req.items.filter((_, idx) => !selectedIndices.includes(idx));
-                
+            // NEW: Unified PO Generator from Selected Items across multiple requests
+            const createCombinedPO = (selectedItems, vendorObj) => {
                 const newPo = {
                     id: generatePONumber(),
-                    supplier: supplierObj.name,
-                    supplierPhone: supplierObj.phone,
-                    items: poItems,
+                    supplier: vendorObj.name,
+                    supplierPhone: vendorObj.phone,
                     status: 'Approved',
                     date: new Date().toLocaleDateString('en-GB')
                 };
-                
+
+                // Auto-Combine Duplicate Items
+                const combinedItems = [];
+                selectedItems.forEach(si => {
+                    const item = si.item;
+                    const existing = combinedItems.find(i => i.name === item.name && i.unit === item.unit);
+                    if (existing) {
+                        existing.qty = Number(existing.qty) + Number(item.qty);
+                    } else {
+                        combinedItems.push({...item, qty: Number(item.qty)});
+                    }
+                });
+                newPo.items = combinedItems;
+
                 // Save PO to cloud
                 db.collection('pos').doc(newPo.id).set(newPo);
 
-                // Update Request in cloud
-                if (remainingItems.length === 0) {
-                    db.collection('requests').doc(reqId).delete();
-                } else {
-                    db.collection('requests').doc(reqId).update({ items: remainingItems });
-                }
+                // Determine which requests need to be updated or deleted
+                const reqsToUpdate = {};
+                selectedItems.forEach(si => {
+                    if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = [];
+                    reqsToUpdate[si.reqId].push(si.itemIndex);
+                });
+
+                Object.keys(reqsToUpdate).forEach(reqId => {
+                    const req = requests.find(r => r.id === reqId);
+                    if (req) {
+                        const indicesToRemove = reqsToUpdate[reqId];
+                        const remaining = req.items.filter((_, idx) => !indicesToRemove.includes(idx));
+                        if (remaining.length === 0) {
+                            db.collection('requests').doc(reqId).delete();
+                        } else {
+                            db.collection('requests').doc(reqId).update({ items: remaining });
+                        }
+                    }
+                });
 
                 sendWhatsApp(newPo);
             };
@@ -267,8 +278,8 @@
             }
 
             return (
-                <div className="min-h-screen bg-parchment pb-20">
-                    <header className="bg-hunter text-parchment p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
+                <div className="min-h-screen bg-parchment pb-24">
+                    <header className="bg-hunter text-parchment p-4 shadow-md sticky top-0 z-40 flex justify-between items-center">
                         <div>
                             <h1 className="text-2xl font-serif font-bold tracking-wide">The Caffeine Ministry</h1>
                             <p className="text-xs text-antiqueGold uppercase tracking-widest font-sans">Purchase Orders</p>
@@ -280,14 +291,14 @@
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
                             <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} requests={requests} pos={pos} onReceive={receivePO} /> : 
-                            <OwnerView requests={requests} pos={pos} onProcessRequest={processRequestToPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} ownerPhone={ownerPhone} />
+                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} ownerPhone={ownerPhone} />
                         }
                     </main>
                 </div>
             );
         }
 
-        // --- STAFF VIEW ---
+        // --- STAFF VIEW (UNCHANGED) ---
         function StaffView({ inventory, units, onSubmit, requests, pos, onReceive }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
@@ -413,7 +424,7 @@
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Build Master Request List</h2>
                     <div className="relative mb-4 shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">🔍</span></div>
-                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:ring-2 focus:ring-antiqueGold focus:outline-none" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:outline-none focus:ring-2 focus:ring-antiqueGold" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
                     </div>
 
                     {!searchTerm && (
@@ -446,7 +457,7 @@
                                         <span className="text-sm font-semibold">{item.name}</span>
                                         <span className="text-xs text-antiqueGold font-bold">{item.qty} {item.unit}</span>
                                     </div>
-                                    <button onClick={() => removeItem(idx)} className="text-red-300 text-xs font-bold bg-white/10 px-2 py-1 rounded hover:bg-white/20">Remove</button>
+                                    <button onClick={() => removeItem(idx)} className="text-red-300 text-xs font-bold bg-white/10 px-2 py-1 rounded">Remove</button>
                                 </div>
                             ))}
                             <button onClick={handleSubmit} className="w-full mt-2 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg">
@@ -458,68 +469,38 @@
             );
         }
 
-        // --- OWNER VIEW COMPONENT ---
-        function OwnerRequestCard({ req, suppliers, onCreatePO, onRemoveItem }) {
-            const [selectedIndices, setSelectedIndices] = useState([]);
-            const [selectedVendor, setSelectedVendor] = useState('');
-
-            const handleCheck = (idx) => {
-                if (selectedIndices.includes(idx)) setSelectedIndices(selectedIndices.filter(i => i !== idx));
-                else setSelectedIndices([...selectedIndices, idx]);
-            };
-
-            const handleCreate = () => {
-                if (selectedIndices.length === 0) return alert('Check the box next to at least one item.');
-                if (!selectedVendor) return alert('Please select a vendor.');
-                const vendorObj = suppliers.find(s => s.name === selectedVendor);
-                onCreatePO(req.id, selectedIndices, vendorObj);
-                setSelectedIndices([]); setSelectedVendor('');
-            };
-
-            return (
-                <div className="bg-white rounded-lg shadow-md border border-yellow-400 p-4 mb-5 relative">
-                    <div className="flex justify-between items-center mb-3">
-                        <span className="font-bold text-hunter text-lg">{req.id}</span>
-                        <span className="text-xs text-gray-500">{req.date}</span>
-                    </div>
-                    <p className="text-xs font-bold text-yellow-800 bg-yellow-50 p-2 rounded mb-3 border border-yellow-200">
-                        Step 1: Check items to group for ONE vendor.
-                    </p>
-                    <div className="bg-gray-50 p-2 rounded mb-4 max-h-64 overflow-y-auto border border-gray-200">
-                        {req.items.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
-                                <label className="flex items-center space-x-3 cursor-pointer w-[85%]">
-                                    <input type="checkbox" checked={selectedIndices.includes(idx)} onChange={() => handleCheck(idx)} className="w-5 h-5 text-hunter rounded" />
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-hunter leading-tight">{item.name}</span>
-                                        <span className="text-xs text-gray-600">{item.qty} {item.unit}</span>
-                                    </div>
-                                </label>
-                                <button onClick={() => onRemoveItem(req.id, idx)} className="text-red-400 hover:text-red-600 text-sm font-bold bg-white px-2 py-1 rounded shadow-sm border border-red-100">✕</button>
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex flex-col space-y-3">
-                        <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-3 border border-hunter rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-antiqueGold">
-                            <option value="">-- Step 2: Choose Vendor --</option>
-                            {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
-                        </select>
-                        <button onClick={handleCreate} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900">
-                            Step 3: Generate PO & WhatsApp
-                        </button>
-                    </div>
-                </div>
-            );
-        }
-
-        function OwnerView({ requests, pos, onProcessRequest, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, ownerPhone }) {
+        // --- NEW OWNER VIEW ---
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, ownerPhone }) {
             const historyPOs = pos.filter(po => po.status !== 'Pending');
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
-            
             const [localPhone, setLocalPhone] = useState(ownerPhone);
 
-            const savePhoneToCloud = () => {
-                db.collection('settings').doc('main').update({ ownerPhone: localPhone });
+            // GLOBAL OWNER CART
+            const [selectedItems, setSelectedItems] = useState([]); // stores { reqId, itemIndex, item }
+            const [selectedVendor, setSelectedVendor] = useState('');
+
+            const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
+
+            // Toggle Checkbox logic across all requests
+            const handleCheck = (reqId, itemIndex, item) => {
+                const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex);
+                if (isSelected) {
+                    setSelectedItems(selectedItems.filter(i => !(i.reqId === reqId && i.itemIndex === itemIndex)));
+                } else {
+                    setSelectedItems([...selectedItems, { reqId, itemIndex, item }]);
+                }
+            };
+
+            const handleGeneratePO = () => {
+                if (selectedItems.length === 0) return alert('Check the box next to at least one item.');
+                if (!selectedVendor) return alert('Please select a vendor from the dropdown below.');
+                const vendorObj = suppliers.find(s => s.name === selectedVendor);
+                
+                onCreateCombinedPO(selectedItems, vendorObj);
+                
+                // Clear the staging area
+                setSelectedItems([]); 
+                setSelectedVendor('');
             };
 
             const handleAddInventoryItem = () => {
@@ -549,21 +530,14 @@
             };
 
             return (
-                <div className="animate-fade-in">
+                <div className="animate-fade-in relative">
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Owner Dashboard</h2>
                     
+                    {/* Settings & DB Management collapsed for space... */}
                     <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
                         <h3 className="font-bold text-hunter text-sm uppercase tracking-widest mb-2 border-b pb-2">Owner Settings</h3>
                         <label className="block text-xs font-bold text-gray-500 mb-1">Your WhatsApp Number (For Staff Alerts)</label>
-                        <input
-                            type="text"
-                            className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50"
-                            placeholder="e.g. 9876543210"
-                            value={localPhone}
-                            onChange={e => setLocalPhone(e.target.value)}
-                            onBlur={savePhoneToCloud}
-                        />
-                        <p className="text-[10px] text-gray-400 mt-1">Staff devices will automatically text this number when a list is submitted.</p>
+                        <input type="text" className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
                     </div>
 
                     <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
@@ -579,7 +553,7 @@
                                 <span className="text-sm font-bold text-gray-700">Inventory Database</span>
                                 <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900 transition">+ Add Item</button>
                             </div>
-                            <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50">
+                            <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm bg-gray-50">
                                 {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
                             <div className="bg-gray-50 border border-gray-200 rounded max-h-48 overflow-y-auto">
@@ -587,8 +561,8 @@
                                     <div key={item} className="flex justify-between items-center p-2 border-b border-gray-200 last:border-0 hover:bg-gray-100">
                                         <span className="text-xs text-gray-800 truncate pr-2 w-3/4">{item}</span>
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500 hover:text-blue-700">✏️</button>
-                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500 hover:text-red-700">🗑️</button>
+                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500">✏️</button>
+                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500">🗑️</button>
                                         </div>
                                     </div>
                                 ))}
@@ -596,13 +570,43 @@
                         </div>
                     </div>
 
-                    <div className="mb-8">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests ({requests.length})</h3>
+                    {/* THE NEW MASTER REQUEST POOL */}
+                    <div className="mb-12">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests</h3>
+                        <p className="text-xs text-gray-500 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
+                            <strong>Combine Feature:</strong> Check items across ANY request below. Duplicates will auto-sum into a single line item on the final PO!
+                        </p>
+                        
                         {requests.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">☕ All caught up! No pending staff requests.</div> : 
-                            requests.map(req => <OwnerRequestCard key={req.id} req={req} suppliers={suppliers} onCreatePO={onProcessRequest} onRemoveItem={onRemoveRequestItem} />)
+                            requests.map(req => (
+                                <div key={req.id} className="bg-white rounded-lg shadow-sm border border-yellow-400 mb-4">
+                                    <div className="bg-yellow-100 px-4 py-2 flex justify-between items-center rounded-t-lg border-b border-yellow-300">
+                                        <span className="font-bold text-hunter text-sm">{req.id}</span>
+                                        <span className="text-xs text-yellow-800 font-bold">{req.date}</span>
+                                    </div>
+                                    <div className="p-2">
+                                        {req.items.map((item, idx) => {
+                                            const isChecked = selectedItems.some(i => i.reqId === req.id && i.itemIndex === idx);
+                                            return (
+                                                <div key={idx} className={`flex items-center justify-between border-b border-gray-100 pb-2 pt-2 last:border-0 px-2 rounded ${isChecked ? 'bg-green-50' : ''}`}>
+                                                    <label className="flex items-center space-x-3 cursor-pointer w-[85%]">
+                                                        <input type="checkbox" checked={isChecked} onChange={() => handleCheck(req.id, idx, item)} className="w-5 h-5 text-hunter rounded" />
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold text-hunter leading-tight">{item.name}</span>
+                                                            <span className="text-xs text-gray-600">{item.qty} {item.unit}</span>
+                                                        </div>
+                                                    </label>
+                                                    <button onClick={() => onRemoveRequestItem(req.id, idx)} className="text-red-400 hover:text-red-600 text-xs font-bold px-2 py-1 bg-white rounded shadow-sm border border-red-100">Del</button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))
                         }
                     </div>
 
+                    {/* History */}
                     <div>
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Official POs</h3>
                         {historyPOs.map(po => (
@@ -633,6 +637,27 @@
                             </div>
                         ))}
                     </div>
+
+                    {/* STICKY BOTTOM BAR FOR PO GENERATION */}
+                    {selectedItems.length > 0 && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-hunter shadow-[0_-5px_15px_rgba(0,0,0,0.15)] p-4 z-50 animate-fade-in">
+                            <div className="max-w-md mx-auto flex flex-col space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold text-hunter bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs">
+                                        {selectedItems.length} items staged for combined PO
+                                    </span>
+                                    <button onClick={() => setSelectedItems([])} className="text-xs text-red-500 font-bold hover:underline">Clear Selection</button>
+                                </div>
+                                <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-3 border border-hunter rounded text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-antiqueGold">
+                                    <option value="">-- Choose Vendor Directory --</option>
+                                    {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
+                                </select>
+                                <button onClick={handleGeneratePO} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">
+                                    Generate Combined PO & Send
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
