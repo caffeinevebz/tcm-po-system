@@ -54,7 +54,7 @@
         }
         const db = firebase.firestore();
 
-        // --- DEFAULT DATA (Only used on very first load to populate cloud) ---
+        // --- DEFAULT DATA ---
         const DEFAULT_SUPPLIERS = [
             { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" },
             { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" },
@@ -103,7 +103,6 @@
                         });
                     }
 
-                    // 1. Listen to Settings 
                     unsubSettings = settingsRef.onSnapshot(doc => {
                         if (doc.exists) {
                             const data = doc.data();
@@ -114,18 +113,16 @@
                         }
                     });
 
-                    // 2. Listen to Master Requests
                     unsubReqs = db.collection('requests').onSnapshot(snap => {
                         const reqData = [];
                         snap.forEach(d => reqData.push(d.data()));
-                        setRequests(reqData.sort((a,b) => b.id.localeCompare(a.id))); 
+                        setRequests(reqData.sort((a,b) => String(b.id).localeCompare(String(a.id)))); 
                     });
 
-                    // 3. Listen to Official POs (Needed for Staff Delivery Intake Checklist)
                     unsubPOs = db.collection('pos').onSnapshot(snap => {
                         const poData = [];
                         snap.forEach(d => poData.push(d.data()));
-                        setPos(poData.sort((a,b) => b.id.localeCompare(a.id)));
+                        setPos(poData.sort((a,b) => String(b.id).localeCompare(String(a.id))));
                     });
 
                     setLoading(false);
@@ -161,7 +158,7 @@
                     if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
                     window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(message)}`, '_blank');
                 } else {
-                    alert('Master Request sent to Cloud Database!');
+                    alert('Master Request sent to Cloud Database! (Owner WhatsApp not configured).');
                 }
             };
 
@@ -174,7 +171,6 @@
                 alert('Delivery confirmed in database!');
             };
 
-            // COMBINED PO GENERATOR 
             const createCombinedPO = (selectedItems, vendorObj) => {
                 const newPo = {
                     id: generatePONumber(),
@@ -298,17 +294,14 @@
             );
         }
 
-        // --- STAFF VIEW: Checklist & Add Modal included ---
+        // --- STAFF VIEW ---
         function StaffView({ inventory, units, onSubmit, pos, onReceive }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
             
-            // Intake Modal State
             const [receivingPO, setReceivingPO] = useState(null);
             const [receivedQuantities, setReceivedQuantities] = useState({});
-
-            // Add Item Pop-Up State
             const [showAddModal, setShowAddModal] = useState(false);
             const [modalItemName, setModalItemName] = useState('');
             const [modalQty, setModalQty] = useState('');
@@ -326,7 +319,6 @@
             };
 
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
-            
             const handleSubmit = () => {
                 if (cart.length === 0) return alert('Cart is empty.');
                 onSubmit(cart); setCart([]); setSearchTerm('');
@@ -339,9 +331,7 @@
                 setReceivedQuantities(initialQty);
             };
 
-            const updateReceivedQty = (idx, value) => {
-                setReceivedQuantities({ ...receivedQuantities, [idx]: value });
-            };
+            const updateReceivedQty = (idx, value) => setReceivedQuantities({ ...receivedQuantities, [idx]: value });
 
             const submitReceive = () => {
                 const receivedItemsData = receivingPO.items.map((item, idx) => ({
@@ -359,10 +349,8 @@
                 displayedItems = inventory[selectedCategory] || [];
             }
 
-            // This ensures ONLY Approved POs show up for the staff to check off
             const incomingPOs = pos.filter(po => po.status === 'Approved');
 
-            // Render Checklist Screen
             if (receivingPO) {
                 return (
                     <div className="animate-fade-in bg-white p-4 rounded-lg shadow-md border-t-4 border-hunter">
@@ -372,12 +360,9 @@
                         </div>
                         <p className="text-sm text-gray-600 mb-2"><strong>PO:</strong> {receivingPO.id}</p>
                         <p className="text-sm text-gray-600 mb-4"><strong>Vendor:</strong> {receivingPO.supplier}</p>
-                        
                         <div className="bg-gray-50 p-3 rounded mb-6 max-h-80 overflow-y-auto">
                             <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-2 border-b pb-2">
-                                <span className="w-1/2">Item Name</span>
-                                <span className="w-1/4 text-center">Ordered</span>
-                                <span className="w-1/4 text-center">Received</span>
+                                <span className="w-1/2">Item Name</span><span className="w-1/4 text-center">Ordered</span><span className="w-1/4 text-center">Received</span>
                             </div>
                             {receivingPO.items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center border-b py-3 last:border-0">
@@ -389,18 +374,13 @@
                                 </div>
                             ))}
                         </div>
-                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">
-                            Confirm Delivery
-                        </button>
+                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">Confirm Delivery</button>
                     </div>
                 );
             }
 
-            // Render Standard Staff Dashboard
             return (
                 <div className="animate-fade-in relative">
-                    
-                    {/* ADD ITEM POP-UP */}
                     {showAddModal && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-fade-in">
                             <div className="bg-parchment p-6 rounded-lg shadow-2xl w-full max-w-sm border-2 border-hunter">
@@ -426,7 +406,6 @@
                         </div>
                     )}
 
-                    {/* INCOMING DELIVERIES / CHECKLIST TRIGGER */}
                     {incomingPOs.length > 0 && (
                         <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">🚚 Incoming Deliveries</h3>
@@ -569,7 +548,7 @@
                                 <span className="text-sm font-bold text-gray-700">Inventory Database</span>
                                 <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900">+ Add Item</button>
                             </div>
-                            <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm bg-gray-50">
+                            <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50">
                                 {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
                             <div className="bg-gray-50 border border-gray-200 rounded max-h-48 overflow-y-auto">
@@ -577,8 +556,8 @@
                                     <div key={item} className="flex justify-between items-center p-2 border-b border-gray-200 last:border-0 hover:bg-gray-100">
                                         <span className="text-xs text-gray-800 truncate pr-2 w-3/4">{item}</span>
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500">✏️</button>
-                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500">🗑️</button>
+                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500 hover:text-blue-700">✏️</button>
+                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500 hover:text-red-700">🗑️</button>
                                         </div>
                                     </div>
                                 ))}
@@ -606,7 +585,7 @@
                                             return (
                                                 <div key={idx} className={`flex items-center justify-between border-b border-gray-100 pb-2 pt-2 last:border-0 px-2 rounded ${isChecked ? 'bg-green-50' : ''}`}>
                                                     <label className="flex items-center space-x-3 cursor-pointer w-[85%]">
-                                                        <input type="checkbox" checked={isChecked} onChange={() => handleCheck(req.id, idx, item)} className="w-5 h-5 text-hunter rounded" />
+                                                        <input type="checkbox" checked={isChecked} onChange={() => handleCheck(req.id, idx, item)} className="w-5 h-5 text-hunter rounded border-gray-300 focus:ring-hunter" />
                                                         <div className="flex flex-col">
                                                             <span className="text-sm font-bold text-hunter leading-tight">{item.name}</span>
                                                             <span className="text-xs text-gray-600">{item.qty} {item.unit}</span>
@@ -624,33 +603,39 @@
 
                     <div>
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Official POs</h3>
-                        {historyPOs.map(po => (
-                            <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
-                                <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg">🗑️</button>
-                                <div className="flex justify-between items-center mb-1 pr-6">
-                                    <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-500">{po.supplier}</p></div>
-                                    <span className={`text-xs px-2 py-1 rounded font-bold ${po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{po.status}</span>
-                                </div>
-                                {po.status === 'Delivered' && po.receivedItems && (
-                                    <div className="mt-2 border-t pt-2">
-                                        <p className="text-xs font-bold text-gray-600 mb-1">Receipt Details ({po.deliveryDate}):</p>
-                                        <ul className="text-xs space-y-1">
-                                            {po.receivedItems.map((item, idx) => {
-                                                const hasVariance = item.qty !== item.receivedQty;
-                                                return (
-                                                    <li key={idx} className={`flex justify-between p-1 rounded ${hasVariance ? 'bg-red-50 text-red-700 font-bold' : 'text-gray-500'}`}>
-                                                        <span className="truncate pr-2">{item.name}</span>
-                                                        <span className="whitespace-nowrap">
-                                                            {hasVariance ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}
-                                                        </span>
-                                                    </li>
-                                                );
-                                            })}
-                                        </ul>
-                                    </div>
-                                )}
+                        {historyPOs.length === 0 ? (
+                            <div className="bg-white p-4 rounded text-center shadow-sm text-gray-500 italic text-sm">
+                                No official POs generated yet.
                             </div>
-                        ))}
+                        ) : (
+                            historyPOs.map(po => (
+                                <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
+                                    <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg">🗑️</button>
+                                    <div className="flex justify-between items-center mb-1 pr-6">
+                                        <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-500">{po.supplier}</p></div>
+                                        <span className={`text-xs px-2 py-1 rounded font-bold ${po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{po.status}</span>
+                                    </div>
+                                    {po.status === 'Delivered' && po.receivedItems && (
+                                        <div className="mt-2 border-t pt-2">
+                                            <p className="text-xs font-bold text-gray-600 mb-1">Receipt Details ({po.deliveryDate}):</p>
+                                            <ul className="text-xs space-y-1">
+                                                {po.receivedItems.map((item, idx) => {
+                                                    const hasVariance = item.qty !== item.receivedQty;
+                                                    return (
+                                                        <li key={idx} className={`flex justify-between p-1 rounded ${hasVariance ? 'bg-red-50 text-red-700 font-bold' : 'text-gray-500'}`}>
+                                                            <span className="truncate pr-2">{item.name}</span>
+                                                            <span className="whitespace-nowrap">
+                                                                {hasVariance ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}
+                                                            </span>
+                                                        </li>
+                                                    );
+                                                })}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        )}
                     </div>
 
                     {/* STICKY BOTTOM BAR FOR PO GENERATION */}
@@ -679,6 +664,11 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); });
+      }
     </script>
 </body>
 </html>
