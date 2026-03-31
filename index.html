@@ -162,18 +162,13 @@
                 }
             };
 
-            const receivePO = (poId, receivedItemsData) => {
-                db.collection('pos').doc(poId).update({
-                    status: 'Delivered', 
-                    receivedItems: receivedItemsData,
-                    deliveryDate: new Date().toLocaleDateString('en-GB')
-                });
-                alert('Delivery confirmed in database!');
-            };
-
+            // THE FIX: Converting Slashes so Firebase doesn't create hidden folders
             const createCombinedPO = (selectedItems, vendorObj) => {
+                const rawPoId = generatePONumber();
+                const safeDbId = rawPoId.replace(/\//g, '-'); // TCM-03-26-001
+
                 const newPo = {
-                    id: generatePONumber(),
+                    id: rawPoId, // Keeps the pretty slash format for the screen
                     supplier: vendorObj.name,
                     supplierPhone: vendorObj.phone,
                     status: 'Approved',
@@ -192,7 +187,8 @@
                 });
                 newPo.items = combinedItems;
 
-                db.collection('pos').doc(newPo.id).set(newPo);
+                // Save PO to cloud using the safe ID
+                db.collection('pos').doc(safeDbId).set(newPo);
 
                 const reqsToUpdate = {};
                 selectedItems.forEach(si => {
@@ -216,6 +212,23 @@
                 sendWhatsApp(newPo);
             };
 
+            const receivePO = (poId, receivedItemsData) => {
+                const safeDbId = poId.replace(/\//g, '-');
+                db.collection('pos').doc(safeDbId).update({
+                    status: 'Delivered', 
+                    receivedItems: receivedItemsData,
+                    deliveryDate: new Date().toLocaleDateString('en-GB')
+                });
+                alert('Delivery confirmed in database!');
+            };
+
+            const deletePO = (poId) => {
+                if(window.confirm("Permanently delete this official PO? This cannot be undone.")) {
+                    const safeDbId = poId.replace(/\//g, '-');
+                    db.collection('pos').doc(safeDbId).delete();
+                }
+            };
+
             const removeRequestItem = (reqId, itemIndex) => {
                 if(!window.confirm("Remove this item from the request without ordering?")) return;
                 const req = requests.find(r => r.id === reqId);
@@ -224,12 +237,6 @@
                     db.collection('requests').doc(reqId).delete();
                 } else {
                     db.collection('requests').doc(reqId).update({ items: remaining });
-                }
-            };
-
-            const deletePO = (poId) => {
-                if(window.confirm("Permanently delete this official PO? This cannot be undone.")) {
-                    db.collection('pos').doc(poId).delete();
                 }
             };
 
@@ -264,7 +271,7 @@
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN to access dashboard:");
-                    if (pin === "1234") { setRole('owner'); } 
+                    if (pin === "1701") { setRole('owner'); } 
                     else if (pin !== null) { alert("Incorrect PIN. Access Denied."); }
                 } else { setRole('staff'); }
             };
@@ -286,7 +293,7 @@
                     </header>
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
-                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} /> : 
+                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} /> : 
                             <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} ownerPhone={ownerPhone} />
                         }
                     </main>
@@ -295,11 +302,10 @@
         }
 
         // --- STAFF VIEW ---
-        function StaffView({ inventory, units, onSubmit, pos, onReceive }) {
+        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
-            
             const [receivingPO, setReceivingPO] = useState(null);
             const [receivedQuantities, setReceivedQuantities] = useState({});
             const [showAddModal, setShowAddModal] = useState(false);
@@ -319,6 +325,7 @@
             };
 
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
+            
             const handleSubmit = () => {
                 if (cart.length === 0) return alert('Cart is empty.');
                 onSubmit(cart); setCart([]); setSearchTerm('');
@@ -381,6 +388,8 @@
 
             return (
                 <div className="animate-fade-in relative">
+                    
+                    {/* ADD ITEM MODAL */}
                     {showAddModal && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-fade-in">
                             <div className="bg-parchment p-6 rounded-lg shadow-2xl w-full max-w-sm border-2 border-hunter">
@@ -406,6 +415,7 @@
                         </div>
                     )}
 
+                    {/* INCOMING DELIVERIES BOX */}
                     {incomingPOs.length > 0 && (
                         <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">🚚 Incoming Deliveries</h3>
@@ -462,6 +472,23 @@
                             </button>
                         </div>
                     )}
+
+                    {/* STAFF VIEW OF PENDING MASTER REQUESTS */}
+                    <div className="mt-8 pt-4 border-t border-gray-300">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests</h3>
+                        {requests.length === 0 ? <p className="text-sm text-gray-500 italic">No master requests awaiting assignment.</p> : 
+                            requests.map(req => (
+                                <div key={req.id} className="bg-white p-3 rounded shadow-sm mb-2 border-l-4 border-yellow-400">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <p className="font-bold text-sm">{req.id}</p>
+                                        <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">Awaiting Owner</span>
+                                    </div>
+                                    <p className="text-xs text-gray-500">{req.items.length} items waiting to be ordered.</p>
+                                </div>
+                            ))
+                        }
+                    </div>
+
                 </div>
             );
         }
@@ -470,10 +497,8 @@
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, ownerPhone }) {
             const historyPOs = pos.filter(po => po.status !== 'Pending');
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
-            
             const [localPhone, setLocalPhone] = useState(ownerPhone);
 
-            // GLOBAL CART STATE
             const [selectedItems, setSelectedItems] = useState([]);
             const [selectedVendor, setSelectedVendor] = useState('');
 
@@ -494,7 +519,6 @@
                 const vendorObj = suppliers.find(s => s.name === selectedVendor);
                 
                 onCreateCombinedPO(selectedItems, vendorObj);
-                
                 setSelectedItems([]); 
                 setSelectedVendor('');
             };
@@ -541,12 +565,12 @@
                         </div>
                         <div className="flex justify-between items-center mb-5">
                             <span className="text-sm font-bold text-gray-700">Vendor Directory ({suppliers.length})</span>
-                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500">+ Add Vendor</button>
+                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition">+ Add Vendor</button>
                         </div>
                         <div className="border-t pt-3">
                             <div className="flex justify-between items-center mb-3">
                                 <span className="text-sm font-bold text-gray-700">Inventory Database</span>
-                                <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900">+ Add Item</button>
+                                <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900 transition">+ Add Item</button>
                             </div>
                             <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50">
                                 {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -565,7 +589,6 @@
                         </div>
                     </div>
 
-                    {/* GLOBAL CART / PENDING MASTER REQUESTS */}
                     <div className="mb-12">
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests</h3>
                         <p className="text-xs text-gray-500 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
@@ -638,7 +661,6 @@
                         )}
                     </div>
 
-                    {/* STICKY BOTTOM BAR FOR PO GENERATION */}
                     {selectedItems.length > 0 && (
                         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-hunter shadow-[0_-5px_15px_rgba(0,0,0,0.15)] p-4 z-50 animate-fade-in">
                             <div className="max-w-md mx-auto flex flex-col space-y-3">
@@ -664,11 +686,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-    </script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); });
-      }
     </script>
 </body>
 </html>
