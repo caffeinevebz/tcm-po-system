@@ -43,10 +43,10 @@
             { "name": "Laxmi Stores", "phone": "6378749797" }
         ];
 
-        // FULL INVENTORY IMPORTED DIRECTLY FROM EXCEL SHEETS
-        const INVENTORY = {
+        // DEFAULT INVENTORY FOR FIRST-TIME LOAD
+        const DEFAULT_INVENTORY = {
             "Fruits and Vegetables": [
-                "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", "Spinach (पालक)", "Spring onion (प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)", "Pomegranate (अनार)", "Coriander (धनिया)", "Brinjal (बैंगन) (Big)", "Ladyfingers (भिंडी)", "लौकी", "टिण्डा", "काचरी", "ग्वार फली"
+                "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", "Spinach (पालक)", "Spring onion ( प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)", "Pomegranate (अनार)", "Coriander (धनिया)", "Brinjal (बैंगन) (Big)", "Ladyfingers (भिंडी)", "लौकी", "टिण्डा", "काचरी", "ग्वार फली"
             ],
             "Coffee and Matcha": [
                 "Full House Green (Arabica Coffee) (Dark Roast)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"
@@ -59,29 +59,39 @@
             ]
         };
 
-        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch"];
+        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr"];
 
         function App() {
             const [role, setRole] = useState('staff'); 
-            const [pos, setPos] = useState([]);
+            const [requests, setRequests] = useState([]); 
+            const [pos, setPos] = useState([]); 
             const [poCounter, setPoCounter] = useState({ month: '', count: 1 });
             const [suppliers, setSuppliers] = useState([]);
+            
+            // NEW: Dynamic Inventory State
+            const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
 
             useEffect(() => {
+                const savedRequests = JSON.parse(localStorage.getItem('tcm_requests')) || [];
                 const savedPOs = JSON.parse(localStorage.getItem('tcm_pos')) || [];
                 const savedCounter = JSON.parse(localStorage.getItem('tcm_counter')) || getInitialCounter();
                 const savedSuppliers = JSON.parse(localStorage.getItem('tcm_suppliers'));
+                const savedInventory = JSON.parse(localStorage.getItem('tcm_inventory'));
                 
+                setRequests(savedRequests);
                 setPos(savedPOs);
                 setPoCounter(savedCounter);
                 setSuppliers(savedSuppliers && savedSuppliers.length > 0 ? savedSuppliers : DEFAULT_SUPPLIERS);
+                if (savedInventory) setInventory(savedInventory);
             }, []);
 
             useEffect(() => {
+                localStorage.setItem('tcm_requests', JSON.stringify(requests));
                 localStorage.setItem('tcm_pos', JSON.stringify(pos));
                 localStorage.setItem('tcm_counter', JSON.stringify(poCounter));
                 localStorage.setItem('tcm_suppliers', JSON.stringify(suppliers));
-            }, [pos, poCounter, suppliers]);
+                localStorage.setItem('tcm_inventory', JSON.stringify(inventory));
+            }, [requests, pos, poCounter, suppliers, inventory]);
 
             const getInitialCounter = () => {
                 const now = new Date();
@@ -99,45 +109,52 @@
                 return `TCM/${currentMonthYear}/${paddedCount}`;
             };
 
-            const submitDraftPO = (items) => {
-                const newPo = {
-                    id: generatePONumber(), 
-                    supplier: null, // Staff no longer selects supplier
-                    supplierPhone: null,
+            const submitMasterRequest = (items) => {
+                const newReq = {
+                    id: 'REQ-' + Math.floor(1000 + Math.random() * 9000), 
                     items, 
-                    status: 'Pending',
+                    date: new Date().toLocaleDateString('en-GB')
+                };
+                setRequests([newReq, ...requests]);
+                alert('Master Request submitted to Owner for vendor assignment!');
+            };
+
+            const processRequestToPO = (reqId, selectedIndices, supplierObj) => {
+                const req = requests.find(r => r.id === reqId);
+                const poItems = req.items.filter((_, idx) => selectedIndices.includes(idx));
+                const remainingItems = req.items.filter((_, idx) => !selectedIndices.includes(idx));
+                
+                const newPo = {
+                    id: generatePONumber(),
+                    supplier: supplierObj.name,
+                    supplierPhone: supplierObj.phone,
+                    items: poItems,
+                    status: 'Approved',
                     date: new Date().toLocaleDateString('en-GB')
                 };
                 setPos([newPo, ...pos]);
-                alert('Purchase Order submitted to Owner for vendor assignment & approval!');
+                sendWhatsApp(newPo);
+
+                if (remainingItems.length === 0) {
+                    setRequests(requests.filter(r => r.id !== reqId));
+                } else {
+                    setRequests(requests.map(r => r.id === reqId ? { ...r, items: remainingItems } : r));
+                }
             };
 
-            const approvePO = (poId, supplierObj) => {
-                const updatedPOs = pos.map(po => {
-                    if (po.id === poId) {
-                        return { 
-                            ...po, 
-                            status: 'Approved', 
-                            supplier: supplierObj.name,
-                            supplierPhone: supplierObj.phone
-                        };
-                    }
-                    return po;
-                });
-                setPos(updatedPOs);
-                sendWhatsApp(updatedPOs.find(p => p.id === poId));
-            };
-
-            const rejectPO = (poId) => {
-                const reason = window.prompt("Reason for rejection (optional):");
-                if(reason !== null) {
-                    const updatedPOs = pos.map(po => po.id === poId ? { ...po, status: 'Rejected', rejectReason: reason.trim() === "" ? "No specific reason provided." : reason } : po);
-                    setPos(updatedPOs);
+            const removeRequestItem = (reqId, itemIndex) => {
+                if(!window.confirm("Remove this item from the request without ordering?")) return;
+                const req = requests.find(r => r.id === reqId);
+                const remaining = req.items.filter((_, idx) => idx !== itemIndex);
+                if (remaining.length === 0) {
+                    setRequests(requests.filter(r => r.id !== reqId));
+                } else {
+                    setRequests(requests.map(r => r.id === reqId ? { ...r, items: remaining } : r));
                 }
             };
 
             const deletePO = (poId) => {
-                if(window.confirm("Are you sure you want to permanently delete this PO? This cannot be undone.")) {
+                if(window.confirm("Permanently delete this official PO? This cannot be undone.")) {
                     setPos(pos.filter(po => po.id !== poId));
                 }
             };
@@ -160,7 +177,7 @@
 
             const sendWhatsApp = (po) => {
                 if(po.supplier === "Cash Purchase") {
-                    alert("Internal Cash Purchase approved. No WhatsApp message sent.");
+                    alert("Internal Cash Purchase PO generated. No WhatsApp message sent.");
                     return;
                 }
                 const itemList = po.items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
@@ -168,9 +185,8 @@
                 
                 let url = `https://wa.me/`;
                 if (po.supplierPhone) {
-                    // Strip any dashes or spaces and append to URL
                     let phoneStr = po.supplierPhone.replace(/\D/g, '');
-                    if (phoneStr.length === 10) phoneStr = '91' + phoneStr; // Add India country code if exactly 10 digits
+                    if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
                     url += `${phoneStr}?text=${encodeURIComponent(message)}`;
                 } else {
                     url += `?text=${encodeURIComponent(message)}`;
@@ -190,7 +206,7 @@
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN to access dashboard:");
-                    if (pin === "1234") { 
+                    if (pin === "1701") { 
                         setRole('owner');
                     } else if (pin !== null) {
                         alert("Incorrect PIN. Access Denied.");
@@ -213,29 +229,50 @@
                     </header>
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
-                            <StaffView inventory={INVENTORY} units={UNITS} onSubmit={submitDraftPO} pos={pos} onReceive={receivePO} /> : 
-                            <OwnerView pos={pos} onApprove={approvePO} onReject={rejectPO} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} />
+                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} requests={requests} pos={pos} onReceive={receivePO} /> : 
+                            <OwnerView requests={requests} pos={pos} onProcessRequest={processRequestToPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} setInventory={setInventory} />
                         }
                     </main>
                 </div>
             );
         }
 
-        function StaffView({ inventory, units, onSubmit, pos, onReceive }) {
+        // --- STAFF VIEW ---
+        function StaffView({ inventory, units, onSubmit, requests, pos, onReceive }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
+            
             const [receivingPO, setReceivingPO] = useState(null);
             const [receivedQuantities, setReceivedQuantities] = useState({});
 
-            const addItem = (item) => { if (!cart.find(i => i.name === item)) setCart([...cart, { name: item, qty: 1, unit: 'Kg' }]); };
-            const updateQty = (index, delta) => { const newCart = [...cart]; newCart[index].qty = Math.max(1, newCart[index].qty + delta); setCart(newCart); };
-            const updateUnit = (index, unit) => { const newCart = [...cart]; newCart[index].unit = unit; setCart(newCart); };
+            const [showAddModal, setShowAddModal] = useState(false);
+            const [modalItemName, setModalItemName] = useState('');
+            const [modalQty, setModalQty] = useState('');
+            const [modalUnit, setModalUnit] = useState('Kg');
+
+            const openAddModal = (item) => {
+                if (cart.find(i => i.name === item)) {
+                    alert("This item is already in your cart. You can remove it to add it again.");
+                    return;
+                }
+                setModalItemName(item);
+                setModalQty('');
+                setModalUnit('Kg');
+                setShowAddModal(true);
+            };
+
+            const confirmAddItem = () => {
+                if(!modalQty || Number(modalQty) <= 0) return alert("Please enter a valid quantity.");
+                setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]);
+                setShowAddModal(false);
+            };
+
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
 
             const handleSubmit = () => {
                 if (cart.length === 0) return alert('Cart is empty.');
-                onSubmit(cart); // NO SUPPLIER REQUIRED NOW
+                onSubmit(cart); 
                 setCart([]); setSearchTerm('');
             };
 
@@ -247,13 +284,13 @@
             };
 
             const updateReceivedQty = (idx, value) => {
-                setReceivedQuantities({ ...receivedQuantities, [idx]: Number(value) });
+                setReceivedQuantities({ ...receivedQuantities, [idx]: value });
             };
 
             const submitReceive = () => {
                 const receivedItemsData = receivingPO.items.map((item, idx) => ({
                     ...item,
-                    receivedQty: receivedQuantities[idx]
+                    receivedQty: Number(receivedQuantities[idx]) || 0
                 }));
                 onReceive(receivingPO.id, receivedItemsData);
                 setReceivingPO(null);
@@ -264,7 +301,7 @@
                 const allItemNames = Object.values(inventory).flat();
                 displayedItems = [...new Set(allItemNames)].filter(item => item.toLowerCase().includes(searchTerm.toLowerCase()));
             } else {
-                displayedItems = inventory[selectedCategory];
+                displayedItems = inventory[selectedCategory] || [];
             }
 
             const incomingPOs = pos.filter(po => po.status === 'Approved');
@@ -290,13 +327,7 @@
                                     <span className="text-sm w-1/2 pr-2">{item.name}</span>
                                     <span className="text-sm text-center w-1/4 text-gray-500">{item.qty} {item.unit}</span>
                                     <div className="w-1/4 flex justify-center">
-                                        <input 
-                                            type="number" 
-                                            min="0"
-                                            className="w-16 border border-hunter rounded p-1 text-center font-bold"
-                                            value={receivedQuantities[idx]}
-                                            onChange={(e) => updateReceivedQty(idx, e.target.value)}
-                                        />
+                                        <input type="number" min="0" step="any" className="w-16 border border-hunter rounded p-1 text-center font-bold focus:outline-none focus:ring-2 focus:ring-antiqueGold" value={receivedQuantities[idx]} onChange={(e) => updateReceivedQty(idx, e.target.value)} />
                                     </div>
                                 </div>
                             ))}
@@ -309,13 +340,38 @@
             }
 
             return (
-                <div className="animate-fade-in">
+                <div className="animate-fade-in relative">
                     
+                    {showAddModal && (
+                        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-fade-in">
+                            <div className="bg-parchment p-6 rounded-lg shadow-2xl w-full max-w-sm border-2 border-hunter">
+                                <h3 className="font-serif font-bold text-lg text-hunter mb-1">Add to Master List</h3>
+                                <p className="text-sm text-gray-700 mb-5 truncate font-bold">{modalItemName}</p>
+                                
+                                <div className="flex space-x-3 mb-6">
+                                    <div className="w-1/2">
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Quantity</label>
+                                        <input type="number" min="0" step="any" autoFocus value={modalQty} onChange={e=>setModalQty(e.target.value)} className="w-full border border-hunter rounded p-3 text-center font-bold text-lg focus:ring-2 focus:ring-antiqueGold focus:outline-none" placeholder="0" />
+                                    </div>
+                                    <div className="w-1/2">
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Unit</label>
+                                        <select value={modalUnit} onChange={e=>setModalUnit(e.target.value)} className="w-full border border-hunter rounded p-3 text-lg focus:ring-2 focus:ring-antiqueGold focus:outline-none bg-white">
+                                            {units.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div className="flex space-x-3">
+                                    <button onClick={() => setShowAddModal(false)} className="w-1/2 bg-gray-200 text-gray-800 font-bold py-3 rounded shadow-sm hover:bg-gray-300 transition">Cancel</button>
+                                    <button onClick={confirmAddItem} className="w-1/2 bg-antiqueGold text-hunter font-bold py-3 rounded shadow-md hover:bg-yellow-500 transition">Add to Cart</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {incomingPOs.length > 0 && (
                         <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
-                            <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">
-                                🚚 Incoming Deliveries
-                            </h3>
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">🚚 Incoming Deliveries</h3>
                             {incomingPOs.map(po => (
                                 <div key={po.id} className="bg-white p-3 rounded shadow-sm mb-2 border-l-4 border-blue-500 flex justify-between items-center">
                                     <div>
@@ -330,11 +386,11 @@
                         </div>
                     )}
 
-                    <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Draft New Request</h2>
+                    <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Build Master Request List</h2>
                     
                     <div className="relative mb-4 shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">🔍</span></div>
-                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:outline-none focus:ring-2 focus:ring-antiqueGold" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
                     </div>
 
                     {!searchTerm && (
@@ -352,7 +408,7 @@
                             displayedItems.map(item => (
                                 <div key={item} className="flex justify-between items-center py-2 border-b last:border-0">
                                     <span className="text-sm pr-2">{item}</span>
-                                    <button onClick={() => addItem(item)} className="text-antiqueGold text-xl font-bold px-3 hover:scale-110 transition">+</button>
+                                    <button onClick={() => openAddModal(item)} className="text-antiqueGold text-xl font-bold px-3 hover:scale-110 transition">+</button>
                                 </div>
                             ))
                         }
@@ -360,44 +416,32 @@
 
                     {cart.length > 0 && (
                         <div className="bg-hunter text-parchment rounded-lg p-4 shadow-md mb-6">
-                            <h3 className="font-serif font-bold text-lg mb-3">Order Cart</h3>
+                            <h3 className="font-serif font-bold text-lg mb-3">Master Cart</h3>
                             {cart.map((item, idx) => (
-                                <div key={idx} className="flex flex-col mb-3 bg-white/10 p-2 rounded">
-                                    <div className="flex justify-between items-start mb-2">
+                                <div key={idx} className="flex justify-between items-center mb-3 bg-white/10 p-3 rounded">
+                                    <div className="flex flex-col">
                                         <span className="text-sm font-semibold">{item.name}</span>
-                                        <button onClick={() => removeItem(idx)} className="text-red-300 text-xs">✕</button>
+                                        <span className="text-xs text-antiqueGold font-bold">{item.qty} {item.unit}</span>
                                     </div>
-                                    <div className="flex items-center space-x-3">
-                                        <div className="flex items-center bg-white text-hunter rounded overflow-hidden shadow-sm">
-                                            <button onClick={() => updateQty(idx, -1)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300">-</button>
-                                            <span className="px-3 py-1 font-bold w-12 text-center">{item.qty}</span>
-                                            <button onClick={() => updateQty(idx, 1)} className="px-3 py-1 bg-gray-200 hover:bg-gray-300">+</button>
-                                        </div>
-                                        <select className="text-hunter bg-white p-1 rounded w-24 text-sm shadow-sm" value={item.unit} onChange={(e) => updateUnit(idx, e.target.value)}>
-                                            {units.map(u => <option key={u} value={u}>{u}</option>)}
-                                        </select>
-                                    </div>
+                                    <button onClick={() => removeItem(idx)} className="text-red-300 text-xs font-bold bg-white/10 px-2 py-1 rounded hover:bg-white/20">Remove</button>
                                 </div>
                             ))}
-                            <button onClick={handleSubmit} className="w-full mt-4 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg transition">
-                                Submit Draft to Owner
+                            <button onClick={handleSubmit} className="w-full mt-2 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg transition">
+                                Send Master List to Owner
                             </button>
                         </div>
                     )}
 
                     <div className="mt-8 pt-4 border-t border-gray-300">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Orders Status</h3>
-                        {pos.length === 0 ? <p className="text-sm text-gray-500 italic">No orders submitted yet.</p> : 
-                            pos.slice(0, 5).map(po => (
-                                <div key={po.id} className={`bg-white p-3 rounded shadow-sm mb-2 border-l-4 ${po.status === 'Rejected' ? 'border-red-500' : po.status === 'Approved' ? 'border-blue-500' : po.status === 'Delivered' ? 'border-green-500' : 'border-yellow-500'}`}>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests</h3>
+                        {requests.length === 0 ? <p className="text-sm text-gray-500 italic">No master requests awaiting assignment.</p> : 
+                            requests.map(req => (
+                                <div key={req.id} className="bg-white p-3 rounded shadow-sm mb-2 border-l-4 border-yellow-400">
                                     <div className="flex justify-between items-center mb-1">
-                                        <p className="font-bold text-sm">{po.id}</p>
-                                        <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Approved' ? 'bg-blue-100 text-blue-800' : po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{po.status}</span>
+                                        <p className="font-bold text-sm">{req.id}</p>
+                                        <span className="text-xs px-2 py-1 rounded bg-yellow-100 text-yellow-800">Awaiting Owner</span>
                                     </div>
-                                    <p className="text-xs text-gray-500">
-                                        {po.supplier || 'Awaiting Vendor Assignment'}
-                                    </p>
-                                    {po.status === 'Rejected' && po.rejectReason && <p className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded"><strong>Note:</strong> {po.rejectReason}</p>}
+                                    <p className="text-xs text-gray-500">{req.items.length} items to be grouped and ordered.</p>
                                 </div>
                             ))
                         }
@@ -406,87 +450,166 @@
             );
         }
 
-        function OwnerView({ pos, onApprove, onReject, onDelete, suppliers, addSupplier }) {
-            const pendingPOs = pos.filter(po => po.status === 'Pending');
-            const historyPOs = pos.filter(po => po.status !== 'Pending');
+        // --- OWNER VIEW: Request Card Component ---
+        function OwnerRequestCard({ req, suppliers, onCreatePO, onRemoveItem }) {
+            const [selectedIndices, setSelectedIndices] = useState([]);
+            const [selectedVendor, setSelectedVendor] = useState('');
 
-            // Track supplier selections for pending POs
-            const [selectedSuppliers, setSelectedSuppliers] = useState({});
-
-            const handleSupplierChange = (poId, supplierName) => {
-                setSelectedSuppliers({ ...selectedSuppliers, [poId]: supplierName });
+            const handleCheck = (idx) => {
+                if (selectedIndices.includes(idx)) setSelectedIndices(selectedIndices.filter(i => i !== idx));
+                else setSelectedIndices([...selectedIndices, idx]);
             };
 
-            const handleApprove = (po) => {
-                const supplierName = selectedSuppliers[po.id];
-                if (!supplierName) {
-                    return alert("You must assign a vendor to this order before approving.");
+            const handleCreate = () => {
+                if (selectedIndices.length === 0) return alert('Please check the box next to at least one item.');
+                if (!selectedVendor) return alert('Please select a vendor from the directory.');
+                const vendorObj = suppliers.find(s => s.name === selectedVendor);
+                onCreatePO(req.id, selectedIndices, vendorObj);
+                setSelectedIndices([]); 
+                setSelectedVendor('');
+            };
+
+            return (
+                <div className="bg-white rounded-lg shadow-md border border-yellow-400 p-4 mb-5 relative">
+                    <div className="flex justify-between items-center mb-3">
+                        <span className="font-bold text-hunter text-lg">{req.id}</span>
+                        <span className="text-xs text-gray-500">{req.date}</span>
+                    </div>
+                    
+                    <p className="text-xs font-bold text-yellow-800 bg-yellow-50 p-2 rounded mb-3 border border-yellow-200">
+                        Step 1: Check the items below you want to order from the SAME vendor.
+                    </p>
+                    
+                    <div className="bg-gray-50 p-2 rounded mb-4 max-h-64 overflow-y-auto border border-gray-200">
+                        {req.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
+                                <label className="flex items-center space-x-3 cursor-pointer w-[85%]">
+                                    <input type="checkbox" checked={selectedIndices.includes(idx)} onChange={() => handleCheck(idx)} className="w-5 h-5 text-hunter rounded border-gray-300 focus:ring-hunter" />
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-bold text-hunter leading-tight">{item.name}</span>
+                                        <span className="text-xs text-gray-600">{item.qty} {item.unit}</span>
+                                    </div>
+                                </label>
+                                <button onClick={() => onRemoveItem(req.id, idx)} className="text-red-400 hover:text-red-600 text-sm font-bold bg-white px-2 py-1 rounded shadow-sm border border-red-100" title="Delete from request">✕</button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col space-y-3">
+                        <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-3 border border-hunter rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-white">
+                            <option value="">-- Step 2: Choose Vendor --</option>
+                            {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
+                        </select>
+                        
+                        <button onClick={handleCreate} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition flex justify-center items-center">
+                            Step 3: Generate PO & Send WhatsApp
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- OWNER DASHBOARD ---
+        function OwnerView({ requests, pos, onProcessRequest, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, setInventory }) {
+            const historyPOs = pos.filter(po => po.status !== 'Pending');
+            
+            // Database Management States
+            const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
+
+            const handleAddInventoryItem = () => {
+                const newItem = window.prompt(`Enter new item name for ${dbCategory}:`);
+                if (newItem && newItem.trim() !== '') {
+                    const newInv = { ...inventory };
+                    newInv[dbCategory] = [...newInv[dbCategory], newItem.trim()].sort(); // Keeps it alphabetically sorted
+                    setInventory(newInv);
                 }
-                const supplierObj = suppliers.find(s => s.name === supplierName);
-                onApprove(po.id, supplierObj);
+            };
+
+            const handleEditInventoryItem = (oldName) => {
+                const newName = window.prompt(`Edit item name:`, oldName);
+                if (newName && newName.trim() !== '' && newName !== oldName) {
+                    const newInv = { ...inventory };
+                    newInv[dbCategory] = newInv[dbCategory].map(item => item === oldName ? newName.trim() : item).sort();
+                    setInventory(newInv);
+                }
+            };
+
+            const handleDeleteInventoryItem = (name) => {
+                if(window.confirm(`Are you sure you want to delete "${name}" from ${dbCategory}?`)){
+                    const newInv = { ...inventory };
+                    newInv[dbCategory] = newInv[dbCategory].filter(item => item !== name);
+                    setInventory(newInv);
+                }
             };
 
             return (
                 <div className="animate-fade-in">
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Owner Dashboard</h2>
                     
-                    {/* NEW SECTION: Vendor Management */}
+                    {/* Database & Directory Management */}
                     <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
-                        <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-bold text-hunter text-sm uppercase tracking-widest">Manage Directory</h3>
-                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition">
-                                + Add New Vendor
-                            </button>
+                        <div className="flex justify-between items-center mb-4 border-b pb-2">
+                            <h3 className="font-bold text-hunter text-sm uppercase tracking-widest">Manage Databases</h3>
                         </div>
-                        <p className="text-xs text-gray-500">Currently {suppliers.length} vendors attached with contact details.</p>
+                        
+                        {/* Vendors Sub-section */}
+                        <div className="flex justify-between items-center mb-5">
+                            <span className="text-sm font-bold text-gray-700">Vendor Directory ({suppliers.length})</span>
+                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition">+ Add Vendor</button>
+                        </div>
+
+                        {/* Inventory Sub-section */}
+                        <div className="border-t pt-3">
+                            <div className="flex justify-between items-center mb-3">
+                                <span className="text-sm font-bold text-gray-700">Inventory Database</span>
+                                <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900 transition">+ Add Item</button>
+                            </div>
+                            
+                            <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50">
+                                {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+
+                            <div className="bg-gray-50 border border-gray-200 rounded max-h-48 overflow-y-auto">
+                                {inventory[dbCategory] && inventory[dbCategory].map(item => (
+                                    <div key={item} className="flex justify-between items-center p-2 border-b border-gray-200 last:border-0 hover:bg-gray-100">
+                                        <span className="text-xs text-gray-800 truncate pr-2 w-3/4">{item}</span>
+                                        <div className="flex space-x-2">
+                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500 hover:text-blue-700" title="Edit Item">✏️</button>
+                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500 hover:text-red-700" title="Delete Item">🗑️</button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
                     <div className="mb-8">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Approvals ({pendingPOs.length})</h3>
-                        {pendingPOs.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">☕ All caught up! No pending drafts.</div> : 
-                            pendingPOs.map(po => (
-                                <div key={po.id} className="bg-white rounded-lg shadow-md border border-yellow-400 p-4 mb-4 relative">
-                                    <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl" title="Delete PO">🗑️</button>
-                                    <div className="flex justify-between items-center mb-2 pr-6">
-                                        <span className="font-bold text-hunter">{po.id}</span>
-                                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending</span>
-                                    </div>
-                                    
-                                    {/* NEW: Owner selects the vendor here */}
-                                    <div className="mb-3 bg-yellow-50 p-2 rounded border border-yellow-200">
-                                        <label className="block text-xs font-bold text-yellow-800 mb-1">Assign Vendor for this Order:</label>
-                                        <select 
-                                            value={selectedSuppliers[po.id] || ''} 
-                                            onChange={(e) => handleSupplierChange(po.id, e.target.value)}
-                                            className="w-full p-2 border border-yellow-400 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                                        >
-                                            <option value="">-- Choose Vendor Directory --</option>
-                                            {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
-                                        </select>
-                                    </div>
-
-                                    <ul className="text-sm mb-4 bg-gray-50 p-3 rounded">
-                                        {po.items.map((item, idx) => <li key={idx} className="flex justify-between border-b pb-1 mb-1 last:border-0 last:pb-0 last:mb-0"><span className="pr-2">{item.name}</span><span className="font-bold whitespace-nowrap">{item.qty} {item.unit}</span></li>)}
-                                    </ul>
-                                    <div className="flex space-x-2 mt-4">
-                                        <button onClick={() => onReject(po.id)} className="w-1/3 bg-red-50 text-red-700 font-bold py-3 rounded border shadow-sm hover:bg-red-100 transition">Reject</button>
-                                        <button onClick={() => handleApprove(po)} className="w-2/3 bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">Approve & Send</button>
-                                    </div>
-                                </div>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests ({requests.length})</h3>
+                        {requests.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">☕ All caught up! No pending staff requests.</div> : 
+                            requests.map(req => (
+                                <OwnerRequestCard 
+                                    key={req.id} 
+                                    req={req} 
+                                    suppliers={suppliers} 
+                                    onCreatePO={onProcessRequest} 
+                                    onRemoveItem={onRemoveRequestItem} 
+                                />
                             ))
                         }
                     </div>
 
                     <div>
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent History</h3>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Official POs</h3>
                         {historyPOs.map(po => (
-                            <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Rejected' ? 'border-red-500' : po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
+                            <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
                                 <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg" title="Delete PO">🗑️</button>
                                 <div className="flex justify-between items-center mb-1 pr-6">
-                                    <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-500">{po.supplier}</p></div>
-                                    <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{po.status}</span>
+                                    <div>
+                                        <p className="font-bold text-sm">{po.id}</p>
+                                        <p className="text-xs text-gray-500">{po.supplier}</p>
+                                    </div>
+                                    <span className={`text-xs px-2 py-1 rounded font-bold ${po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{po.status}</span>
                                 </div>
-                                {po.status === 'Rejected' && po.rejectReason && <p className="text-xs text-red-600 mt-2 italic bg-red-50 p-2 rounded">Reason: {po.rejectReason}</p>}
                                 
                                 {po.status === 'Delivered' && po.receivedItems && (
                                     <div className="mt-2 border-t pt-2">
