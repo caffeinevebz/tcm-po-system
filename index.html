@@ -32,72 +32,56 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        const SUPPLIERS = [
-            "Rare Beans Company", "Aditya Industries", "Renu Devi & Sons", 
-            "Cash Purchase", "Viman Hospitality and Entertainment Private Limited", 
-            "Neha Agencies", "Charu Marketing", "Laxmi Stores"
+        const DEFAULT_SUPPLIERS = [
+            { "name": "Rare Beans Company", "phone": "8619122260" },
+            { "name": "Aditya Industries", "phone": "9595711611" },
+            { "name": "Renu Devi & Sons", "phone": "7737840411" },
+            { "name": "Cash Purchase", "phone": "" },
+            { "name": "Viman Hospitality and Entertainment Private Limited", "phone": "8058764004" },
+            { "name": "Neha Agencies", "phone": "9414105084" },
+            { "name": "Charu Marketing", "phone": "8824153406" },
+            { "name": "Laxmi Stores", "phone": "6378749797" }
         ];
 
+        // FULL INVENTORY IMPORTED DIRECTLY FROM EXCEL SHEETS
         const INVENTORY = {
             "Fruits and Vegetables": [
-                "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", 
-                "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", 
-                "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", 
-                "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", 
-                "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", 
-                "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", 
-                "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", 
-                "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", 
-                "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", 
-                "Spinach (पालक)", "Spring onion (प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", 
-                "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)"
+                "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", "Spinach (पालक)", "Spring onion (प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)", "Pomegranate (अनार)", "Coriander (धनिया)", "Brinjal (बैंगन) (Big)", "Ladyfingers (भिंडी)", "लौकी", "टिण्डा", "काचरी", "ग्वार फली"
             ],
             "Coffee and Matcha": [
                 "Full House Green (Arabica Coffee) (Dark Roast)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"
             ],
             "Groceries": [
-                "Aata", "Ajinomoto", "Aluminium Foil", "Amul Butter", "Amul Cheese Slice (Large Pack)", 
-                "Amul Cream", "Amul Mithai Mate (400 gms)", "Amul Pizza Cheese Blend (Shredded)", 
-                "Amul Processed Cheese", "Aromate Powder", "Besan", "Bisleri Vedica (500ml)", 
-                "Biscoff Biscuit", "Biscoff Spread", "Black Olive (3 Kg)", "Black Pepper (आखी)", 
-                "Black Salt (काला नमक)", "Blueberry (Frozen) (Delishh)", "Brown Rice", "Brown Sugar", 
-                "Brownie Premix", "Cashewnut (Kaju Tukdi)", "Rice Paper", "Ricotta Cheese", 
-                "Sesame Seeds (सफेद तिल)", "Soda", "Soya Chaap", "Soya Chunks", "Spagetti Pasta (Agnesi)", 
-                "Spring Roll Sheets", "Sugar", "Sugarfree Sachets", "Sugar Sachet (White)", 
-                "Sugar Sachet (Brown)", "Suji", "Sukhi Lal Mirchi", "Sundried Tomato", "Sunflower Oil (15 Ltr)", 
-                "Sunflower Seeds", "Sushi Rice", "Sushi Vinegar", "Sweet Corn", "Table Rice", "Taco Shells", 
-                "Tahina Paste", "Tata Salt", "Tea (खुल्ली)", "Tempura Batter Mix", "Tomato Ketchup Refill (2 kg)", 
-                "Tomato Ketchup Sachet"
+                "Aata", "Ajinomoto", "Aluminium Foil", "Amul Butter", "Amul Cheese Slice (Large Pack)", "Amul Cream", "Amul Mithai Mate (400 gms)", "Amul Pizza Cheese Blend (Shredded)", "Amul Processed Cheese", "Aromate Powder", "Besan", "Bisleri Vedica (500ml)", "Biscoff Biscuit", "Biscoff Spread", "Black Olive (3 Kg)", "Black Pepper (आखी)", "Black Salt (काला नमक)", "Blueberry (Frozen) (Delishh)", "Brown Rice", "Brown Sugar", "Brownie Premix", "Cashewnut (Kaju Tukdi)", "Channa Dal", "Chaat Masala", "Chilli Flakes", "Chilli Flakes (Sachet)", "Chings Chowmein Noodle", "Chocolate Sauce (Hersheys)", "Coconut Powder", "corn starch", "Cranberry Juice (Real) (1 Ltr.)", "Cream Cheese", "Dark Chocolate Compound (Morde)", "Dark Soya Sauce", "Dates (Seedless)", "Degi Mirch", "Dhaniya Powder", "Dijon Mustard", "McVitie's Digestive Biscuit (Family Pack)", "Duster Cloth", "Feta Cheese", "French Fries (2.5 Kg)", "Fusilli Pasta (Agnesi)", "Garam Masala", "Garden Nylon Sev", "Green Chilli Sauce (5 Kg)", "Peanut Butter (750 gms)", "Penne Pasta (Agnesi)", "Pickled Sushi Ginger", "Green Olive (Whole)", "Green Tea (100 Tea Bags) (Lipton)", "Haldi Powder", "Hara Moong (Sprouts)", "Honey (1 Kg)", "Jalapeño", "Japanese Mayo", "Jeera", "Kaala Channa (Black)", "Kabuli Chana", "Kaju Tukdi", "Kasundi Musturd Sauce", "Kitchen King Masala Powder", "Lasagna Sheets (Agnesi)", "Litchi Juice (Real) (1 Ltr.)", "Macaroni Pasta (Agnesi Chifferi Pasta)", "Maida (1 Bag)", "Malabar Paratha", "Manama Blackcurrent Crush", "Manama Blueberry Crush", "Manama Mango Crush", "Manama Strawberry Crush", "Maple Syrup (American Garden)", "Mayonnaise (1kg) (Refill)", "Milk Powder", "Mix Dal", "Monin Caramel Syrup", "Monin Curacao Triple Sec Syrup", "Monin French Vanilla Syrup", "Monin Hazelnut Syrup", "Monin Irish Syrup", "Monin Lavender Syrup", "Monin Mojito Syrup", "Monin Peach Syrup", "Monin Roasted Hazelnut Syrup", "Monin Rose Syrup", "Monin Vanilla Syrup", "Monin Watermelon Syrup", "Moong Dal", "nirma surf washing", "Noori Sheets (Sushi Sheets)", "Nutella (750 gms)", "Nutri Soya Keema Churi", "Oats", "Oats Milk", "Olive Oil (Extra Virgin) (1 ltr)", "Orange Juice (Real) (1 Ltr.)", "Oreo Biscuit (small - 10 piece)", "Oyster Sauce (Veg.)", "Panko Crumbs", "Parmal Rice", "Parmesan Cheese", "Penne Pasta (Agnesi)", "Peri Peri Masala", "Pineapple Crush (Manama)", "Pizza Seasoning", "Pizza Seasoning (Sachet)", "Potato Starch", "Potato Wedges (2.5 Kg)", "Pumpkin Seeds", "Quinoa (500 gms)", "Ragi Aata", "Rajma", "Red Chilli Sauce (5 Kg)", "Red Mirchi Powder", "Rice Paper", "Ricotta Cheese", "Sesame Seeds (सफेद तिल)", "Soda", "Soya Chaap", "Soya Chunks", "Spagetti Pasta (Agnesi)", "Spring Roll Sheets", "Sugar", "Sugarfree Sachets", "Sugar Sachet (White)", "Sugar Sachet (Brown)", "Suji", "Sukhi Lal Mirchi", "Sundried Tomato", "Sunflower Oil (15 Ltr)", "Sunflower Seeds", "Sushi Rice", "Sushi Vinegar", "Sweet Corn", "Table Rice", "Taco Shells", "Tahina Paste", "Tata Salt", "Tea (खुल्ली)", "Tempura Batter Mix", "Tomato Ketchup Refill (2 kg)", "Tomato Ketchup Sachet", "Tomato Puree (850 gms)", "Tonic Water", "Waffle Premix", "Walnut (खुल्ली)", "Wasabi tube", "Water Chestnut", "Wheat Starch", "White Chocolate Compound (Morde)", "White vinegar", "Wipped cream", "Yeast", "Yellow Thai Curry Paste", "नारियल का बुरा", "मक्की का आटा", "साबुत धनिया", "लौंग", "काजू टुकड़ी"
             ],
             "Packing and Consumables": [
-                "Brown Paper Bag (Extra Large) (16 x 12)", "Cap", "Chopsticks", "Cling Wrap (Large)", 
-                "Extra Large Garbage Bag", "Hot coffee cup cups with lids (180 ML)", "Hot coffee cup lid (250 ML)", 
-                "Kitchen Duster", "Medium Grabage Bag", "Paper Straw (10mm)", "Pizza Boxes", 
-                "Plastic Bend Straw (Mocktails)", "Plastic Disposable Glasses with Black Lid (350ML)", 
-                "Plastic Food Container wid Lid (650ML)", "Printed Butter Paper Roll", 
-                "Silver Foil Food Container wid Lid (650ML)", "Silver Foil Food Container wid Lid (400ML) - small", 
-                "Silver Foil", "Wooden Fork", "Wooden stiring sticks for hot coffee"
+                "Brown Paper Bag (Extra Large) (16 x 12)", "Cap", "Chopsticks", "Cling Wrap (Large)", "Extra Large Garbage Bag", "Hot coffee cup cups with lids (180 ML)", "Hot coffee cup lid (250 ML)", "Kitchen Duster", "Medium Grabage Bag", "Paper Straw (10mm)", "Pizza Boxes", "Plastic Bend Straw (Mocktails)", "Plastic Disposable Glasses with Black Lid (350ML)", "Plastic Food Container wid Lid (650ML)", "Printed Butter Paper Roll", "Silver Foil Food Container wid Lid (650ML)", "Silver Foil Food Container wid Lid (400ML) - small", "Silver Foil", "Wooden Fork", "Wooden stiring sticks for hot coffee"
             ]
         };
 
-        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin"];
+        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch"];
 
         function App() {
             const [role, setRole] = useState('staff'); 
             const [pos, setPos] = useState([]);
             const [poCounter, setPoCounter] = useState({ month: '', count: 1 });
+            const [suppliers, setSuppliers] = useState([]);
 
             useEffect(() => {
                 const savedPOs = JSON.parse(localStorage.getItem('tcm_pos')) || [];
                 const savedCounter = JSON.parse(localStorage.getItem('tcm_counter')) || getInitialCounter();
+                const savedSuppliers = JSON.parse(localStorage.getItem('tcm_suppliers'));
+                
                 setPos(savedPOs);
                 setPoCounter(savedCounter);
+                setSuppliers(savedSuppliers && savedSuppliers.length > 0 ? savedSuppliers : DEFAULT_SUPPLIERS);
             }, []);
 
             useEffect(() => {
                 localStorage.setItem('tcm_pos', JSON.stringify(pos));
                 localStorage.setItem('tcm_counter', JSON.stringify(poCounter));
-            }, [pos, poCounter]);
+                localStorage.setItem('tcm_suppliers', JSON.stringify(suppliers));
+            }, [pos, poCounter, suppliers]);
 
             const getInitialCounter = () => {
                 const now = new Date();
@@ -115,17 +99,31 @@
                 return `TCM/${currentMonthYear}/${paddedCount}`;
             };
 
-            const submitDraftPO = (supplier, items) => {
+            const submitDraftPO = (items) => {
                 const newPo = {
-                    id: generatePONumber(), supplier, items, status: 'Pending',
+                    id: generatePONumber(), 
+                    supplier: null, // Staff no longer selects supplier
+                    supplierPhone: null,
+                    items, 
+                    status: 'Pending',
                     date: new Date().toLocaleDateString('en-GB')
                 };
                 setPos([newPo, ...pos]);
-                alert('Purchase Order submitted for Owner approval!');
+                alert('Purchase Order submitted to Owner for vendor assignment & approval!');
             };
 
-            const approvePO = (poId) => {
-                const updatedPOs = pos.map(po => po.id === poId ? { ...po, status: 'Approved' } : po);
+            const approvePO = (poId, supplierObj) => {
+                const updatedPOs = pos.map(po => {
+                    if (po.id === poId) {
+                        return { 
+                            ...po, 
+                            status: 'Approved', 
+                            supplier: supplierObj.name,
+                            supplierPhone: supplierObj.phone
+                        };
+                    }
+                    return po;
+                });
                 setPos(updatedPOs);
                 sendWhatsApp(updatedPOs.find(p => p.id === poId));
             };
@@ -144,7 +142,6 @@
                 }
             };
 
-            // NEW: Function to mark PO as Delivered with received quantities
             const receivePO = (poId, receivedItemsData) => {
                 const updatedPOs = pos.map(po => {
                     if (po.id === poId) {
@@ -168,7 +165,26 @@
                 }
                 const itemList = po.items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
                 const message = `*Subject:* New Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nPlease confirm receipt of this order.\n\nThank you,\nTeam Caffeine Ministry`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+                
+                let url = `https://wa.me/`;
+                if (po.supplierPhone) {
+                    // Strip any dashes or spaces and append to URL
+                    let phoneStr = po.supplierPhone.replace(/\D/g, '');
+                    if (phoneStr.length === 10) phoneStr = '91' + phoneStr; // Add India country code if exactly 10 digits
+                    url += `${phoneStr}?text=${encodeURIComponent(message)}`;
+                } else {
+                    url += `?text=${encodeURIComponent(message)}`;
+                }
+                
+                window.open(url, '_blank');
+            };
+
+            const addSupplier = () => {
+                const name = window.prompt("Enter new Vendor Name:");
+                if (!name || name.trim() === '') return;
+                const phone = window.prompt("Enter Vendor Mobile Number (Optional, for WhatsApp):");
+                setSuppliers([...suppliers, { name: name.trim(), phone: phone ? phone.trim() : "" }]);
+                alert(`${name} has been added to the vendor directory.`);
             };
 
             const handleSwitchRole = () => {
@@ -197,21 +213,18 @@
                     </header>
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
-                            <StaffView suppliers={SUPPLIERS} inventory={INVENTORY} units={UNITS} onSubmit={submitDraftPO} pos={pos} onReceive={receivePO} /> : 
-                            <OwnerView pos={pos} onApprove={approvePO} onReject={rejectPO} onDelete={deletePO} />
+                            <StaffView inventory={INVENTORY} units={UNITS} onSubmit={submitDraftPO} pos={pos} onReceive={receivePO} /> : 
+                            <OwnerView pos={pos} onApprove={approvePO} onReject={rejectPO} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} />
                         }
                     </main>
                 </div>
             );
         }
 
-        function StaffView({ suppliers, inventory, units, onSubmit, pos, onReceive }) {
-            const [selectedSupplier, setSelectedSupplier] = useState('');
+        function StaffView({ inventory, units, onSubmit, pos, onReceive }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
-            
-            // NEW: State for the Receiving Checklist Modal
             const [receivingPO, setReceivingPO] = useState(null);
             const [receivedQuantities, setReceivedQuantities] = useState({});
 
@@ -221,13 +234,11 @@
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
 
             const handleSubmit = () => {
-                if (!selectedSupplier) return alert('Please select a supplier.');
                 if (cart.length === 0) return alert('Cart is empty.');
-                onSubmit(selectedSupplier, cart);
-                setCart([]); setSelectedSupplier(''); setSearchTerm('');
+                onSubmit(cart); // NO SUPPLIER REQUIRED NOW
+                setCart([]); setSearchTerm('');
             };
 
-            // NEW: Open the receiving modal and pre-fill with expected quantities
             const openReceiveScreen = (po) => {
                 setReceivingPO(po);
                 const initialQty = {};
@@ -245,7 +256,7 @@
                     receivedQty: receivedQuantities[idx]
                 }));
                 onReceive(receivingPO.id, receivedItemsData);
-                setReceivingPO(null); // Close modal
+                setReceivingPO(null);
             };
 
             let displayedItems = [];
@@ -258,7 +269,6 @@
 
             const incomingPOs = pos.filter(po => po.status === 'Approved');
 
-            // If a PO is actively being received, show the checklist screen instead of the draft screen
             if (receivingPO) {
                 return (
                     <div className="animate-fade-in bg-white p-4 rounded-lg shadow-md border-t-4 border-hunter">
@@ -301,7 +311,6 @@
             return (
                 <div className="animate-fade-in">
                     
-                    {/* NEW SECTION: Incoming Deliveries */}
                     {incomingPOs.length > 0 && (
                         <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">
@@ -321,14 +330,8 @@
                         </div>
                     )}
 
-                    <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Draft New Order</h2>
+                    <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Draft New Request</h2>
                     
-                    <label className="block text-sm font-bold mb-1">Select Supplier</label>
-                    <select className="w-full p-3 mb-4 border border-hunter bg-white rounded shadow-sm" value={selectedSupplier} onChange={e => setSelectedSupplier(e.target.value)}>
-                        <option value="">-- Choose Supplier --</option>
-                        {suppliers.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-
                     <div className="relative mb-4 shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">🔍</span></div>
                         <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
@@ -377,7 +380,7 @@
                                 </div>
                             ))}
                             <button onClick={handleSubmit} className="w-full mt-4 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg transition">
-                                Submit for Approval
+                                Submit Draft to Owner
                             </button>
                         </div>
                     )}
@@ -391,7 +394,9 @@
                                         <p className="font-bold text-sm">{po.id}</p>
                                         <span className={`text-xs px-2 py-1 rounded ${po.status === 'Rejected' ? 'bg-red-100 text-red-800' : po.status === 'Approved' ? 'bg-blue-100 text-blue-800' : po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>{po.status}</span>
                                     </div>
-                                    <p className="text-xs text-gray-500">{po.supplier}</p>
+                                    <p className="text-xs text-gray-500">
+                                        {po.supplier || 'Awaiting Vendor Assignment'}
+                                    </p>
                                     {po.status === 'Rejected' && po.rejectReason && <p className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded"><strong>Note:</strong> {po.rejectReason}</p>}
                                 </div>
                             ))
@@ -401,31 +406,71 @@
             );
         }
 
-        function OwnerView({ pos, onApprove, onReject, onDelete }) {
+        function OwnerView({ pos, onApprove, onReject, onDelete, suppliers, addSupplier }) {
             const pendingPOs = pos.filter(po => po.status === 'Pending');
             const historyPOs = pos.filter(po => po.status !== 'Pending');
+
+            // Track supplier selections for pending POs
+            const [selectedSuppliers, setSelectedSuppliers] = useState({});
+
+            const handleSupplierChange = (poId, supplierName) => {
+                setSelectedSuppliers({ ...selectedSuppliers, [poId]: supplierName });
+            };
+
+            const handleApprove = (po) => {
+                const supplierName = selectedSuppliers[po.id];
+                if (!supplierName) {
+                    return alert("You must assign a vendor to this order before approving.");
+                }
+                const supplierObj = suppliers.find(s => s.name === supplierName);
+                onApprove(po.id, supplierObj);
+            };
 
             return (
                 <div className="animate-fade-in">
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Owner Dashboard</h2>
                     
+                    {/* NEW SECTION: Vendor Management */}
+                    <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
+                        <div className="flex justify-between items-center mb-2">
+                            <h3 className="font-bold text-hunter text-sm uppercase tracking-widest">Manage Directory</h3>
+                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition">
+                                + Add New Vendor
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Currently {suppliers.length} vendors attached with contact details.</p>
+                    </div>
+
                     <div className="mb-8">
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Approvals ({pendingPOs.length})</h3>
-                        {pendingPOs.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">☕ All caught up! No pending orders.</div> : 
+                        {pendingPOs.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">☕ All caught up! No pending drafts.</div> : 
                             pendingPOs.map(po => (
-                                <div key={po.id} className="bg-white rounded-lg shadow-md border p-4 mb-4 relative">
+                                <div key={po.id} className="bg-white rounded-lg shadow-md border border-yellow-400 p-4 mb-4 relative">
                                     <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xl" title="Delete PO">🗑️</button>
                                     <div className="flex justify-between items-center mb-2 pr-6">
                                         <span className="font-bold text-hunter">{po.id}</span>
                                         <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Pending</span>
                                     </div>
-                                    <p className="text-sm text-gray-600 mb-3"><strong>To:</strong> {po.supplier}</p>
+                                    
+                                    {/* NEW: Owner selects the vendor here */}
+                                    <div className="mb-3 bg-yellow-50 p-2 rounded border border-yellow-200">
+                                        <label className="block text-xs font-bold text-yellow-800 mb-1">Assign Vendor for this Order:</label>
+                                        <select 
+                                            value={selectedSuppliers[po.id] || ''} 
+                                            onChange={(e) => handleSupplierChange(po.id, e.target.value)}
+                                            className="w-full p-2 border border-yellow-400 bg-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                        >
+                                            <option value="">-- Choose Vendor Directory --</option>
+                                            {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
+                                        </select>
+                                    </div>
+
                                     <ul className="text-sm mb-4 bg-gray-50 p-3 rounded">
                                         {po.items.map((item, idx) => <li key={idx} className="flex justify-between border-b pb-1 mb-1 last:border-0 last:pb-0 last:mb-0"><span className="pr-2">{item.name}</span><span className="font-bold whitespace-nowrap">{item.qty} {item.unit}</span></li>)}
                                     </ul>
                                     <div className="flex space-x-2 mt-4">
                                         <button onClick={() => onReject(po.id)} className="w-1/3 bg-red-50 text-red-700 font-bold py-3 rounded border shadow-sm hover:bg-red-100 transition">Reject</button>
-                                        <button onClick={() => onApprove(po.id)} className="w-2/3 bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">Approve & Send</button>
+                                        <button onClick={() => handleApprove(po)} className="w-2/3 bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">Approve & Send</button>
                                     </div>
                                 </div>
                             ))
@@ -443,7 +488,6 @@
                                 </div>
                                 {po.status === 'Rejected' && po.rejectReason && <p className="text-xs text-red-600 mt-2 italic bg-red-50 p-2 rounded">Reason: {po.rejectReason}</p>}
                                 
-                                {/* NEW: Owner View of Delivery Variances */}
                                 {po.status === 'Delivered' && po.receivedItems && (
                                     <div className="mt-2 border-t pt-2">
                                         <p className="text-xs font-bold text-gray-600 mb-1">Receipt Details ({po.deliveryDate}):</p>
