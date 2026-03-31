@@ -4,10 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Caffeine Ministry - PO System</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <link rel="manifest" href="/manifest.json">
@@ -32,73 +38,104 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE",
+            authDomain: "tcm-orders.firebaseapp.com",
+            projectId: "tcm-orders",
+            storageBucket: "tcm-orders.firebasestorage.app",
+            messagingSenderId: "994764639663",
+            appId: "1:994764639663:web:2b0a682f2cb1001d37335a",
+            measurementId: "G-PLG3WH801B"
+        };
+        
+        // Initialize Firebase only if it hasn't been already
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        // --- DEFAULT DATA (Only used on very first load) ---
         const DEFAULT_SUPPLIERS = [
-            { "name": "Rare Beans Company", "phone": "8619122260" },
-            { "name": "Aditya Industries", "phone": "9595711611" },
-            { "name": "Renu Devi & Sons", "phone": "7737840411" },
-            { "name": "Cash Purchase", "phone": "" },
+            { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" },
+            { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" },
             { "name": "Viman Hospitality and Entertainment Private Limited", "phone": "8058764004" },
-            { "name": "Neha Agencies", "phone": "9414105084" },
-            { "name": "Charu Marketing", "phone": "8824153406" },
+            { "name": "Neha Agencies", "phone": "9414105084" }, { "name": "Charu Marketing", "phone": "8824153406" },
             { "name": "Laxmi Stores", "phone": "6378749797" }
         ];
 
         const DEFAULT_INVENTORY = {
-            "Fruits and Vegetables": [
-                "Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", "Spinach (पालक)", "Spring onion ( प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)", "Pomegranate (अनार)", "Coriander (धनिया)", "Brinjal (बैंगन) (Big)", "Ladyfingers (भिंडी)", "लौकी", "टिण्डा", "काचरी", "ग्वार फली"
-            ],
-            "Coffee and Matcha": [
-                "Full House Green (Arabica Coffee) (Dark Roast)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"
-            ],
-            "Groceries": [
-                "Aata", "Ajinomoto", "Aluminium Foil", "Amul Butter", "Amul Cheese Slice (Large Pack)", "Amul Cream", "Amul Mithai Mate (400 gms)", "Amul Pizza Cheese Blend (Shredded)", "Amul Processed Cheese", "Aromate Powder", "Besan", "Bisleri Vedica (500ml)", "Biscoff Biscuit", "Biscoff Spread", "Black Olive (3 Kg)", "Black Pepper (आखी)", "Black Salt (काला नमक)", "Blueberry (Frozen) (Delishh)", "Brown Rice", "Brown Sugar", "Brownie Premix", "Cashewnut (Kaju Tukdi)", "Channa Dal", "Chaat Masala", "Chilli Flakes", "Chilli Flakes (Sachet)", "Chings Chowmein Noodle", "Chocolate Sauce (Hersheys)", "Coconut Powder", "corn starch", "Cranberry Juice (Real) (1 Ltr.)", "Cream Cheese", "Dark Chocolate Compound (Morde)", "Dark Soya Sauce", "Dates (Seedless)", "Degi Mirch", "Dhaniya Powder", "Dijon Mustard", "McVitie's Digestive Biscuit (Family Pack)", "Duster Cloth", "Feta Cheese", "French Fries (2.5 Kg)", "Fusilli Pasta (Agnesi)", "Garam Masala", "Garden Nylon Sev", "Green Chilli Sauce (5 Kg)", "Peanut Butter (750 gms)", "Penne Pasta (Agnesi)", "Pickled Sushi Ginger", "Green Olive (Whole)", "Green Tea (100 Tea Bags) (Lipton)", "Haldi Powder", "Hara Moong (Sprouts)", "Honey (1 Kg)", "Jalapeño", "Japanese Mayo", "Jeera", "Kaala Channa (Black)", "Kabuli Chana", "Kaju Tukdi", "Kasundi Musturd Sauce", "Kitchen King Masala Powder", "Lasagna Sheets (Agnesi)", "Litchi Juice (Real) (1 Ltr.)", "Macaroni Pasta (Agnesi Chifferi Pasta)", "Maida (1 Bag)", "Malabar Paratha", "Manama Blackcurrent Crush", "Manama Blueberry Crush", "Manama Mango Crush", "Manama Strawberry Crush", "Maple Syrup (American Garden)", "Mayonnaise (1kg) (Refill)", "Milk Powder", "Mix Dal", "Monin Caramel Syrup", "Monin Curacao Triple Sec Syrup", "Monin French Vanilla Syrup", "Monin Hazelnut Syrup", "Monin Irish Syrup", "Monin Lavender Syrup", "Monin Mojito Syrup", "Monin Peach Syrup", "Monin Roasted Hazelnut Syrup", "Monin Rose Syrup", "Monin Vanilla Syrup", "Monin Watermelon Syrup", "Moong Dal", "nirma surf washing", "Noori Sheets (Sushi Sheets)", "Nutella (750 gms)", "Nutri Soya Keema Churi", "Oats", "Oats Milk", "Olive Oil (Extra Virgin) (1 ltr)", "Orange Juice (Real) (1 Ltr.)", "Oreo Biscuit (small - 10 piece)", "Oyster Sauce (Veg.)", "Panko Crumbs", "Parmal Rice", "Parmesan Cheese", "Penne Pasta (Agnesi)", "Peri Peri Masala", "Pineapple Crush (Manama)", "Pizza Seasoning", "Pizza Seasoning (Sachet)", "Potato Starch", "Potato Wedges (2.5 Kg)", "Pumpkin Seeds", "Quinoa (500 gms)", "Ragi Aata", "Rajma", "Red Chilli Sauce (5 Kg)", "Red Mirchi Powder", "Rice Paper", "Ricotta Cheese", "Sesame Seeds (सफेद तिल)", "Soda", "Soya Chaap", "Soya Chunks", "Spagetti Pasta (Agnesi)", "Spring Roll Sheets", "Sugar", "Sugarfree Sachets", "Sugar Sachet (White)", "Sugar Sachet (Brown)", "Suji", "Sukhi Lal Mirchi", "Sundried Tomato", "Sunflower Oil (15 Ltr)", "Sunflower Seeds", "Sushi Rice", "Sushi Vinegar", "Sweet Corn", "Table Rice", "Taco Shells", "Tahina Paste", "Tata Salt", "Tea (खुल्ली)", "Tempura Batter Mix", "Tomato Ketchup Refill (2 kg)", "Tomato Ketchup Sachet", "Tomato Puree (850 gms)", "Tonic Water", "Waffle Premix", "Walnut (खुल्ली)", "Wasabi tube", "Water Chestnut", "Wheat Starch", "White Chocolate Compound (Morde)", "White vinegar", "Wipped cream", "Yeast", "Yellow Thai Curry Paste", "नारियल का बुरा", "मक्की का आटा", "साबुत धनिया", "लौंग", "काजू टुकड़ी"
-            ],
-            "Packing and Consumables": [
-                "Brown Paper Bag (Extra Large) (16 x 12)", "Cap", "Chopsticks", "Cling Wrap (Large)", "Extra Large Garbage Bag", "Hot coffee cup cups with lids (180 ML)", "Hot coffee cup lid (250 ML)", "Kitchen Duster", "Medium Grabage Bag", "Paper Straw (10mm)", "Pizza Boxes", "Plastic Bend Straw (Mocktails)", "Plastic Disposable Glasses with Black Lid (350ML)", "Plastic Food Container wid Lid (650ML)", "Printed Butter Paper Roll", "Silver Foil Food Container wid Lid (650ML)", "Silver Foil Food Container wid Lid (400ML) - small", "Silver Foil", "Wooden Fork", "Wooden stiring sticks for hot coffee"
-            ]
+            "Fruits and Vegetables": ["Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", "Spinach (पालक)", "Spring onion ( प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)", "Pomegranate (अनार)", "Coriander (धनिया)", "Brinjal (बैंगन) (Big)", "Ladyfingers (भिंडी)", "लौकी", "टिण्डा", "काचरी", "ग्वार फली"],
+            "Coffee and Matcha": ["Full House Green (Arabica Coffee) (Dark Roast)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"],
+            "Groceries": ["Aata", "Ajinomoto", "Aluminium Foil", "Amul Butter", "Amul Cheese Slice (Large Pack)", "Amul Cream", "Amul Mithai Mate (400 gms)", "Amul Pizza Cheese Blend (Shredded)", "Amul Processed Cheese", "Aromate Powder", "Besan", "Bisleri Vedica (500ml)", "Biscoff Biscuit", "Biscoff Spread", "Black Olive (3 Kg)", "Black Pepper (आखी)", "Black Salt (काला नमक)", "Blueberry (Frozen) (Delishh)", "Brown Rice", "Brown Sugar", "Brownie Premix", "Cashewnut (Kaju Tukdi)", "Channa Dal", "Chaat Masala", "Chilli Flakes", "Chilli Flakes (Sachet)", "Chings Chowmein Noodle", "Chocolate Sauce (Hersheys)", "Coconut Powder", "corn starch", "Cranberry Juice (Real) (1 Ltr.)", "Cream Cheese", "Dark Chocolate Compound (Morde)", "Dark Soya Sauce", "Dates (Seedless)", "Degi Mirch", "Dhaniya Powder", "Dijon Mustard", "McVitie's Digestive Biscuit (Family Pack)", "Duster Cloth", "Feta Cheese", "French Fries (2.5 Kg)", "Fusilli Pasta (Agnesi)", "Garam Masala", "Garden Nylon Sev", "Green Chilli Sauce (5 Kg)", "Peanut Butter (750 gms)", "Penne Pasta (Agnesi)", "Pickled Sushi Ginger", "Green Olive (Whole)", "Green Tea (100 Tea Bags) (Lipton)", "Haldi Powder", "Hara Moong (Sprouts)", "Honey (1 Kg)", "Jalapeño", "Japanese Mayo", "Jeera", "Kaala Channa (Black)", "Kabuli Chana", "Kaju Tukdi", "Kasundi Musturd Sauce", "Kitchen King Masala Powder", "Lasagna Sheets (Agnesi)", "Litchi Juice (Real) (1 Ltr.)", "Macaroni Pasta (Agnesi Chifferi Pasta)", "Maida (1 Bag)", "Malabar Paratha", "Manama Blackcurrent Crush", "Manama Blueberry Crush", "Manama Mango Crush", "Manama Strawberry Crush", "Maple Syrup (American Garden)", "Mayonnaise (1kg) (Refill)", "Milk Powder", "Mix Dal", "Monin Caramel Syrup", "Monin Curacao Triple Sec Syrup", "Monin French Vanilla Syrup", "Monin Hazelnut Syrup", "Monin Irish Syrup", "Monin Lavender Syrup", "Monin Mojito Syrup", "Monin Peach Syrup", "Monin Roasted Hazelnut Syrup", "Monin Rose Syrup", "Monin Vanilla Syrup", "Monin Watermelon Syrup", "Moong Dal", "nirma surf washing", "Noori Sheets (Sushi Sheets)", "Nutella (750 gms)", "Nutri Soya Keema Churi", "Oats", "Oats Milk", "Olive Oil (Extra Virgin) (1 ltr)", "Orange Juice (Real) (1 Ltr.)", "Oreo Biscuit (small - 10 piece)", "Oyster Sauce (Veg.)", "Panko Crumbs", "Parmal Rice", "Parmesan Cheese", "Penne Pasta (Agnesi)", "Peri Peri Masala", "Pineapple Crush (Manama)", "Pizza Seasoning", "Pizza Seasoning (Sachet)", "Potato Starch", "Potato Wedges (2.5 Kg)", "Pumpkin Seeds", "Quinoa (500 gms)", "Ragi Aata", "Rajma", "Red Chilli Sauce (5 Kg)", "Red Mirchi Powder", "Rice Paper", "Ricotta Cheese", "Sesame Seeds (सफेद तिल)", "Soda", "Soya Chaap", "Soya Chunks", "Spagetti Pasta (Agnesi)", "Spring Roll Sheets", "Sugar", "Sugarfree Sachets", "Sugar Sachet (White)", "Sugar Sachet (Brown)", "Suji", "Sukhi Lal Mirchi", "Sundried Tomato", "Sunflower Oil (15 Ltr)", "Sunflower Seeds", "Sushi Rice", "Sushi Vinegar", "Sweet Corn", "Table Rice", "Taco Shells", "Tahina Paste", "Tata Salt", "Tea (खुल्ली)", "Tempura Batter Mix", "Tomato Ketchup Refill (2 kg)", "Tomato Ketchup Sachet", "Tomato Puree (850 gms)", "Tonic Water", "Waffle Premix", "Walnut (खुल्ली)", "Wasabi tube", "Water Chestnut", "Wheat Starch", "White Chocolate Compound (Morde)", "White vinegar", "Wipped cream", "Yeast", "Yellow Thai Curry Paste", "नारियल का बुरा", "मक्की का आटा", "साबुत धनिया", "लौंग", "काजू टुकड़ी"],
+            "Packing and Consumables": ["Brown Paper Bag (Extra Large) (16 x 12)", "Cap", "Chopsticks", "Cling Wrap (Large)", "Extra Large Garbage Bag", "Hot coffee cup cups with lids (180 ML)", "Hot coffee cup lid (250 ML)", "Kitchen Duster", "Medium Grabage Bag", "Paper Straw (10mm)", "Pizza Boxes", "Plastic Bend Straw (Mocktails)", "Plastic Disposable Glasses with Black Lid (350ML)", "Plastic Food Container wid Lid (650ML)", "Printed Butter Paper Roll", "Silver Foil Food Container wid Lid (650ML)", "Silver Foil Food Container wid Lid (400ML) - small", "Silver Foil", "Wooden Fork", "Wooden stiring sticks for hot coffee"]
         };
-
         const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr"];
 
         function App() {
             const [role, setRole] = useState('staff'); 
+            const [loading, setLoading] = useState(true);
+
+            // Cloud States
             const [requests, setRequests] = useState([]); 
             const [pos, setPos] = useState([]); 
             const [poCounter, setPoCounter] = useState({ month: '', count: 1 });
             const [suppliers, setSuppliers] = useState([]);
             const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
-            
-            // NEW: Owner Phone State for WhatsApp Alerts
-            const [ownerPhone, setOwnerPhone] = useState(localStorage.getItem('tcm_owner_phone') || '');
+            const [ownerPhone, setOwnerPhone] = useState('');
 
             useEffect(() => {
-                const savedRequests = JSON.parse(localStorage.getItem('tcm_requests')) || [];
-                const savedPOs = JSON.parse(localStorage.getItem('tcm_pos')) || [];
-                const savedCounter = JSON.parse(localStorage.getItem('tcm_counter')) || getInitialCounter();
-                const savedSuppliers = JSON.parse(localStorage.getItem('tcm_suppliers'));
-                const savedInventory = JSON.parse(localStorage.getItem('tcm_inventory'));
-                
-                setRequests(savedRequests);
-                setPos(savedPOs);
-                setPoCounter(savedCounter);
-                setSuppliers(savedSuppliers && savedSuppliers.length > 0 ? savedSuppliers : DEFAULT_SUPPLIERS);
-                if (savedInventory) setInventory(savedInventory);
+                let unsubSettings = () => {};
+                let unsubReqs = () => {};
+                let unsubPOs = () => {};
+
+                const initializeDB = async () => {
+                    const settingsRef = db.collection('settings').doc('main');
+                    const docSnap = await settingsRef.get();
+                    
+                    if (!docSnap.exists) {
+                        const now = new Date();
+                        const initialMonth = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
+                        await settingsRef.set({
+                            suppliers: DEFAULT_SUPPLIERS,
+                            inventory: DEFAULT_INVENTORY,
+                            poCounter: { month: initialMonth, count: 1 },
+                            ownerPhone: ''
+                        });
+                    }
+
+                    // 1. Listen to Settings (Inventory, Vendors, Counter)
+                    unsubSettings = settingsRef.onSnapshot(doc => {
+                        if (doc.exists) {
+                            const data = doc.data();
+                            setSuppliers(data.suppliers || DEFAULT_SUPPLIERS);
+                            setInventory(data.inventory || DEFAULT_INVENTORY);
+                            setPoCounter(data.poCounter);
+                            setOwnerPhone(data.ownerPhone || '');
+                        }
+                    });
+
+                    // 2. Listen to Master Requests
+                    unsubReqs = db.collection('requests').onSnapshot(snap => {
+                        const reqData = [];
+                        snap.forEach(d => reqData.push(d.data()));
+                        setRequests(reqData.sort((a,b) => b.id.localeCompare(a.id))); // Sort newest first
+                    });
+
+                    // 3. Listen to Official POs
+                    unsubPOs = db.collection('pos').onSnapshot(snap => {
+                        const poData = [];
+                        snap.forEach(d => poData.push(d.data()));
+                        setPos(poData.sort((a,b) => b.id.localeCompare(a.id)));
+                    });
+
+                    setLoading(false);
+                };
+
+                initializeDB();
+
+                return () => { unsubSettings(); unsubReqs(); unsubPOs(); };
             }, []);
-
-            useEffect(() => {
-                localStorage.setItem('tcm_requests', JSON.stringify(requests));
-                localStorage.setItem('tcm_pos', JSON.stringify(pos));
-                localStorage.setItem('tcm_counter', JSON.stringify(poCounter));
-                localStorage.setItem('tcm_suppliers', JSON.stringify(suppliers));
-                localStorage.setItem('tcm_inventory', JSON.stringify(inventory));
-                localStorage.setItem('tcm_owner_phone', ownerPhone);
-            }, [requests, pos, poCounter, suppliers, inventory, ownerPhone]);
-
-            const getInitialCounter = () => {
-                const now = new Date();
-                const monthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
-                return { month: monthYear, count: 1 };
-            };
 
             const generatePONumber = () => {
                 const now = new Date();
@@ -106,33 +143,45 @@
                 let newCount = poCounter.count;
                 if (poCounter.month !== currentMonthYear) { newCount = 1; }
                 const paddedCount = String(newCount).padStart(3, '0');
-                setPoCounter({ month: currentMonthYear, count: newCount + 1 });
+                
+                // Update Cloud Counter instantly
+                db.collection('settings').doc('main').update({
+                    poCounter: { month: currentMonthYear, count: newCount + 1 }
+                });
+
                 return `TCM/${currentMonthYear}/${paddedCount}`;
             };
 
+            // STAFF LOGIC
             const submitMasterRequest = (items) => {
                 const reqId = 'REQ-' + Math.floor(1000 + Math.random() * 9000);
-                const newReq = {
-                    id: reqId, 
-                    items, 
-                    date: new Date().toLocaleDateString('en-GB')
-                };
-                setRequests([newReq, ...requests]);
+                const newReq = { id: reqId, items, date: new Date().toLocaleDateString('en-GB') };
                 
-                // NEW: Send WhatsApp Alert to Owner
+                // Save to Cloud
+                db.collection('requests').doc(reqId).set(newReq);
+                
+                // WhatsApp Alert to Owner
                 if (ownerPhone && ownerPhone.trim() !== '') {
                     const itemList = items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
-                    const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list for your approval and vendor assignment.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM App Dashboard to generate the POs.`;
-                    
+                    const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list for your approval and vendor assignment.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM App Dashboard.`;
                     let phoneStr = ownerPhone.replace(/\D/g, '');
                     if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
-                    
                     window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(message)}`, '_blank');
                 } else {
-                    alert('Master Request saved! (Note: Owner WhatsApp number is not configured in settings, so no alert was sent).');
+                    alert('Master Request sent to Cloud Database! (Owner WhatsApp not configured).');
                 }
             };
 
+            const receivePO = (poId, receivedItemsData) => {
+                db.collection('pos').doc(poId).update({
+                    status: 'Delivered', 
+                    receivedItems: receivedItemsData,
+                    deliveryDate: new Date().toLocaleDateString('en-GB')
+                });
+                alert('Delivery confirmed in database!');
+            };
+
+            // OWNER LOGIC
             const processRequestToPO = (reqId, selectedIndices, supplierObj) => {
                 const req = requests.find(r => r.id === reqId);
                 const poItems = req.items.filter((_, idx) => selectedIndices.includes(idx));
@@ -146,14 +195,18 @@
                     status: 'Approved',
                     date: new Date().toLocaleDateString('en-GB')
                 };
-                setPos([newPo, ...pos]);
-                sendWhatsApp(newPo);
+                
+                // Save PO to cloud
+                db.collection('pos').doc(newPo.id).set(newPo);
 
+                // Update Request in cloud
                 if (remainingItems.length === 0) {
-                    setRequests(requests.filter(r => r.id !== reqId));
+                    db.collection('requests').doc(reqId).delete();
                 } else {
-                    setRequests(requests.map(r => r.id === reqId ? { ...r, items: remainingItems } : r));
+                    db.collection('requests').doc(reqId).update({ items: remainingItems });
                 }
+
+                sendWhatsApp(newPo);
             };
 
             const removeRequestItem = (reqId, itemIndex) => {
@@ -161,32 +214,16 @@
                 const req = requests.find(r => r.id === reqId);
                 const remaining = req.items.filter((_, idx) => idx !== itemIndex);
                 if (remaining.length === 0) {
-                    setRequests(requests.filter(r => r.id !== reqId));
+                    db.collection('requests').doc(reqId).delete();
                 } else {
-                    setRequests(requests.map(r => r.id === reqId ? { ...r, items: remaining } : r));
+                    db.collection('requests').doc(reqId).update({ items: remaining });
                 }
             };
 
             const deletePO = (poId) => {
                 if(window.confirm("Permanently delete this official PO? This cannot be undone.")) {
-                    setPos(pos.filter(po => po.id !== poId));
+                    db.collection('pos').doc(poId).delete();
                 }
-            };
-
-            const receivePO = (poId, receivedItemsData) => {
-                const updatedPOs = pos.map(po => {
-                    if (po.id === poId) {
-                        return { 
-                            ...po, 
-                            status: 'Delivered', 
-                            receivedItems: receivedItemsData,
-                            deliveryDate: new Date().toLocaleDateString('en-GB')
-                        };
-                    }
-                    return po;
-                });
-                setPos(updatedPOs);
-                alert('Delivery confirmed and saved to history!');
             };
 
             const sendWhatsApp = (po) => {
@@ -205,7 +242,6 @@
                 } else {
                     url += `?text=${encodeURIComponent(message)}`;
                 }
-                
                 window.open(url, '_blank');
             };
 
@@ -213,22 +249,22 @@
                 const name = window.prompt("Enter new Vendor Name:");
                 if (!name || name.trim() === '') return;
                 const phone = window.prompt("Enter Vendor Mobile Number (Optional, for WhatsApp):");
-                setSuppliers([...suppliers, { name: name.trim(), phone: phone ? phone.trim() : "" }]);
-                alert(`${name} has been added to the vendor directory.`);
+                const newSuppliers = [...suppliers, { name: name.trim(), phone: phone ? phone.trim() : "" }];
+                db.collection('settings').doc('main').update({ suppliers: newSuppliers });
+                alert(`${name} has been added to the cloud directory.`);
             };
 
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN to access dashboard:");
-                    if (pin === "1701") { 
-                        setRole('owner');
-                    } else if (pin !== null) {
-                        alert("Incorrect PIN. Access Denied.");
-                    }
-                } else {
-                    setRole('staff');
-                }
+                    if (pin === "1701") { setRole('owner'); } 
+                    else if (pin !== null) { alert("Incorrect PIN. Access Denied."); }
+                } else { setRole('staff'); }
             };
+
+            if (loading) {
+                return <div className="min-h-screen bg-parchment flex items-center justify-center font-serif text-hunter text-xl font-bold animate-pulse">Brewing the cloud database...</div>;
+            }
 
             return (
                 <div className="min-h-screen bg-parchment pb-20">
@@ -244,7 +280,7 @@
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
                             <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} requests={requests} pos={pos} onReceive={receivePO} /> : 
-                            <OwnerView requests={requests} pos={pos} onProcessRequest={processRequestToPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} setInventory={setInventory} ownerPhone={ownerPhone} setOwnerPhone={setOwnerPhone} />
+                            <OwnerView requests={requests} pos={pos} onProcessRequest={processRequestToPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} ownerPhone={ownerPhone} />
                         }
                     </main>
                 </div>
@@ -256,24 +292,16 @@
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
-            
             const [receivingPO, setReceivingPO] = useState(null);
             const [receivedQuantities, setReceivedQuantities] = useState({});
-
             const [showAddModal, setShowAddModal] = useState(false);
             const [modalItemName, setModalItemName] = useState('');
             const [modalQty, setModalQty] = useState('');
             const [modalUnit, setModalUnit] = useState('Kg');
 
             const openAddModal = (item) => {
-                if (cart.find(i => i.name === item)) {
-                    alert("This item is already in your cart. You can remove it to add it again.");
-                    return;
-                }
-                setModalItemName(item);
-                setModalQty('');
-                setModalUnit('Kg');
-                setShowAddModal(true);
+                if (cart.find(i => i.name === item)) return alert("Item is already in your cart.");
+                setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true);
             };
 
             const confirmAddItem = () => {
@@ -283,11 +311,9 @@
             };
 
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
-
             const handleSubmit = () => {
                 if (cart.length === 0) return alert('Cart is empty.');
-                onSubmit(cart); 
-                setCart([]); setSearchTerm('');
+                onSubmit(cart); setCart([]); setSearchTerm('');
             };
 
             const openReceiveScreen = (po) => {
@@ -297,14 +323,11 @@
                 setReceivedQuantities(initialQty);
             };
 
-            const updateReceivedQty = (idx, value) => {
-                setReceivedQuantities({ ...receivedQuantities, [idx]: value });
-            };
+            const updateReceivedQty = (idx, value) => setReceivedQuantities({ ...receivedQuantities, [idx]: value });
 
             const submitReceive = () => {
                 const receivedItemsData = receivingPO.items.map((item, idx) => ({
-                    ...item,
-                    receivedQty: Number(receivedQuantities[idx]) || 0
+                    ...item, receivedQty: Number(receivedQuantities[idx]) || 0
                 }));
                 onReceive(receivingPO.id, receivedItemsData);
                 setReceivingPO(null);
@@ -329,12 +352,9 @@
                         </div>
                         <p className="text-sm text-gray-600 mb-2"><strong>PO:</strong> {receivingPO.id}</p>
                         <p className="text-sm text-gray-600 mb-4"><strong>Vendor:</strong> {receivingPO.supplier}</p>
-                        
                         <div className="bg-gray-50 p-3 rounded mb-6 max-h-80 overflow-y-auto">
                             <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-2 border-b pb-2">
-                                <span className="w-1/2">Item Name</span>
-                                <span className="w-1/4 text-center">Ordered</span>
-                                <span className="w-1/4 text-center">Received</span>
+                                <span className="w-1/2">Item Name</span><span className="w-1/4 text-center">Ordered</span><span className="w-1/4 text-center">Received</span>
                             </div>
                             {receivingPO.items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center border-b py-3 last:border-0">
@@ -346,22 +366,18 @@
                                 </div>
                             ))}
                         </div>
-                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">
-                            Confirm Delivery
-                        </button>
+                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">Confirm Delivery</button>
                     </div>
                 );
             }
 
             return (
                 <div className="animate-fade-in relative">
-                    
                     {showAddModal && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-fade-in">
                             <div className="bg-parchment p-6 rounded-lg shadow-2xl w-full max-w-sm border-2 border-hunter">
                                 <h3 className="font-serif font-bold text-lg text-hunter mb-1">Add to Master List</h3>
                                 <p className="text-sm text-gray-700 mb-5 truncate font-bold">{modalItemName}</p>
-                                
                                 <div className="flex space-x-3 mb-6">
                                     <div className="w-1/2">
                                         <label className="block text-xs font-bold text-gray-500 mb-1">Quantity</label>
@@ -374,7 +390,6 @@
                                         </select>
                                     </div>
                                 </div>
-                                
                                 <div className="flex space-x-3">
                                     <button onClick={() => setShowAddModal(false)} className="w-1/2 bg-gray-200 text-gray-800 font-bold py-3 rounded shadow-sm hover:bg-gray-300 transition">Cancel</button>
                                     <button onClick={confirmAddItem} className="w-1/2 bg-antiqueGold text-hunter font-bold py-3 rounded shadow-md hover:bg-yellow-500 transition">Add to Cart</button>
@@ -388,23 +403,17 @@
                             <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">🚚 Incoming Deliveries</h3>
                             {incomingPOs.map(po => (
                                 <div key={po.id} className="bg-white p-3 rounded shadow-sm mb-2 border-l-4 border-blue-500 flex justify-between items-center">
-                                    <div>
-                                        <p className="font-bold text-sm">{po.id}</p>
-                                        <p className="text-xs text-gray-600">{po.supplier}</p>
-                                    </div>
-                                    <button onClick={() => openReceiveScreen(po)} className="bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded hover:bg-blue-700 shadow-sm">
-                                        Receive
-                                    </button>
+                                    <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-600">{po.supplier}</p></div>
+                                    <button onClick={() => openReceiveScreen(po)} className="bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded shadow-sm">Receive</button>
                                 </div>
                             ))}
                         </div>
                     )}
 
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Build Master Request List</h2>
-                    
                     <div className="relative mb-4 shadow-sm">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><span className="text-gray-400">🔍</span></div>
-                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:outline-none focus:ring-2 focus:ring-antiqueGold" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
+                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:ring-2 focus:ring-antiqueGold focus:outline-none" placeholder="Search ingredients, items..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/>
                     </div>
 
                     {!searchTerm && (
@@ -440,7 +449,7 @@
                                     <button onClick={() => removeItem(idx)} className="text-red-300 text-xs font-bold bg-white/10 px-2 py-1 rounded hover:bg-white/20">Remove</button>
                                 </div>
                             ))}
-                            <button onClick={handleSubmit} className="w-full mt-2 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg transition">
+                            <button onClick={handleSubmit} className="w-full mt-2 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg">
                                 Send Master List to Owner
                             </button>
                         </div>
@@ -449,7 +458,7 @@
             );
         }
 
-        // --- OWNER VIEW: Request Card Component ---
+        // --- OWNER VIEW COMPONENT ---
         function OwnerRequestCard({ req, suppliers, onCreatePO, onRemoveItem }) {
             const [selectedIndices, setSelectedIndices] = useState([]);
             const [selectedVendor, setSelectedVendor] = useState('');
@@ -460,12 +469,11 @@
             };
 
             const handleCreate = () => {
-                if (selectedIndices.length === 0) return alert('Please check the box next to at least one item.');
-                if (!selectedVendor) return alert('Please select a vendor from the directory.');
+                if (selectedIndices.length === 0) return alert('Check the box next to at least one item.');
+                if (!selectedVendor) return alert('Please select a vendor.');
                 const vendorObj = suppliers.find(s => s.name === selectedVendor);
                 onCreatePO(req.id, selectedIndices, vendorObj);
-                setSelectedIndices([]); 
-                setSelectedVendor('');
+                setSelectedIndices([]); setSelectedVendor('');
             };
 
             return (
@@ -474,51 +482,52 @@
                         <span className="font-bold text-hunter text-lg">{req.id}</span>
                         <span className="text-xs text-gray-500">{req.date}</span>
                     </div>
-                    
                     <p className="text-xs font-bold text-yellow-800 bg-yellow-50 p-2 rounded mb-3 border border-yellow-200">
-                        Step 1: Check the items below you want to order from the SAME vendor.
+                        Step 1: Check items to group for ONE vendor.
                     </p>
-                    
                     <div className="bg-gray-50 p-2 rounded mb-4 max-h-64 overflow-y-auto border border-gray-200">
                         {req.items.map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between border-b border-gray-200 pb-2 mb-2 last:border-0 last:pb-0 last:mb-0">
                                 <label className="flex items-center space-x-3 cursor-pointer w-[85%]">
-                                    <input type="checkbox" checked={selectedIndices.includes(idx)} onChange={() => handleCheck(idx)} className="w-5 h-5 text-hunter rounded border-gray-300 focus:ring-hunter" />
+                                    <input type="checkbox" checked={selectedIndices.includes(idx)} onChange={() => handleCheck(idx)} className="w-5 h-5 text-hunter rounded" />
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-hunter leading-tight">{item.name}</span>
                                         <span className="text-xs text-gray-600">{item.qty} {item.unit}</span>
                                     </div>
                                 </label>
-                                <button onClick={() => onRemoveItem(req.id, idx)} className="text-red-400 hover:text-red-600 text-sm font-bold bg-white px-2 py-1 rounded shadow-sm border border-red-100" title="Delete from request">✕</button>
+                                <button onClick={() => onRemoveItem(req.id, idx)} className="text-red-400 hover:text-red-600 text-sm font-bold bg-white px-2 py-1 rounded shadow-sm border border-red-100">✕</button>
                             </div>
                         ))}
                     </div>
-
                     <div className="flex flex-col space-y-3">
-                        <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-3 border border-hunter rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-white">
+                        <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-3 border border-hunter rounded text-sm bg-white focus:outline-none focus:ring-2 focus:ring-antiqueGold">
                             <option value="">-- Step 2: Choose Vendor --</option>
                             {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
                         </select>
-                        
-                        <button onClick={handleCreate} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition flex justify-center items-center">
-                            Step 3: Generate PO & Send WhatsApp
+                        <button onClick={handleCreate} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900">
+                            Step 3: Generate PO & WhatsApp
                         </button>
                     </div>
                 </div>
             );
         }
 
-        // --- OWNER DASHBOARD ---
-        function OwnerView({ requests, pos, onProcessRequest, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, setInventory, ownerPhone, setOwnerPhone }) {
+        function OwnerView({ requests, pos, onProcessRequest, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, ownerPhone }) {
             const historyPOs = pos.filter(po => po.status !== 'Pending');
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
+            
+            const [localPhone, setLocalPhone] = useState(ownerPhone);
+
+            const savePhoneToCloud = () => {
+                db.collection('settings').doc('main').update({ ownerPhone: localPhone });
+            };
 
             const handleAddInventoryItem = () => {
                 const newItem = window.prompt(`Enter new item name for ${dbCategory}:`);
                 if (newItem && newItem.trim() !== '') {
                     const newInv = { ...inventory };
                     newInv[dbCategory] = [...newInv[dbCategory], newItem.trim()].sort();
-                    setInventory(newInv);
+                    db.collection('settings').doc('main').update({ inventory: newInv });
                 }
             };
 
@@ -527,7 +536,7 @@
                 if (newName && newName.trim() !== '' && newName !== oldName) {
                     const newInv = { ...inventory };
                     newInv[dbCategory] = newInv[dbCategory].map(item => item === oldName ? newName.trim() : item).sort();
-                    setInventory(newInv);
+                    db.collection('settings').doc('main').update({ inventory: newInv });
                 }
             };
 
@@ -535,7 +544,7 @@
                 if(window.confirm(`Are you sure you want to delete "${name}" from ${dbCategory}?`)){
                     const newInv = { ...inventory };
                     newInv[dbCategory] = newInv[dbCategory].filter(item => item !== name);
-                    setInventory(newInv);
+                    db.collection('settings').doc('main').update({ inventory: newInv });
                 }
             };
 
@@ -543,7 +552,6 @@
                 <div className="animate-fade-in">
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Owner Dashboard</h2>
                     
-                    {/* NEW: Owner Notification Settings */}
                     <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
                         <h3 className="font-bold text-hunter text-sm uppercase tracking-widest mb-2 border-b pb-2">Owner Settings</h3>
                         <label className="block text-xs font-bold text-gray-500 mb-1">Your WhatsApp Number (For Staff Alerts)</label>
@@ -551,39 +559,36 @@
                             type="text"
                             className="w-full p-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50"
                             placeholder="e.g. 9876543210"
-                            value={ownerPhone}
-                            onChange={e => setOwnerPhone(e.target.value)}
+                            value={localPhone}
+                            onChange={e => setLocalPhone(e.target.value)}
+                            onBlur={savePhoneToCloud}
                         />
-                        <p className="text-[10px] text-gray-400 mt-1">Staff devices will automatically text this number when a new list is ready.</p>
+                        <p className="text-[10px] text-gray-400 mt-1">Staff devices will automatically text this number when a list is submitted.</p>
                     </div>
 
                     <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
                         <div className="flex justify-between items-center mb-4 border-b pb-2">
                             <h3 className="font-bold text-hunter text-sm uppercase tracking-widest">Manage Databases</h3>
                         </div>
-                        
                         <div className="flex justify-between items-center mb-5">
                             <span className="text-sm font-bold text-gray-700">Vendor Directory ({suppliers.length})</span>
                             <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition">+ Add Vendor</button>
                         </div>
-
                         <div className="border-t pt-3">
                             <div className="flex justify-between items-center mb-3">
                                 <span className="text-sm font-bold text-gray-700">Inventory Database</span>
                                 <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900 transition">+ Add Item</button>
                             </div>
-                            
                             <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-antiqueGold bg-gray-50">
                                 {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                             </select>
-
                             <div className="bg-gray-50 border border-gray-200 rounded max-h-48 overflow-y-auto">
                                 {inventory[dbCategory] && inventory[dbCategory].map(item => (
                                     <div key={item} className="flex justify-between items-center p-2 border-b border-gray-200 last:border-0 hover:bg-gray-100">
                                         <span className="text-xs text-gray-800 truncate pr-2 w-3/4">{item}</span>
                                         <div className="flex space-x-2">
-                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500 hover:text-blue-700" title="Edit Item">✏️</button>
-                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500 hover:text-red-700" title="Delete Item">🗑️</button>
+                                            <button onClick={() => handleEditInventoryItem(item)} className="text-blue-500 hover:text-blue-700">✏️</button>
+                                            <button onClick={() => handleDeleteInventoryItem(item)} className="text-red-500 hover:text-red-700">🗑️</button>
                                         </div>
                                     </div>
                                 ))}
@@ -594,15 +599,7 @@
                     <div className="mb-8">
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests ({requests.length})</h3>
                         {requests.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">☕ All caught up! No pending staff requests.</div> : 
-                            requests.map(req => (
-                                <OwnerRequestCard 
-                                    key={req.id} 
-                                    req={req} 
-                                    suppliers={suppliers} 
-                                    onCreatePO={onProcessRequest} 
-                                    onRemoveItem={onRemoveRequestItem} 
-                                />
-                            ))
+                            requests.map(req => <OwnerRequestCard key={req.id} req={req} suppliers={suppliers} onCreatePO={onProcessRequest} onRemoveItem={onRemoveRequestItem} />)
                         }
                     </div>
 
@@ -610,15 +607,11 @@
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Official POs</h3>
                         {historyPOs.map(po => (
                             <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-2 border-l-4 relative ${po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
-                                <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg" title="Delete PO">🗑️</button>
+                                <button onClick={() => onDelete(po.id)} className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-lg">🗑️</button>
                                 <div className="flex justify-between items-center mb-1 pr-6">
-                                    <div>
-                                        <p className="font-bold text-sm">{po.id}</p>
-                                        <p className="text-xs text-gray-500">{po.supplier}</p>
-                                    </div>
+                                    <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-500">{po.supplier}</p></div>
                                     <span className={`text-xs px-2 py-1 rounded font-bold ${po.status === 'Delivered' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{po.status}</span>
                                 </div>
-                                
                                 {po.status === 'Delivered' && po.receivedItems && (
                                     <div className="mt-2 border-t pt-2">
                                         <p className="text-xs font-bold text-gray-600 mb-1">Receipt Details ({po.deliveryDate}):</p>
@@ -646,11 +639,6 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-    </script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); });
-      }
     </script>
 </body>
 </html>
