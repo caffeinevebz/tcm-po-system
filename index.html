@@ -54,7 +54,7 @@
         }
         const db = firebase.firestore();
 
-        // --- DEFAULT DATA ---
+        // --- DEFAULT DATA (Only used on very first load to populate cloud) ---
         const DEFAULT_SUPPLIERS = [
             { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" },
             { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" },
@@ -103,6 +103,7 @@
                         });
                     }
 
+                    // 1. Listen to Settings 
                     unsubSettings = settingsRef.onSnapshot(doc => {
                         if (doc.exists) {
                             const data = doc.data();
@@ -113,12 +114,14 @@
                         }
                     });
 
+                    // 2. Listen to Master Requests
                     unsubReqs = db.collection('requests').onSnapshot(snap => {
                         const reqData = [];
                         snap.forEach(d => reqData.push(d.data()));
                         setRequests(reqData.sort((a,b) => b.id.localeCompare(a.id))); 
                     });
 
+                    // 3. Listen to Official POs (Needed for Staff Delivery Intake Checklist)
                     unsubPOs = db.collection('pos').onSnapshot(snap => {
                         const poData = [];
                         snap.forEach(d => poData.push(d.data()));
@@ -158,7 +161,7 @@
                     if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
                     window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(message)}`, '_blank');
                 } else {
-                    alert('Master Request sent to Cloud Database! (Owner WhatsApp not configured).');
+                    alert('Master Request sent to Cloud Database!');
                 }
             };
 
@@ -171,7 +174,7 @@
                 alert('Delivery confirmed in database!');
             };
 
-            // NEW: Unified PO Generator from Selected Items across multiple requests
+            // COMBINED PO GENERATOR 
             const createCombinedPO = (selectedItems, vendorObj) => {
                 const newPo = {
                     id: generatePONumber(),
@@ -181,7 +184,6 @@
                     date: new Date().toLocaleDateString('en-GB')
                 };
 
-                // Auto-Combine Duplicate Items
                 const combinedItems = [];
                 selectedItems.forEach(si => {
                     const item = si.item;
@@ -194,10 +196,8 @@
                 });
                 newPo.items = combinedItems;
 
-                // Save PO to cloud
                 db.collection('pos').doc(newPo.id).set(newPo);
 
-                // Determine which requests need to be updated or deleted
                 const reqsToUpdate = {};
                 selectedItems.forEach(si => {
                     if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = [];
@@ -268,7 +268,7 @@
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN to access dashboard:");
-                    if (pin === "1701") { setRole('owner'); } 
+                    if (pin === "1234") { setRole('owner'); } 
                     else if (pin !== null) { alert("Incorrect PIN. Access Denied."); }
                 } else { setRole('staff'); }
             };
@@ -290,7 +290,7 @@
                     </header>
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
-                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} requests={requests} pos={pos} onReceive={receivePO} /> : 
+                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} /> : 
                             <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} ownerPhone={ownerPhone} />
                         }
                     </main>
@@ -298,13 +298,17 @@
             );
         }
 
-        // --- STAFF VIEW (UNCHANGED) ---
-        function StaffView({ inventory, units, onSubmit, requests, pos, onReceive }) {
+        // --- STAFF VIEW: Checklist & Add Modal included ---
+        function StaffView({ inventory, units, onSubmit, pos, onReceive }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
+            
+            // Intake Modal State
             const [receivingPO, setReceivingPO] = useState(null);
             const [receivedQuantities, setReceivedQuantities] = useState({});
+
+            // Add Item Pop-Up State
             const [showAddModal, setShowAddModal] = useState(false);
             const [modalItemName, setModalItemName] = useState('');
             const [modalQty, setModalQty] = useState('');
@@ -322,6 +326,7 @@
             };
 
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
+            
             const handleSubmit = () => {
                 if (cart.length === 0) return alert('Cart is empty.');
                 onSubmit(cart); setCart([]); setSearchTerm('');
@@ -334,7 +339,9 @@
                 setReceivedQuantities(initialQty);
             };
 
-            const updateReceivedQty = (idx, value) => setReceivedQuantities({ ...receivedQuantities, [idx]: value });
+            const updateReceivedQty = (idx, value) => {
+                setReceivedQuantities({ ...receivedQuantities, [idx]: value });
+            };
 
             const submitReceive = () => {
                 const receivedItemsData = receivingPO.items.map((item, idx) => ({
@@ -352,8 +359,10 @@
                 displayedItems = inventory[selectedCategory] || [];
             }
 
+            // This ensures ONLY Approved POs show up for the staff to check off
             const incomingPOs = pos.filter(po => po.status === 'Approved');
 
+            // Render Checklist Screen
             if (receivingPO) {
                 return (
                     <div className="animate-fade-in bg-white p-4 rounded-lg shadow-md border-t-4 border-hunter">
@@ -363,9 +372,12 @@
                         </div>
                         <p className="text-sm text-gray-600 mb-2"><strong>PO:</strong> {receivingPO.id}</p>
                         <p className="text-sm text-gray-600 mb-4"><strong>Vendor:</strong> {receivingPO.supplier}</p>
+                        
                         <div className="bg-gray-50 p-3 rounded mb-6 max-h-80 overflow-y-auto">
                             <div className="flex justify-between text-xs font-bold text-gray-500 uppercase mb-2 border-b pb-2">
-                                <span className="w-1/2">Item Name</span><span className="w-1/4 text-center">Ordered</span><span className="w-1/4 text-center">Received</span>
+                                <span className="w-1/2">Item Name</span>
+                                <span className="w-1/4 text-center">Ordered</span>
+                                <span className="w-1/4 text-center">Received</span>
                             </div>
                             {receivingPO.items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center border-b py-3 last:border-0">
@@ -377,13 +389,18 @@
                                 </div>
                             ))}
                         </div>
-                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">Confirm Delivery</button>
+                        <button onClick={submitReceive} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition">
+                            Confirm Delivery
+                        </button>
                     </div>
                 );
             }
 
+            // Render Standard Staff Dashboard
             return (
                 <div className="animate-fade-in relative">
+                    
+                    {/* ADD ITEM POP-UP */}
                     {showAddModal && (
                         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-fade-in">
                             <div className="bg-parchment p-6 rounded-lg shadow-2xl w-full max-w-sm border-2 border-hunter">
@@ -409,13 +426,14 @@
                         </div>
                     )}
 
+                    {/* INCOMING DELIVERIES / CHECKLIST TRIGGER */}
                     {incomingPOs.length > 0 && (
                         <div className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm">
                             <h3 className="text-sm font-bold uppercase tracking-widest text-blue-800 mb-3 flex items-center">🚚 Incoming Deliveries</h3>
                             {incomingPOs.map(po => (
                                 <div key={po.id} className="bg-white p-3 rounded shadow-sm mb-2 border-l-4 border-blue-500 flex justify-between items-center">
                                     <div><p className="font-bold text-sm">{po.id}</p><p className="text-xs text-gray-600">{po.supplier}</p></div>
-                                    <button onClick={() => openReceiveScreen(po)} className="bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded shadow-sm">Receive</button>
+                                    <button onClick={() => openReceiveScreen(po)} className="bg-blue-600 text-white text-xs font-bold py-2 px-3 rounded shadow-sm hover:bg-blue-700">Receive</button>
                                 </div>
                             ))}
                         </div>
@@ -457,10 +475,10 @@
                                         <span className="text-sm font-semibold">{item.name}</span>
                                         <span className="text-xs text-antiqueGold font-bold">{item.qty} {item.unit}</span>
                                     </div>
-                                    <button onClick={() => removeItem(idx)} className="text-red-300 text-xs font-bold bg-white/10 px-2 py-1 rounded">Remove</button>
+                                    <button onClick={() => removeItem(idx)} className="text-red-300 text-xs font-bold bg-white/10 px-2 py-1 rounded hover:bg-white/20">Remove</button>
                                 </div>
                             ))}
-                            <button onClick={handleSubmit} className="w-full mt-2 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg">
+                            <button onClick={handleSubmit} className="w-full mt-2 bg-antiqueGold text-hunter font-bold py-3 rounded uppercase tracking-wider hover:bg-yellow-500 shadow-lg transition">
                                 Send Master List to Owner
                             </button>
                         </div>
@@ -469,19 +487,19 @@
             );
         }
 
-        // --- NEW OWNER VIEW ---
+        // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, suppliers, addSupplier, inventory, ownerPhone }) {
             const historyPOs = pos.filter(po => po.status !== 'Pending');
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
+            
             const [localPhone, setLocalPhone] = useState(ownerPhone);
 
-            // GLOBAL OWNER CART
-            const [selectedItems, setSelectedItems] = useState([]); // stores { reqId, itemIndex, item }
+            // GLOBAL CART STATE
+            const [selectedItems, setSelectedItems] = useState([]);
             const [selectedVendor, setSelectedVendor] = useState('');
 
             const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
 
-            // Toggle Checkbox logic across all requests
             const handleCheck = (reqId, itemIndex, item) => {
                 const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex);
                 if (isSelected) {
@@ -498,7 +516,6 @@
                 
                 onCreateCombinedPO(selectedItems, vendorObj);
                 
-                // Clear the staging area
                 setSelectedItems([]); 
                 setSelectedVendor('');
             };
@@ -533,7 +550,6 @@
                 <div className="animate-fade-in relative">
                     <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Owner Dashboard</h2>
                     
-                    {/* Settings & DB Management collapsed for space... */}
                     <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
                         <h3 className="font-bold text-hunter text-sm uppercase tracking-widest mb-2 border-b pb-2">Owner Settings</h3>
                         <label className="block text-xs font-bold text-gray-500 mb-1">Your WhatsApp Number (For Staff Alerts)</label>
@@ -546,12 +562,12 @@
                         </div>
                         <div className="flex justify-between items-center mb-5">
                             <span className="text-sm font-bold text-gray-700">Vendor Directory ({suppliers.length})</span>
-                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500 transition">+ Add Vendor</button>
+                            <button onClick={addSupplier} className="bg-antiqueGold text-hunter text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-yellow-500">+ Add Vendor</button>
                         </div>
                         <div className="border-t pt-3">
                             <div className="flex justify-between items-center mb-3">
                                 <span className="text-sm font-bold text-gray-700">Inventory Database</span>
-                                <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900 transition">+ Add Item</button>
+                                <button onClick={handleAddInventoryItem} className="bg-hunter text-parchment text-xs font-bold py-1 px-3 rounded shadow-sm hover:bg-green-900">+ Add Item</button>
                             </div>
                             <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm bg-gray-50">
                                 {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -570,7 +586,7 @@
                         </div>
                     </div>
 
-                    {/* THE NEW MASTER REQUEST POOL */}
+                    {/* GLOBAL CART / PENDING MASTER REQUESTS */}
                     <div className="mb-12">
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Pending Master Requests</h3>
                         <p className="text-xs text-gray-500 mb-4 bg-yellow-50 p-2 rounded border border-yellow-200">
@@ -606,7 +622,6 @@
                         }
                     </div>
 
-                    {/* History */}
                     <div>
                         <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Recent Official POs</h3>
                         {historyPOs.map(po => (
