@@ -66,6 +66,7 @@
         };
         
         const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr", "ml", "tsp", "tbsp"];
+        const RECIPE_CATEGORIES = ["Beverages", "Kitchen", "Desserts"];
 
         function App() {
             const [role, setRole] = useState('staff'); 
@@ -288,6 +289,10 @@
             
             const [staffTab, setStaffTab] = useState('order'); 
 
+            // Recipe Filter States
+            const [recipeSearchFilter, setRecipeSearchFilter] = useState('');
+            const [activeRecipeTab, setActiveRecipeTab] = useState('All');
+
             const [showAddModal, setShowAddModal] = useState(false);
             const [modalItemName, setModalItemName] = useState('');
             const [modalQty, setModalQty] = useState('');
@@ -323,30 +328,6 @@
                 setReceivingPO(null);
             };
 
-            // Raw Conversion Calculator (Used strictly for visual breakdown in recipes)
-            const getRawBreakdown = (ingredients) => {
-                const rawTotals = {};
-                ingredients.forEach(ing => {
-                    const prepMatch = prepItems.find(p => p.name === ing.name);
-                    if (prepMatch) {
-                        const ratio = Number(ing.qty) / Number(prepMatch.yieldQty);
-                        const rawNeeded = ratio * Number(prepMatch.rawQty);
-                        if (rawTotals[prepMatch.rawItem]) {
-                            rawTotals[prepMatch.rawItem].qty += rawNeeded;
-                        } else {
-                            rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit };
-                        }
-                    } else {
-                        if (rawTotals[ing.name]) {
-                            rawTotals[ing.name].qty += Number(ing.qty);
-                        } else {
-                            rawTotals[ing.name] = { qty: Number(ing.qty), unit: ing.unit };
-                        }
-                    }
-                });
-                return rawTotals;
-            };
-
             let displayedItems = [];
             if (searchTerm.trim() !== '') {
                 displayedItems = [...new Set(Object.values(inventory).flat())].filter(item => item.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -355,6 +336,13 @@
             }
 
             const incomingPOs = pos.filter(po => po.status === 'Approved');
+
+            // Apply Recipe Filters
+            const displayedRecipes = recipes.filter(r => {
+                const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase());
+                const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab;
+                return matchesSearch && matchesCat;
+            });
 
             if (receivingPO) {
                 return (
@@ -385,34 +373,42 @@
                         <button onClick={() => setStaffTab('recipes')} className={`w-1/2 py-3 font-bold text-sm uppercase tracking-wider ${staffTab === 'recipes' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400 hover:text-gray-600'}`}>📖 Recipes</button>
                     </div>
 
+                    {/* STAFF VIEW - RECIPE BOOK */}
                     {staffTab === 'recipes' && (
                         <div className="animate-fade-in">
                             <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Kitchen Recipe Book</h2>
-                            {recipes.length === 0 ? <p className="text-sm text-gray-500 italic">No recipes have been built yet.</p> : 
-                                recipes.map(recipe => (
+                            
+                            {/* SEARCH AND FILTER */}
+                            <div className="relative mb-4 shadow-sm">
+                                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔍</span>
+                                <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:ring-2 focus:ring-antiqueGold" placeholder="Search recipes..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/>
+                            </div>
+
+                            {!recipeSearchFilter && (
+                                <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">
+                                    {['All', ...RECIPE_CATEGORIES].map(cat => (
+                                        <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-sm rounded-full border ${activeRecipeTab === cat ? 'bg-hunter text-parchment' : 'bg-white text-hunter border-hunter'}`}>
+                                            {cat}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {displayedRecipes.length === 0 ? <p className="text-sm text-gray-500 italic bg-white p-4 rounded shadow-sm text-center">No recipes found.</p> : 
+                                displayedRecipes.map(recipe => (
                                     <div key={recipe.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-                                        <h3 className="font-bold text-hunter text-lg mb-3">{recipe.name}</h3>
+                                        <div className="flex justify-between items-start mb-3">
+                                            <h3 className="font-bold text-hunter text-lg leading-tight pr-2">{recipe.name}</h3>
+                                            <span className="text-[10px] uppercase font-bold tracking-wider bg-gray-100 text-gray-600 px-2 py-1 rounded whitespace-nowrap">{recipe.category || 'Beverages'}</span>
+                                        </div>
                                         
                                         <div className="flex flex-col space-y-3 mb-4">
-                                            {/* Prepped Build Box */}
                                             <div className="bg-gray-50 p-2 rounded border border-gray-200">
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Barista Build (Prepped)</p>
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Ingredients</p>
                                                 <ul className="text-sm">
                                                     {recipe.ingredients.map((ing, i) => (
                                                         <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 py-1">
                                                             <span>{ing.name}</span><span className="font-bold text-hunter">{ing.qty} {ing.unit}</span>
-                                                        </li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-
-                                            {/* Auto-Calculated Raw Consumption Box */}
-                                            <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                                                <p className="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Raw Material Consumption</p>
-                                                <ul className="text-sm text-blue-900">
-                                                    {Object.entries(getRawBreakdown(recipe.ingredients)).map(([name, data], i) => (
-                                                        <li key={i} className="flex justify-between border-b border-blue-100 last:border-0 py-1">
-                                                            <span>{name}</span><span className="font-bold">{parseFloat(data.qty.toFixed(2))} {data.unit}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -517,7 +513,7 @@
         // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, inventory, prepItems, ownerPhone, recipes, units }) {
             const historyPOs = pos.filter(po => po.status !== 'Pending');
-            const [ownerTab, setOwnerTab] = useState('orders'); // 4 tabs now: orders, recipes, conversions, databases
+            const [ownerTab, setOwnerTab] = useState('orders'); 
             
             const [selectedItems, setSelectedItems] = useState([]);
             const [selectedVendor, setSelectedVendor] = useState('');
@@ -536,10 +532,15 @@
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false);
             const [editingRecipeId, setEditingRecipeId] = useState(null); 
             const [recipeName, setRecipeName] = useState('');
+            const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]);
             const [recipeInstructions, setRecipeInstructions] = useState('');
             const [recipeCart, setRecipeCart] = useState([]);
+            
             const [recSearch, setRecSearch] = useState('');
             const [recCat, setRecCat] = useState('Prepped Items');
+            
+            const [recipeSearchFilter, setRecipeSearchFilter] = useState('');
+            const [activeRecipeTab, setActiveRecipeTab] = useState('All');
 
             const [showRecAdd, setShowRecAdd] = useState(false);
             const [recModalItem, setRecModalItem] = useState('');
@@ -548,7 +549,6 @@
 
             const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
 
-            // Raw Conversion Calculator
             const getRawBreakdown = (ingredients) => {
                 const rawTotals = {};
                 ingredients.forEach(ing => {
@@ -587,15 +587,25 @@
             };
 
             const handleEditRecipe = (recipe) => {
-                setRecipeName(recipe.name); setRecipeInstructions(recipe.instructions);
-                setRecipeCart(recipe.ingredients); setEditingRecipeId(recipe.id); setIsBuildingRecipe(true);
+                setRecipeName(recipe.name); 
+                setRecipeCategory(recipe.category || RECIPE_CATEGORIES[0]);
+                setRecipeInstructions(recipe.instructions);
+                setRecipeCart(recipe.ingredients); 
+                setEditingRecipeId(recipe.id); 
+                setIsBuildingRecipe(true);
             };
 
             const handleSaveRecipe = () => {
                 if(!recipeName.trim()) return alert("Recipe needs a name.");
                 if(recipeCart.length === 0) return alert("Add at least one ingredient.");
                 
-                const recipeData = { name: recipeName.trim(), instructions: recipeInstructions.trim(), ingredients: recipeCart, date: new Date().toLocaleDateString('en-GB') };
+                const recipeData = { 
+                    name: recipeName.trim(), 
+                    category: recipeCategory,
+                    instructions: recipeInstructions.trim(), 
+                    ingredients: recipeCart, 
+                    date: new Date().toLocaleDateString('en-GB') 
+                };
                 if (editingRecipeId) {
                     db.collection('recipes').doc(editingRecipeId).update(recipeData);
                     alert("Recipe updated!");
@@ -607,7 +617,7 @@
                 }
                 
                 setIsBuildingRecipe(false); setEditingRecipeId(null);
-                setRecipeName(''); setRecipeInstructions(''); setRecipeCart([]);
+                setRecipeName(''); setRecipeInstructions(''); setRecipeCart([]); setRecipeCategory(RECIPE_CATEGORIES[0]);
             };
 
             const deleteRecipe = (id) => {
@@ -670,9 +680,14 @@
             const allPrepNames = prepItems.map(p => p.name);
             const allRecipeIngredients = [...allPrepNames, ...allRawNames]; 
 
+            const displayedRecipes = recipes.filter(r => {
+                const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase());
+                const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab;
+                return matchesSearch && matchesCat;
+            });
+
             return (
                 <div className="animate-fade-in relative">
-                    {/* OWNER 4 TABS - Sized for Mobile */}
                     <div className="flex mb-6 border-b border-gray-300 overflow-x-auto hide-scrollbar">
                         <button onClick={() => setOwnerTab('orders')} className={`w-1/4 py-3 font-bold text-[10px] sm:text-xs uppercase tracking-wider text-center whitespace-nowrap ${ownerTab === 'orders' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>📦 Orders</button>
                         <button onClick={() => setOwnerTab('recipes')} className={`w-1/4 py-3 font-bold text-[10px] sm:text-xs uppercase tracking-wider text-center whitespace-nowrap ${ownerTab === 'recipes' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>🍳 Recipes</button>
@@ -715,7 +730,6 @@
                             {historyPOs.length === 0 ? <div className="bg-white p-4 rounded text-center shadow-sm text-gray-500 italic text-sm">No official POs generated yet.</div> : 
                                 historyPOs.map(po => (
                                     <div key={po.id} className={`flex flex-col bg-white p-3 rounded shadow-sm mb-4 border-l-4 ${po.status === 'Delivered' ? 'border-green-500' : 'border-blue-500'}`}>
-                                        
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
                                                 <p className="font-bold text-sm text-hunter">{po.id}</p>
@@ -725,16 +739,10 @@
                                                 {po.status}
                                             </span>
                                         </div>
-                                        
                                         <div className="flex justify-end space-x-2 mt-1 mb-1">
-                                            <button onClick={() => onResend(po)} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-50 hover:text-blue-600 flex items-center shadow-sm transition">
-                                                🔁 Resend PO
-                                            </button>
-                                            <button onClick={() => onDelete(po.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-100 flex items-center shadow-sm transition">
-                                                🗑️ Delete
-                                            </button>
+                                            <button onClick={() => onResend(po)} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-50 hover:text-blue-600 flex items-center shadow-sm transition">🔁 Resend PO</button>
+                                            <button onClick={() => onDelete(po.id)} className="bg-red-50 text-red-600 px-3 py-1.5 rounded text-xs font-bold hover:bg-red-100 flex items-center shadow-sm transition">🗑️ Delete</button>
                                         </div>
-
                                         {po.status === 'Delivered' && po.receivedItems && (
                                             <div className="mt-2 border-t border-gray-100 pt-2">
                                                 <p className="text-xs font-bold text-gray-600 mb-1">Receipt Details ({po.deliveryDate}):</p>
@@ -752,7 +760,6 @@
                         </div>
                     )}
 
-                    {/* NEW TAB: CONVERSIONS (Isolated from DB) */}
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in">
                             <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Prep Kitchen & Conversions</h2>
@@ -760,21 +767,18 @@
                             
                             <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-6">
                                 <h3 className="font-bold text-hunter text-sm uppercase tracking-widest mb-3">Create New Prep Rule</h3>
-                                
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-1">Prepped Item Name</label>
                                         <input type="text" placeholder="e.g. Cold Brew Concentrate" value={prepName} onChange={e=>setPrepName(e.target.value)} className="w-full p-3 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-antiqueGold" />
                                     </div>
-                                    
                                     <div className="flex space-x-3 items-center bg-blue-50 p-3 rounded border border-blue-100">
                                         <span className="text-xs font-bold text-blue-800 w-16">YIELDS:</span>
                                         <input type="number" placeholder="Qty" value={prepYieldQty} onChange={e=>setPrepYieldQty(e.target.value)} className="w-1/2 p-3 border border-blue-300 rounded text-sm text-center" />
-                                        <select value={prepYieldUnit} onChange={e=>setYieldUnit(e.target.value)} className="w-1/2 p-3 border border-blue-300 rounded text-sm bg-white">
+                                        <select value={prepYieldUnit} onChange={e=>setPrepYieldUnit(e.target.value)} className="w-1/2 p-3 border border-blue-300 rounded text-sm bg-white">
                                             {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
                                     </div>
-
                                     <div className="flex space-x-3 items-center bg-gray-50 p-3 rounded border border-gray-200">
                                         <span className="text-xs font-bold text-gray-700 w-16">FROM:</span>
                                         <input type="number" placeholder="Qty" value={prepRawQty} onChange={e=>setPrepRawQty(e.target.value)} className="w-1/2 p-3 border border-gray-300 rounded text-sm text-center" />
@@ -782,7 +786,6 @@
                                             {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
                                         </select>
                                     </div>
-
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 mb-1">Select Raw Material Inventory</label>
                                         <select value={prepRawItem} onChange={e=>setPrepRawItem(e.target.value)} className="w-full p-3 border border-gray-300 rounded text-sm bg-white focus:ring-2 focus:ring-antiqueGold">
@@ -790,7 +793,6 @@
                                             {allRawNames.map(item => <option key={item} value={item}>{item}</option>)}
                                         </select>
                                     </div>
-
                                     <button onClick={handleAddPrepItem} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition mt-2">
                                         Save Conversion Rule
                                     </button>
@@ -855,23 +857,45 @@
                         </div>
                     )}
 
+                    {/* OWNER RECIPE BOOK */}
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in">
                             {!isBuildingRecipe ? (
                                 <div>
-                                    <button onClick={() => { setEditingRecipeId(null); setRecipeName(''); setRecipeInstructions(''); setRecipeCart([]); setIsBuildingRecipe(true); }} className="w-full bg-hunter text-parchment font-bold py-4 rounded shadow-md hover:bg-green-900 transition mb-6 uppercase tracking-wider text-sm flex items-center justify-center">
+                                    <button onClick={() => { setEditingRecipeId(null); setRecipeName(''); setRecipeCategory(RECIPE_CATEGORIES[0]); setRecipeInstructions(''); setRecipeCart([]); setIsBuildingRecipe(true); }} className="w-full bg-hunter text-parchment font-bold py-4 rounded shadow-md hover:bg-green-900 transition mb-6 uppercase tracking-wider text-sm flex items-center justify-center">
                                         <span className="text-xl mr-2">+</span> Create New Recipe
                                     </button>
 
-                                    <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Kitchen Recipe Book ({recipes.length})</h3>
-                                    {recipes.length === 0 ? <div className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic">No recipes built yet.</div> : 
-                                        recipes.map(recipe => (
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Kitchen Recipe Book</h3>
+                                    
+                                    {/* SEARCH AND FILTER FOR OWNER */}
+                                    <div className="relative mb-4 shadow-sm">
+                                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">🔍</span>
+                                        <input type="text" className="w-full pl-10 p-3 border border-hunter bg-white rounded focus:ring-2 focus:ring-antiqueGold" placeholder="Search recipes..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/>
+                                    </div>
+
+                                    {!recipeSearchFilter && (
+                                        <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">
+                                            {['All', ...RECIPE_CATEGORIES].map(cat => (
+                                                <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-sm rounded-full border ${activeRecipeTab === cat ? 'bg-hunter text-parchment' : 'bg-white text-hunter border-hunter'}`}>
+                                                    {cat}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {displayedRecipes.length === 0 ? <p className="bg-white p-6 rounded text-center border shadow-sm text-gray-500 italic text-sm">No recipes found.</p> : 
+                                        displayedRecipes.map(recipe => (
                                             <div key={recipe.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4 relative">
                                                 <div className="absolute top-2 right-2 flex space-x-3">
                                                     <button onClick={() => handleEditRecipe(recipe)} className="text-blue-400 hover:text-blue-600 text-lg" title="Edit Recipe">✏️</button>
                                                     <button onClick={() => deleteRecipe(recipe.id)} className="text-gray-400 hover:text-red-500 text-lg" title="Delete Recipe">🗑️</button>
                                                 </div>
-                                                <h3 className="font-bold text-hunter text-lg pr-14 mb-3">{recipe.name}</h3>
+                                                
+                                                <div className="flex flex-col mb-3 pr-14">
+                                                    <h3 className="font-bold text-hunter text-lg leading-tight">{recipe.name}</h3>
+                                                    <span className="text-[10px] uppercase font-bold tracking-wider text-antiqueGold mt-1">{recipe.category || 'Beverages'}</span>
+                                                </div>
                                                 
                                                 <div className="flex flex-col space-y-3 mb-4">
                                                     <div className="bg-gray-50 p-2 rounded border border-gray-200">
@@ -913,6 +937,11 @@
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Recipe Name</label>
                                     <input type="text" className="w-full p-3 border border-gray-300 rounded mb-4 focus:ring-2 focus:ring-antiqueGold" placeholder="e.g. Classic Iced Latte" value={recipeName} onChange={e => setRecipeName(e.target.value)} />
 
+                                    <label className="block text-xs font-bold text-gray-500 mb-1">Category</label>
+                                    <select value={recipeCategory} onChange={e => setRecipeCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded mb-4 focus:ring-2 focus:ring-antiqueGold bg-white">
+                                        {RECIPE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                    </select>
+
                                     <label className="block text-xs font-bold text-gray-500 mb-1">Cooking / Prep Instructions</label>
                                     <textarea className="w-full p-3 border border-gray-300 rounded mb-6 focus:ring-2 focus:ring-antiqueGold h-24" placeholder="1. Pull double espresso shot.&#10;2. Add ice... " value={recipeInstructions} onChange={e => setRecipeInstructions(e.target.value)}></textarea>
 
@@ -923,7 +952,7 @@
                                         <input type="text" className="w-full pl-10 p-2 border border-gray-300 bg-gray-50 rounded" placeholder="Search raw materials & prep items..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)}/>
                                     </div>
                                     {!recSearch && (
-                                        <div className="flex overflow-x-auto space-x-2 mb-3 pb-2">
+                                        <div className="flex overflow-x-auto space-x-2 mb-3 pb-2 hide-scrollbar">
                                             <button onClick={() => setRecCat('Prepped Items')} className={`whitespace-nowrap px-3 py-1 text-xs rounded-full border font-bold ${recCat === 'Prepped Items' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-600'}`}>Preps</button>
                                             {Object.keys(inventory).map(cat => <button key={cat} onClick={() => setRecCat(cat)} className={`whitespace-nowrap px-3 py-1 text-xs rounded-full border ${recCat === cat ? 'bg-hunter text-parchment' : 'bg-white text-hunter border-hunter'}`}>{cat.split(' ')[0]}</button>)}
                                         </div>
