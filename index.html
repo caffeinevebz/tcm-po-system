@@ -55,18 +55,16 @@
         // --- DEFAULT DATA ---
         const DEFAULT_SUPPLIERS = [
             { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" },
-            { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" },
-            { "name": "Viman Hospitality and Entertainment Private Limited", "phone": "8058764004" },
-            { "name": "Neha Agencies", "phone": "9414105084" }, { "name": "Charu Marketing", "phone": "8824153406" },
-            { "name": "Laxmi Stores", "phone": "6378749797" }
+            { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" }
         ];
 
         const DEFAULT_INVENTORY = {
-            "Fruits and Vegetables": ["Apple (सेव)", "Asparagus (ऐस्पैरागस)", "Avocado (अवोकेडो)", "Banana (केले)", "Basil (बेसिल)", "Beans (बीन्स)", "Beetroot (चुकंदर)", "Broccoli (ब्रोकली)", "Cabbage (पत्ता गोभी)", "Green Capsicum (शिमला मिर्च)", "Capsicum Red & Yellow (लाल व पीली शिमला मिर्च)", "Carrot (गाजर)", "Cauliflower (फूलगोभी)", "Cellary (सैलरी)", "Cherry Tomato (चेरी टोमेटो)", "Cucumber (खीरा)", "Garlic (लहसुन) (Peeled)", "Ginger (अदरक)", "Green Chilli (हरी मिर्च)", "G4 (small हरी मिर्च)", "Green Lollo Rosso Lettuce", "Iceberg Lettuce", "Kaffir Lime", "Lemon (नींबू)", "Mint (पुदीना)", "Mango (तोतापुरी आम)", "Mushroom (मशरुम)", "Onion (प्याज़) (Big)", "Orange (माल्टा)", "Parsley (पार्स्ली)", "Pineapple (पाइनएप्पल)", "Pokchoy (पोकचॉय)", "Potato (आलू)", "Pumpkin (Big) (बड़ा कदु)", "Red Lollo Rosso Lettuce", "Red Cabbage (लाल पत्तागोभी)", "Spinach (पालक)", "Spring onion ( प्याज पुली)", "Strawberry (स्ट्रॉबेरी)", "Thyme (थाइम)", "Tomato (टमाटर) (Grevy)", "Watermelon (तरबूज़)(large)", "Zucchini (ज़ुच्चिनी)(Green & Yellow)", "Pomegranate (अनार)", "Coriander (धनिया)", "Brinjal (बैंगन) (Big)", "Ladyfingers (भिंडी)", "लौकी", "टिण्डा", "काचरी", "ग्वार फली"],
-            "Coffee and Matcha": ["Full House Green (Arabica Coffee) (Dark Roast)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"],
-            "Groceries": ["Aata", "Ajinomoto", "Aluminium Foil", "Amul Butter", "Amul Cheese Slice (Large Pack)", "Amul Cream", "Amul Mithai Mate (400 gms)", "Amul Pizza Cheese Blend (Shredded)", "Amul Processed Cheese", "Aromate Powder", "Besan", "Bisleri Vedica (500ml)", "Biscoff Biscuit", "Biscoff Spread", "Black Olive (3 Kg)", "Black Pepper (आखी)", "Black Salt (काला नमक)", "Blueberry (Frozen) (Delishh)", "Brown Rice", "Brown Sugar", "Brownie Premix", "Cashewnut (Kaju Tukdi)", "Channa Dal", "Chaat Masala", "Chilli Flakes", "Chilli Flakes (Sachet)", "Chings Chowmein Noodle", "Chocolate Sauce (Hersheys)", "Coconut Powder", "corn starch", "Cranberry Juice (Real) (1 Ltr.)", "Cream Cheese", "Dark Chocolate Compound (Morde)", "Dark Soya Sauce", "Dates (Seedless)", "Degi Mirch", "Dhaniya Powder", "Dijon Mustard", "McVitie's Digestive Biscuit (Family Pack)", "Duster Cloth", "Feta Cheese", "French Fries (2.5 Kg)", "Fusilli Pasta (Agnesi)", "Garam Masala", "Garden Nylon Sev", "Green Chilli Sauce (5 Kg)", "Peanut Butter (750 gms)", "Penne Pasta (Agnesi)", "Pickled Sushi Ginger", "Green Olive (Whole)", "Green Tea (100 Tea Bags) (Lipton)", "Haldi Powder", "Hara Moong (Sprouts)", "Honey (1 Kg)", "Jalapeño", "Japanese Mayo", "Jeera", "Kaala Channa (Black)", "Kabuli Chana", "Kaju Tukdi", "Kasundi Musturd Sauce", "Kitchen King Masala Powder", "Lasagna Sheets (Agnesi)", "Litchi Juice (Real) (1 Ltr.)", "Macaroni Pasta (Agnesi Chifferi Pasta)", "Maida (1 Bag)", "Malabar Paratha", "Manama Blackcurrent Crush", "Manama Blueberry Crush", "Manama Mango Crush", "Manama Strawberry Crush", "Maple Syrup (American Garden)", "Mayonnaise (1kg) (Refill)", "Milk Powder", "Mix Dal", "Monin Caramel Syrup", "Monin Curacao Triple Sec Syrup", "Monin French Vanilla Syrup", "Monin Hazelnut Syrup", "Monin Irish Syrup", "Monin Lavender Syrup", "Monin Mojito Syrup", "Monin Peach Syrup", "Monin Roasted Hazelnut Syrup", "Monin Rose Syrup", "Monin Vanilla Syrup", "Monin Watermelon Syrup", "Moong Dal", "nirma surf washing", "Noori Sheets (Sushi Sheets)", "Nutella (750 gms)", "Nutri Soya Keema Churi", "Oats", "Oats Milk", "Olive Oil (Extra Virgin) (1 ltr)", "Orange Juice (Real) (1 Ltr.)", "Oreo Biscuit (small - 10 piece)", "Oyster Sauce (Veg.)", "Panko Crumbs", "Parmal Rice", "Parmesan Cheese", "Penne Pasta (Agnesi)", "Peri Peri Masala", "Pineapple Crush (Manama)", "Pizza Seasoning", "Pizza Seasoning (Sachet)", "Potato Starch", "Potato Wedges (2.5 Kg)", "Pumpkin Seeds", "Quinoa (500 gms)", "Ragi Aata", "Rajma", "Red Chilli Sauce (5 Kg)", "Red Mirchi Powder", "Rice Paper", "Ricotta Cheese", "Sesame Seeds (सफेद तिल)", "Soda", "Soya Chaap", "Soya Chunks", "Spagetti Pasta (Agnesi)", "Spring Roll Sheets", "Sugar", "Sugarfree Sachets", "Sugar Sachet (White)", "Sugar Sachet (Brown)", "Suji", "Sukhi Lal Mirchi", "Sundried Tomato", "Sunflower Oil (15 Ltr)", "Sunflower Seeds", "Sushi Rice", "Sushi Vinegar", "Sweet Corn", "Table Rice", "Taco Shells", "Tahina Paste", "Tata Salt", "Tea (खुल्ली)", "Tempura Batter Mix", "Tomato Ketchup Refill (2 kg)", "Tomato Ketchup Sachet", "Tomato Puree (850 gms)", "Tonic Water", "Waffle Premix", "Walnut (खुल्ली)", "Wasabi tube", "Water Chestnut", "Wheat Starch", "White Chocolate Compound (Morde)", "White vinegar", "Wipped cream", "Yeast", "Yellow Thai Curry Paste", "नारियल का बुरा", "मक्की का आटा", "साबुत धनिया", "लौंग", "काजू टुकड़ी"],
-            "Packing and Consumables": ["Brown Paper Bag (Extra Large) (16 x 12)", "Cap", "Chopsticks", "Cling Wrap (Large)", "Extra Large Garbage Bag", "Hot coffee cup cups with lids (180 ML)", "Hot coffee cup lid (250 ML)", "Kitchen Duster", "Medium Grabage Bag", "Paper Straw (10mm)", "Pizza Boxes", "Plastic Bend Straw (Mocktails)", "Plastic Disposable Glasses with Black Lid (350ML)", "Plastic Food Container wid Lid (650ML)", "Printed Butter Paper Roll", "Silver Foil Food Container wid Lid (650ML)", "Silver Foil Food Container wid Lid (400ML) - small", "Silver Foil", "Wooden Fork", "Wooden stiring sticks for hot coffee"]
+            "Fruits and Vegetables": ["Apple (सेव)", "Avocado (अवोकेडो)", "Banana (केले)", "Broccoli (ब्रोकली)", "Tomato (टमाटर) (Grevy)"],
+            "Coffee and Matcha": ["Full House Green (Arabica Coffee)", "Baarbara Green (Cold Brew)", "Matcha (Premium Grade)"],
+            "Groceries": ["Aata", "Amul Butter", "Amul Cheese Slice (Large Pack)", "Amul Cream", "Sugar", "Tata Salt", "Milk (Full Cream)"],
+            "Packing and Consumables": ["Brown Paper Bag", "Hot coffee cup (180 ML)", "Pizza Boxes"]
         };
+        
         const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr", "ml", "tsp", "tbsp"];
 
         function App() {
@@ -224,18 +222,14 @@
                 else db.collection('requests').doc(reqId).update({ items: remaining });
             };
 
-            // THE ENHANCED WHATSAPP RESEND FUNCTION
             const sendWhatsApp = (po) => {
                 if(po.supplier === "Cash Purchase") return alert("Internal Cash Purchase PO generated.");
-                
                 const itemList = po.items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
                 
-                // Add warning prefix if it's being resent after already being delivered
                 const isResend = po.status === 'Delivered';
                 const prefix = isResend ? `*[RESENT FOR RECORDS]*\n` : ``;
 
                 const message = `${prefix}*Subject:* Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
-                
                 let url = `https://wa.me/`;
                 if (po.supplierPhone) {
                     let phoneStr = po.supplierPhone.replace(/\D/g, '');
@@ -276,7 +270,7 @@
                     </header>
                     <main className="max-w-md mx-auto mt-6 px-4">
                         {role === 'staff' ? 
-                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} /> : 
+                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} /> : 
                             <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} />
                         }
                     </main>
@@ -285,7 +279,7 @@
         }
 
         // --- STAFF VIEW ---
-        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes }) {
+        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
@@ -327,6 +321,30 @@
                 const receivedItemsData = receivingPO.items.map((item, idx) => ({ ...item, receivedQty: Number(receivedQuantities[idx]) || 0 }));
                 onReceive(receivingPO.id, receivedItemsData);
                 setReceivingPO(null);
+            };
+
+            // Raw Conversion Calculator
+            const getRawBreakdown = (ingredients) => {
+                const rawTotals = {};
+                ingredients.forEach(ing => {
+                    const prepMatch = prepItems.find(p => p.name === ing.name);
+                    if (prepMatch) {
+                        const ratio = Number(ing.qty) / Number(prepMatch.yieldQty);
+                        const rawNeeded = ratio * Number(prepMatch.rawQty);
+                        if (rawTotals[prepMatch.rawItem]) {
+                            rawTotals[prepMatch.rawItem].qty += rawNeeded;
+                        } else {
+                            rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit };
+                        }
+                    } else {
+                        if (rawTotals[ing.name]) {
+                            rawTotals[ing.name].qty += Number(ing.qty);
+                        } else {
+                            rawTotals[ing.name] = { qty: Number(ing.qty), unit: ing.unit };
+                        }
+                    }
+                });
+                return rawTotals;
             };
 
             let displayedItems = [];
@@ -373,19 +391,36 @@
                             {recipes.length === 0 ? <p className="text-sm text-gray-500 italic">No recipes have been built yet.</p> : 
                                 recipes.map(recipe => (
                                     <div key={recipe.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
-                                        <h3 className="font-bold text-hunter text-lg mb-2">{recipe.name}</h3>
-                                        <div className="bg-gray-50 p-2 rounded mb-3">
-                                            <p className="text-xs font-bold text-gray-500 uppercase mb-1">Ingredients:</p>
-                                            <ul className="text-sm">
-                                                {recipe.ingredients.map((ing, i) => (
-                                                    <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 py-1">
-                                                        <span>{ing.name}</span><span className="font-bold">{ing.qty} {ing.unit}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                        <h3 className="font-bold text-hunter text-lg mb-3">{recipe.name}</h3>
+                                        
+                                        <div className="flex flex-col space-y-3 mb-4">
+                                            {/* Prepped Build Box */}
+                                            <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Barista Build (Prepped)</p>
+                                                <ul className="text-sm">
+                                                    {recipe.ingredients.map((ing, i) => (
+                                                        <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 py-1">
+                                                            <span>{ing.name}</span><span className="font-bold text-hunter">{ing.qty} {ing.unit}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+
+                                            {/* Auto-Calculated Raw Consumption Box */}
+                                            <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                                                <p className="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Raw Material Consumption</p>
+                                                <ul className="text-sm text-blue-900">
+                                                    {Object.entries(getRawBreakdown(recipe.ingredients)).map(([name, data], i) => (
+                                                        <li key={i} className="flex justify-between border-b border-blue-100 last:border-0 py-1">
+                                                            <span>{name}</span><span className="font-bold">{parseFloat(data.qty.toFixed(2))} {data.unit}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
                                         </div>
-                                        <p className="text-xs font-bold text-gray-500 uppercase mb-1">Method:</p>
-                                        <p className="text-sm text-gray-700 whitespace-pre-wrap">{recipe.instructions || "No instructions provided."}</p>
+
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Method & Notes:</p>
+                                        <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-2 rounded">{recipe.instructions || "No instructions provided."}</p>
                                     </div>
                                 ))
                             }
@@ -510,6 +545,30 @@
             const [recModalUnit, setRecModalUnit] = useState('gms');
 
             const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
+
+            // Raw Conversion Calculator
+            const getRawBreakdown = (ingredients) => {
+                const rawTotals = {};
+                ingredients.forEach(ing => {
+                    const prepMatch = prepItems.find(p => p.name === ing.name);
+                    if (prepMatch) {
+                        const ratio = Number(ing.qty) / Number(prepMatch.yieldQty);
+                        const rawNeeded = ratio * Number(prepMatch.rawQty);
+                        if (rawTotals[prepMatch.rawItem]) {
+                            rawTotals[prepMatch.rawItem].qty += rawNeeded;
+                        } else {
+                            rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit };
+                        }
+                    } else {
+                        if (rawTotals[ing.name]) {
+                            rawTotals[ing.name].qty += Number(ing.qty);
+                        } else {
+                            rawTotals[ing.name] = { qty: Number(ing.qty), unit: ing.unit };
+                        }
+                    }
+                });
+                return rawTotals;
+            };
 
             const handleCheck = (reqId, itemIndex, item) => {
                 const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex);
@@ -663,7 +722,6 @@
                                             </span>
                                         </div>
                                         
-                                        {/* DEDICATED ACTION BAR FOR RESEND AND DELETE */}
                                         <div className="flex justify-end space-x-2 mt-1 mb-1">
                                             <button onClick={() => onResend(po)} className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-bold hover:bg-blue-50 hover:text-blue-600 flex items-center shadow-sm transition">
                                                 🔁 Resend PO
@@ -793,19 +851,36 @@
                                                     <button onClick={() => handleEditRecipe(recipe)} className="text-blue-400 hover:text-blue-600 text-lg" title="Edit Recipe">✏️</button>
                                                     <button onClick={() => deleteRecipe(recipe.id)} className="text-gray-400 hover:text-red-500 text-lg" title="Delete Recipe">🗑️</button>
                                                 </div>
-                                                <h3 className="font-bold text-hunter text-lg pr-14 mb-2">{recipe.name}</h3>
-                                                <div className="bg-gray-50 p-2 rounded mb-3 border border-gray-200">
-                                                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Standard Ingredients:</p>
-                                                    <ul className="text-sm">
-                                                        {recipe.ingredients.map((ing, i) => (
-                                                            <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 py-1">
-                                                                <span>{ing.name}</span><span className="font-bold text-hunter">{ing.qty} {ing.unit}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                <h3 className="font-bold text-hunter text-lg pr-14 mb-3">{recipe.name}</h3>
+                                                
+                                                <div className="flex flex-col space-y-3 mb-4">
+                                                    {/* Prepped Build Box */}
+                                                    <div className="bg-gray-50 p-2 rounded border border-gray-200">
+                                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Barista Build (Prepped)</p>
+                                                        <ul className="text-sm">
+                                                            {recipe.ingredients.map((ing, i) => (
+                                                                <li key={i} className="flex justify-between border-b border-gray-200 last:border-0 py-1">
+                                                                    <span>{ing.name}</span><span className="font-bold text-hunter">{ing.qty} {ing.unit}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+
+                                                    {/* Auto-Calculated Raw Consumption Box */}
+                                                    <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                                                        <p className="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Raw Material Consumption</p>
+                                                        <ul className="text-sm text-blue-900">
+                                                            {Object.entries(getRawBreakdown(recipe.ingredients)).map(([name, data], i) => (
+                                                                <li key={i} className="flex justify-between border-b border-blue-100 last:border-0 py-1">
+                                                                    <span>{name}</span><span className="font-bold">{parseFloat(data.qty.toFixed(2))} {data.unit}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
                                                 </div>
-                                                <p className="text-xs font-bold text-gray-500 uppercase mb-1">Method & Notes:</p>
-                                                <p className="text-sm text-gray-700 whitespace-pre-wrap">{recipe.instructions || "No instructions provided."}</p>
+
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Method & Notes:</p>
+                                                <p className="text-sm text-gray-700 whitespace-pre-wrap bg-gray-50 p-2 rounded">{recipe.instructions || "No instructions provided."}</p>
                                             </div>
                                         ))
                                     }
