@@ -323,7 +323,7 @@
                 setReceivingPO(null);
             };
 
-            // Raw Conversion Calculator
+            // Raw Conversion Calculator (Used strictly for visual breakdown in recipes)
             const getRawBreakdown = (ingredients) => {
                 const rawTotals = {};
                 ingredients.forEach(ing => {
@@ -517,13 +517,14 @@
         // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, inventory, prepItems, ownerPhone, recipes, units }) {
             const historyPOs = pos.filter(po => po.status !== 'Pending');
-            const [ownerTab, setOwnerTab] = useState('orders'); 
+            const [ownerTab, setOwnerTab] = useState('orders'); // 4 tabs now: orders, recipes, conversions, databases
             
             const [selectedItems, setSelectedItems] = useState([]);
             const [selectedVendor, setSelectedVendor] = useState('');
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
             const [localPhone, setLocalPhone] = useState(ownerPhone);
 
+            // Conversion Tab State
             const [prepName, setPrepName] = useState('');
             const [prepYieldQty, setPrepYieldQty] = useState('');
             const [prepYieldUnit, setPrepYieldUnit] = useState('ml');
@@ -531,6 +532,7 @@
             const [prepRawUnit, setPrepRawUnit] = useState('gms');
             const [prepRawItem, setPrepRawItem] = useState('');
 
+            // Recipe State
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false);
             const [editingRecipeId, setEditingRecipeId] = useState(null); 
             const [recipeName, setRecipeName] = useState('');
@@ -670,10 +672,12 @@
 
             return (
                 <div className="animate-fade-in relative">
-                    <div className="flex mb-6 border-b border-gray-300">
-                        <button onClick={() => setOwnerTab('orders')} className={`w-1/3 py-3 font-bold text-xs uppercase tracking-wider ${ownerTab === 'orders' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>📦 Orders</button>
-                        <button onClick={() => setOwnerTab('recipes')} className={`w-1/3 py-3 font-bold text-xs uppercase tracking-wider ${ownerTab === 'recipes' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>🍳 Recipes</button>
-                        <button onClick={() => setOwnerTab('databases')} className={`w-1/3 py-3 font-bold text-xs uppercase tracking-wider ${ownerTab === 'databases' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>🗄️ Database</button>
+                    {/* OWNER 4 TABS - Sized for Mobile */}
+                    <div className="flex mb-6 border-b border-gray-300 overflow-x-auto hide-scrollbar">
+                        <button onClick={() => setOwnerTab('orders')} className={`w-1/4 py-3 font-bold text-[10px] sm:text-xs uppercase tracking-wider text-center whitespace-nowrap ${ownerTab === 'orders' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>📦 Orders</button>
+                        <button onClick={() => setOwnerTab('recipes')} className={`w-1/4 py-3 font-bold text-[10px] sm:text-xs uppercase tracking-wider text-center whitespace-nowrap ${ownerTab === 'recipes' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>🍳 Recipes</button>
+                        <button onClick={() => setOwnerTab('conversions')} className={`w-1/4 py-3 font-bold text-[10px] sm:text-xs uppercase tracking-wider text-center whitespace-nowrap ${ownerTab === 'conversions' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>🔄 Conversions</button>
+                        <button onClick={() => setOwnerTab('databases')} className={`w-1/4 py-3 font-bold text-[10px] sm:text-xs uppercase tracking-wider text-center whitespace-nowrap ${ownerTab === 'databases' ? 'border-b-4 border-hunter text-hunter' : 'text-gray-400'}`}>🗄️ Database</button>
                     </div>
 
                     {ownerTab === 'orders' && (
@@ -748,6 +752,68 @@
                         </div>
                     )}
 
+                    {/* NEW TAB: CONVERSIONS (Isolated from DB) */}
+                    {ownerTab === 'conversions' && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-xl font-serif font-semibold border-b-2 border-hunter pb-2 mb-4">Prep Kitchen & Conversions</h2>
+                            <p className="text-sm text-gray-600 mb-6">Define how raw materials from your vendors are converted into prepped items for your recipes. Staff will only see the final prepped items in the Recipe Book.</p>
+                            
+                            <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 mb-6">
+                                <h3 className="font-bold text-hunter text-sm uppercase tracking-widest mb-3">Create New Prep Rule</h3>
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Prepped Item Name</label>
+                                        <input type="text" placeholder="e.g. Cold Brew Concentrate" value={prepName} onChange={e=>setPrepName(e.target.value)} className="w-full p-3 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-antiqueGold" />
+                                    </div>
+                                    
+                                    <div className="flex space-x-3 items-center bg-blue-50 p-3 rounded border border-blue-100">
+                                        <span className="text-xs font-bold text-blue-800 w-16">YIELDS:</span>
+                                        <input type="number" placeholder="Qty" value={prepYieldQty} onChange={e=>setPrepYieldQty(e.target.value)} className="w-1/2 p-3 border border-blue-300 rounded text-sm text-center" />
+                                        <select value={prepYieldUnit} onChange={e=>setYieldUnit(e.target.value)} className="w-1/2 p-3 border border-blue-300 rounded text-sm bg-white">
+                                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div className="flex space-x-3 items-center bg-gray-50 p-3 rounded border border-gray-200">
+                                        <span className="text-xs font-bold text-gray-700 w-16">FROM:</span>
+                                        <input type="number" placeholder="Qty" value={prepRawQty} onChange={e=>setPrepRawQty(e.target.value)} className="w-1/2 p-3 border border-gray-300 rounded text-sm text-center" />
+                                        <select value={prepRawUnit} onChange={e=>setPrepRawUnit(e.target.value)} className="w-1/2 p-3 border border-gray-300 rounded text-sm bg-white">
+                                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1">Select Raw Material Inventory</label>
+                                        <select value={prepRawItem} onChange={e=>setPrepRawItem(e.target.value)} className="w-full p-3 border border-gray-300 rounded text-sm bg-white focus:ring-2 focus:ring-antiqueGold">
+                                            <option value="">-- Choose from Vendor Catalog --</option>
+                                            {allRawNames.map(item => <option key={item} value={item}>{item}</option>)}
+                                        </select>
+                                    </div>
+
+                                    <button onClick={handleAddPrepItem} className="w-full bg-hunter text-parchment font-bold py-3 rounded shadow-md hover:bg-green-900 transition mt-2">
+                                        Save Conversion Rule
+                                    </button>
+                                </div>
+                            </div>
+
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-antiqueGold mb-3">Active Prep Rules ({prepItems.length})</h3>
+                            {prepItems.length === 0 ? <p className="text-sm text-gray-500 italic bg-white p-4 rounded shadow-sm text-center">No conversion rules set up yet.</p> : 
+                                <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                                    {prepItems.map(p => (
+                                        <div key={p.id} className="flex justify-between items-center p-3 border-b border-gray-200 last:border-0">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-hunter">{p.name} <span className="text-antiqueGold">({p.yieldQty} {p.yieldUnit})</span></span>
+                                                <span className="text-xs text-gray-500">Requires: {p.rawQty} {p.rawUnit} of {p.rawItem}</span>
+                                            </div>
+                                            <button onClick={() => handleDeletePrepItem(p.id)} className="text-gray-400 hover:text-red-500 bg-gray-50 px-3 py-2 rounded text-sm font-bold border border-gray-200 ml-2 shadow-sm transition">Delete</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            }
+                        </div>
+                    )}
+
                     {ownerTab === 'databases' && (
                         <div className="animate-fade-in">
                             <div className="mb-6 bg-white p-4 rounded-lg shadow-md border border-gray-200">
@@ -773,7 +839,7 @@
                                     <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-full p-2 mb-3 border border-gray-300 rounded text-sm bg-gray-50">
                                         {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                     </select>
-                                    <div className="bg-gray-50 border border-gray-200 rounded max-h-48 overflow-y-auto mb-4">
+                                    <div className="bg-gray-50 border border-gray-200 rounded max-h-64 overflow-y-auto mb-4">
                                         {inventory[dbCategory] && inventory[dbCategory].map(item => (
                                             <div key={item} className="flex justify-between items-center p-2 border-b border-gray-200 last:border-0 hover:bg-gray-100">
                                                 <span className="text-xs text-gray-800 truncate pr-2 w-3/4">{item}</span>
@@ -784,52 +850,6 @@
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-
-                                <div className="border-t border-gray-300 pt-4 mt-4">
-                                    <span className="text-sm font-bold text-gray-700 block mb-2">Prep & Yield Conversions</span>
-                                    <p className="text-xs text-gray-500 mb-3">Map raw ingredients to intermediate prepped units (e.g. Beans → Espresso Shot).</p>
-                                    
-                                    <div className="bg-blue-50 p-3 rounded border border-blue-200 mb-3 space-y-2">
-                                        <input type="text" placeholder="Prep Name (e.g. Espresso Shot)" value={prepName} onChange={e=>setPrepName(e.target.value)} className="w-full p-2 border border-blue-300 rounded text-xs" />
-                                        
-                                        <div className="flex space-x-2 items-center">
-                                            <span className="text-xs font-bold text-blue-800 whitespace-nowrap">YIELDS:</span>
-                                            <input type="number" placeholder="Qty" value={prepYieldQty} onChange={e=>setPrepYieldQty(e.target.value)} className="w-16 p-2 border border-blue-300 rounded text-xs text-center" />
-                                            <select value={prepYieldUnit} onChange={e=>setPrepYieldUnit(e.target.value)} className="w-20 p-2 border border-blue-300 rounded text-xs bg-white">
-                                                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <div className="flex space-x-2 items-center">
-                                            <span className="text-xs font-bold text-blue-800 whitespace-nowrap">FROM:</span>
-                                            <input type="number" placeholder="Qty" value={prepRawQty} onChange={e=>setPrepRawQty(e.target.value)} className="w-16 p-2 border border-blue-300 rounded text-xs text-center" />
-                                            <select value={prepRawUnit} onChange={e=>setPrepRawUnit(e.target.value)} className="w-20 p-2 border border-blue-300 rounded text-xs bg-white">
-                                                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                                            </select>
-                                        </div>
-
-                                        <select value={prepRawItem} onChange={e=>setPrepRawItem(e.target.value)} className="w-full p-2 border border-blue-300 rounded text-xs bg-white">
-                                            <option value="">-- Select Raw Ingredient --</option>
-                                            {allRawNames.map(item => <option key={item} value={item}>{item}</option>)}
-                                        </select>
-
-                                        <button onClick={handleAddPrepItem} className="w-full bg-blue-600 text-white font-bold py-2 rounded text-xs shadow-sm hover:bg-blue-700">Save Conversion</button>
-                                    </div>
-
-                                    {prepItems.length > 0 && (
-                                        <div className="bg-gray-50 border border-gray-200 rounded max-h-40 overflow-y-auto">
-                                            {prepItems.map(p => (
-                                                <div key={p.id} className="flex justify-between items-center p-2 border-b border-gray-200 last:border-0">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-gray-800">{p.name} ({p.yieldQty}{p.yieldUnit})</span>
-                                                        <span className="text-[10px] text-gray-500">From: {p.rawQty}{p.rawUnit} {p.rawItem}</span>
-                                                    </div>
-                                                    <button onClick={() => handleDeletePrepItem(p.id)} className="text-red-500">🗑️</button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -854,7 +874,6 @@
                                                 <h3 className="font-bold text-hunter text-lg pr-14 mb-3">{recipe.name}</h3>
                                                 
                                                 <div className="flex flex-col space-y-3 mb-4">
-                                                    {/* Prepped Build Box */}
                                                     <div className="bg-gray-50 p-2 rounded border border-gray-200">
                                                         <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Barista Build (Prepped)</p>
                                                         <ul className="text-sm">
@@ -866,7 +885,6 @@
                                                         </ul>
                                                     </div>
 
-                                                    {/* Auto-Calculated Raw Consumption Box */}
                                                     <div className="bg-blue-50 p-2 rounded border border-blue-200">
                                                         <p className="text-[10px] font-bold text-blue-800 uppercase tracking-widest mb-1">Raw Material Consumption</p>
                                                         <ul className="text-sm text-blue-900">
