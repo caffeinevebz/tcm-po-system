@@ -295,7 +295,7 @@
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter Owner PIN:");
-                    if (pin === "1701") setRole('owner'); 
+                    if (pin === "1234") setRole('owner'); 
                     else if (pin !== null) alert("Incorrect PIN.");
                 } else setRole('staff');
             };
@@ -1141,4 +1141,42 @@
                                                     </div>
                                                 </div>
                                                 <div className="flex space-x-3">
-                                                    <button onClick={() => setShowRecAdd(false)} className="w-1/2 bg-white border border-gray-
+                                                    <button onClick={() => setShowRecAdd(false)} className="w-1/2 bg-white border border-gray-300 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-sm hover:bg-gray-50 transition-colors">Cancel</button>
+                                                    <button onClick={confirmRecAdd} className="w-1/2 bg-victorian text-antique border border-antique/30 font-bold py-3 text-xs uppercase tracking-widest rounded-sm hover:bg-victorianLight transition-colors">Add</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {ownerTab === 'orders' && selectedItems.length > 0 && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-paper border-t-2 border-victorian shadow-[0_-8px_30px_rgba(19,42,27,0.15)] p-5 z-50 animate-fade-in">
+                            <div className="max-w-md mx-auto flex flex-col space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="font-bold text-victorian bg-antiqueLight/30 border border-antique px-3 py-1.5 rounded-sm text-[10px] uppercase tracking-widest">
+                                        {selectedItems.length} Staged Items
+                                    </span>
+                                    <button onClick={() => setSelectedItems([])} className="text-[10px] text-gray-400 font-bold hover:text-danger uppercase tracking-widest transition-colors">Clear</button>
+                                </div>
+                                <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-3.5 border border-victorian rounded-sm text-sm bg-white font-bold text-victorian">
+                                    <option value="">-- Assign Vendor --</option>
+                                    {suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}
+                                </select>
+                                <button onClick={handleGeneratePO} className="w-full bg-victorian text-antique font-bold py-4 rounded-sm shadow-md hover:bg-victorianLight transition-colors uppercase tracking-widest text-xs">
+                                    Dispatch Official PO
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
