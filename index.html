@@ -55,22 +55,31 @@
             outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important;
         }
 
-        /* --- DYNAMIC THEMATIC BACKGROUNDS (Reduced Fading Effect) --- */
+        /* --- DYNAMIC THEMATIC BACKGROUNDS --- */
         .bg-theme-orders {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8017.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-recipes {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8052.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8052.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-conversions {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8038.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8038.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-databases {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8017.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
+        }
+
+        /* --- CUSTOM ALERT FLASHING ANIMATION --- */
+        @keyframes alert-flash {
+            0%, 100% { border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1); background-color: rgba(255, 255, 255, 0.95); }
+            50% { border-color: rgba(212, 175, 55, 1); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); background-color: rgba(250, 248, 245, 1); }
+        }
+        .animate-alert-flash {
+            animation: alert-flash 2s infinite ease-in-out;
         }
     </style>
 </head>
@@ -112,6 +121,7 @@
         function App() {
             const [role, setRole] = useState('staff'); 
             const [loading, setLoading] = useState(true);
+
             const [staffTab, setStaffTab] = useState('order'); 
             const [ownerTab, setOwnerTab] = useState('orders'); 
             
@@ -292,6 +302,26 @@
                 db.collection('settings').doc('main').update({ suppliers: newSuppliers });
             };
 
+            const editSupplier = (oldName) => {
+                const vendor = suppliers.find(s => s.name === oldName);
+                if (!vendor) return;
+                const newName = window.prompt("Edit Vendor Name:", vendor.name);
+                if (!newName || newName.trim() === '') return;
+                const newPhone = window.prompt("Edit Vendor Mobile Number (Optional):", vendor.phone);
+                
+                const updatedSuppliers = suppliers.map(s => 
+                    s.name === oldName ? { name: newName.trim(), phone: newPhone ? newPhone.trim() : "" } : s
+                );
+                db.collection('settings').doc('main').update({ suppliers: updatedSuppliers });
+            };
+
+            const deleteSupplier = (name) => {
+                if(window.confirm(`Are you sure you want to delete vendor "${name}"?`)){
+                    const updatedSuppliers = suppliers.filter(s => s.name !== name);
+                    db.collection('settings').doc('main').update({ suppliers: updatedSuppliers });
+                }
+            };
+
             const handleSwitchRole = () => {
                 if (role === 'staff') {
                     const pin = window.prompt("Enter 6-digit Owner PIN:");
@@ -322,7 +352,6 @@
             return (
                 <div className={`min-h-screen pb-24 lg:pb-0 transition-all duration-700 ease-in-out ${bgThemeClass}`}>
                     
-                    {/* UNIVERSAL HEADER */}
                     <header className="bg-victorian/95 backdrop-blur-md text-paper p-4 shadow-elegant sticky top-0 z-50 border-b border-antique">
                         <div className="flex justify-between items-center max-w-6xl mx-auto px-2 lg:px-6">
                             <div className="flex items-center space-x-3">
@@ -338,10 +367,8 @@
                         </div>
                     </header>
 
-                    {/* MAIN LAYOUT (Flex on Desktop, Block on Mobile) */}
                     <div className="max-w-6xl mx-auto lg:flex lg:gap-8 lg:mt-8 px-4 lg:px-6">
                         
-                        {/* SIDEBAR NAVIGATION (Desktop Only for Owner) */}
                         {role === 'owner' && (
                             <aside className="hidden lg:block w-64 shrink-0">
                                 <div className="bg-white/90 backdrop-blur-md rounded-sm shadow-elegant border border-white/60 p-4 sticky top-28">
@@ -357,11 +384,10 @@
                             </aside>
                         )}
 
-                        {/* CONTENT AREA */}
                         <main className={`flex-1 ${role === 'staff' ? 'max-w-md mx-auto mt-6' : 'mt-6 lg:mt-0'}`}>
                             {role === 'staff' ? 
                                 <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} /> : 
-                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} />
+                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} />
                             }
                         </main>
                     </div>
@@ -468,7 +494,6 @@
                         <button onClick={() => setStaffTab('recipes')} className={`w-1/2 py-3 font-bold text-xs uppercase tracking-widest transition-all ${staffTab === 'recipes' ? 'border-b-2 border-victorian text-victorian -mb-[2px]' : 'text-victorian/50 hover:text-victorian/80'}`}>Recipe Book</button>
                     </div>
                     
-                    {/* Desktop Toggles */}
                     <div className="hidden lg:flex space-x-4 mb-8">
                         <button onClick={() => setStaffTab('order')} className={`px-6 py-3 font-bold text-xs uppercase tracking-widest rounded-sm transition-all border shadow-sm ${staffTab === 'order' ? 'bg-victorian text-paper border-victorian' : 'bg-white/80 text-gray-600 border-white hover:bg-white'}`}>Draft Order</button>
                         <button onClick={() => setStaffTab('recipes')} className={`px-6 py-3 font-bold text-xs uppercase tracking-widest rounded-sm transition-all border shadow-sm ${staffTab === 'recipes' ? 'bg-victorian text-paper border-victorian' : 'bg-white/80 text-gray-600 border-white hover:bg-white'}`}>Recipe Book</button>
@@ -627,7 +652,7 @@
         }
 
         // --- OWNER VIEW ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab }) {
             const activePOs = pos.filter(po => po.status === 'Approved');
             const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             
@@ -1088,9 +1113,25 @@
 
                                 <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60">
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2">Vendor Directory</h3>
-                                    <div className="flex justify-between items-center mb-5">
+                                    <div className="flex justify-between items-center mb-4">
                                         <span className="text-sm font-medium text-gray-800">{suppliers.length} Active Vendors</span>
                                         <button onClick={addSupplier} className="bg-white border border-antique text-antique text-[10px] font-bold py-1.5 px-3 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider shadow-sm">+ Add</button>
+                                    </div>
+                                    <div className="bg-paper/80 border border-victorian/10 rounded-sm max-h-64 overflow-y-auto mb-2">
+                                        {suppliers.length === 0 ? <p className="text-center text-xs py-4 text-gray-500 italic">No vendors found.</p> : 
+                                            suppliers.map(vendor => (
+                                                <div key={vendor.name} className="flex justify-between items-center p-3 border-b border-victorian/5 last:border-0 hover:bg-white transition-colors">
+                                                    <div className="flex flex-col truncate pr-2">
+                                                        <span className="text-sm font-bold text-victorian">{vendor.name}</span>
+                                                        {vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest">{vendor.phone}</span>}
+                                                    </div>
+                                                    <div className="flex space-x-1 shrink-0">
+                                                        <button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-1.5 transition-colors">✏️</button>
+                                                        <button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-1.5 transition-colors">🗑️</button>
+                                                    </div>
+                                                </div>
+                                            ))
+                                        }
                                     </div>
                                 </div>
                             </div>
