@@ -55,21 +55,21 @@
             outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important;
         }
 
-        /* --- DYNAMIC THEMATIC BACKGROUNDS (Using Your Uploaded Photos) --- */
+        /* --- DYNAMIC THEMATIC BACKGROUNDS (Reduced Fading Effect) --- */
         .bg-theme-orders {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.90), rgba(250, 248, 245, 0.96)), url('./DSC_8017.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-recipes {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.90), rgba(250, 248, 245, 0.96)), url('./DSC_8052.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8052.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-conversions {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.90), rgba(250, 248, 245, 0.96)), url('./DSC_8038.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8038.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-databases {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.90), rgba(250, 248, 245, 0.96)), url('./DSC_8017.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
     </style>
@@ -302,8 +302,8 @@
 
             if (loading) return (
                 <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian">
-                    <h1 className="text-3xl font-bold tracking-widest uppercase mb-4 animate-pulse">T C M</h1>
-                    <p className="text-sm text-antique font-sans tracking-[0.2em] uppercase">Brewing Database...</p>
+                    <img src="TCM Logo.jpg" alt="TCM Logo" className="h-32 w-32 object-cover rounded-full border-4 border-antique mb-6 shadow-elegant animate-pulse" />
+                    <p className="text-sm text-antique font-sans tracking-[0.2em] uppercase font-bold">Brewing Database...</p>
                 </div>
             );
 
@@ -321,14 +321,16 @@
 
             return (
                 <div className={`min-h-screen pb-24 transition-all duration-700 ease-in-out ${bgThemeClass}`}>
-                    <header className="bg-victorian/95 backdrop-blur-md text-paper p-5 shadow-elegant sticky top-0 z-40 border-b border-antique">
+                    <header className="bg-victorian/95 backdrop-blur-md text-paper p-4 shadow-elegant sticky top-0 z-40 border-b border-antique">
                         <div className="flex justify-between items-center max-w-md mx-auto">
-                            <div className="flex flex-col">
-                                <h1 className="text-xl sm:text-2xl font-serif font-bold tracking-widest uppercase">The Caffeine Ministry</h1>
-                                <p className="text-[9px] sm:text-[10px] text-antique uppercase tracking-[0.2em] font-sans mt-0.5">Heritage Ops & Kitchen</p>
+                            <div className="flex items-center space-x-3">
+                                <img src="TCM Logo.jpg" alt="TCM Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full border border-antique/50 shadow-sm" />
+                                <div className="flex flex-col">
+                                    <h1 className="text-sm sm:text-base font-serif font-bold tracking-widest uppercase leading-tight">Caffeine<br/>Ministry</h1>
+                                </div>
                             </div>
-                            <button onClick={handleSwitchRole} className="bg-transparent border border-antique text-antique text-xs font-bold py-1.5 px-3 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider">
-                                {role === 'staff' ? 'Login' : 'Log Out'}
+                            <button onClick={handleSwitchRole} className="bg-transparent border border-antique text-antique text-[10px] sm:text-xs font-bold py-1.5 px-3 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider">
+                                {role === 'staff' ? 'Owner Login' : 'Log Out'}
                             </button>
                         </div>
                     </header>
@@ -609,7 +611,7 @@
             const [prepRawQty, setPrepRawQty] = useState('');
             const [prepRawUnit, setPrepRawUnit] = useState('gms');
             const [prepRawItem, setPrepRawItem] = useState('');
-            const [editingPrepId, setEditingPrepId] = useState(null); // NEW: Edit state for Conversions
+            const [editingPrepId, setEditingPrepId] = useState(null); 
 
             // Recipe State
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false);
@@ -757,7 +759,6 @@
                 }
             };
 
-            // PREP CONVERSION EDITING LOGIC
             const handleEditPrepItem = (prep) => {
                 setPrepName(prep.name);
                 setPrepYieldQty(prep.yieldQty);
@@ -1206,7 +1207,6 @@
                         </div>
                     )}
 
-                    {/* OWNER TAB: BOTTOM ORDER DISPATCH */}
                     {ownerTab === 'orders' && selectedItems.length > 0 && (
                         <div className="fixed bottom-0 left-0 right-0 bg-paper border-t-2 border-victorian shadow-[0_-8px_30px_rgba(19,42,27,0.15)] p-5 z-50 animate-fade-in">
                             <div className="max-w-md mx-auto flex flex-col space-y-4">
