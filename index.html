@@ -78,9 +78,7 @@
             0%, 100% { border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1); background-color: rgba(255, 255, 255, 0.95); }
             50% { border-color: rgba(212, 175, 55, 1); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); background-color: rgba(250, 248, 245, 1); }
         }
-        .animate-alert-flash {
-            animation: alert-flash 2s infinite ease-in-out;
-        }
+        .animate-alert-flash { animation: alert-flash 2s infinite ease-in-out; }
     </style>
 </head>
 <body>
@@ -133,6 +131,7 @@
             const [prepItems, setPrepItems] = useState([]); 
             const [ownerPhone, setOwnerPhone] = useState('');
             const [recipes, setRecipes] = useState([]); 
+            const [prices, setPrices] = useState({}); 
 
             useEffect(() => {
                 let unsubSettings = () => {};
@@ -152,13 +151,15 @@
                             inventory: DEFAULT_INVENTORY,
                             prepItems: [],
                             poCounter: { month: initialMonth, count: 1 },
-                            ownerPhone: ''
+                            ownerPhone: '',
+                            prices: {}
                         });
                     }
 
                     unsubSettings = settingsRef.onSnapshot(doc => {
                         if (doc.exists) {
                             const data = doc.data();
+                            
                             const rawInv = data.inventory || DEFAULT_INVENTORY;
                             const scrubbedInv = {};
                             Object.keys(rawInv).forEach(key => { scrubbedInv[key] = [...new Set(rawInv[key])]; });
@@ -168,6 +169,7 @@
                             setPrepItems(data.prepItems || []);
                             setPoCounter(data.poCounter);
                             setOwnerPhone(data.ownerPhone || '');
+                            setPrices(data.prices || {}); 
                         }
                     });
 
@@ -256,10 +258,38 @@
                 sendWhatsApp(newPo);
             };
 
+            // THE INVOICE AUTO-SYNC ENGINE
             const receivePO = (poId, receivedItemsData) => {
                 const safeDbId = poId.replace(/\//g, '-');
-                db.collection('pos').doc(safeDbId).update({ status: 'Delivered', receivedItems: receivedItemsData, deliveryDate: new Date().toLocaleDateString('en-GB') });
-                alert('Delivery confirmed in database!');
+                
+                // 1. Log the physical delivery receipt
+                db.collection('pos').doc(safeDbId).update({ 
+                    status: 'Delivered', 
+                    receivedItems: receivedItemsData, 
+                    deliveryDate: new Date().toLocaleDateString('en-GB') 
+                });
+
+                // 2. Mathematically Auto-Sync the Master Price Book
+                const newPrices = { ...prices };
+                let pricesUpdated = false;
+
+                receivedItemsData.forEach(item => {
+                    if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) {
+                        const unitPrice = Number(item.totalPrice) / Number(item.receivedQty);
+                        newPrices[item.name] = { 
+                            price: Number(unitPrice.toFixed(2)), 
+                            unit: item.unit 
+                        };
+                        pricesUpdated = true;
+                    }
+                });
+
+                if (pricesUpdated) {
+                    db.collection('settings').doc('main').update({ prices: newPrices });
+                    alert('Delivery intake logged & Master Price Book auto-updated!');
+                } else {
+                    alert('Delivery intake logged successfully!');
+                }
             };
 
             const deletePO = (poId) => {
@@ -351,7 +381,6 @@
 
             return (
                 <div className={`min-h-screen pb-24 lg:pb-0 transition-all duration-700 ease-in-out ${bgThemeClass}`}>
-                    
                     <header className="bg-victorian/95 backdrop-blur-md text-paper p-4 shadow-elegant sticky top-0 z-50 border-b border-antique">
                         <div className="flex justify-between items-center max-w-6xl mx-auto px-2 lg:px-6">
                             <div className="flex items-center space-x-3">
@@ -366,9 +395,7 @@
                             </button>
                         </div>
                     </header>
-
-                    <div className="max-w-6xl mx-auto lg:flex lg:gap-8 lg:mt-8 px-4 lg:px-6">
-                        
+                    <main className="max-w-6xl mx-auto lg:flex lg:gap-8 lg:mt-8 px-4 lg:px-6">
                         {role === 'owner' && (
                             <aside className="hidden lg:block w-64 shrink-0">
                                 <div className="bg-white/90 backdrop-blur-md rounded-sm shadow-elegant border border-white/60 p-4 sticky top-28">
@@ -383,14 +410,13 @@
                                 </div>
                             </aside>
                         )}
-
-                        <main className={`flex-1 ${role === 'staff' ? 'max-w-md mx-auto mt-6' : 'mt-6 lg:mt-0'}`}>
+                        <div className={`flex-1 ${role === 'staff' ? 'max-w-md mx-auto mt-6' : 'mt-6 lg:mt-0'}`}>
                             {role === 'staff' ? 
                                 <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} /> : 
-                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} />
+                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} />
                             }
-                        </main>
-                    </div>
+                        </div>
+                    </main>
                 </div>
             );
         }
@@ -401,7 +427,10 @@
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
             const [receivingPO, setReceivingPO] = useState(null);
+            
+            // Auto-Sync States
             const [receivedQuantities, setReceivedQuantities] = useState({});
+            const [receivedPrices, setReceivedPrices] = useState({}); 
 
             const [recipeSearchFilter, setRecipeSearchFilter] = useState('');
             const [activeRecipeTab, setActiveRecipeTab] = useState('All');
@@ -431,12 +460,21 @@
             const openReceiveScreen = (po) => {
                 setReceivingPO(po);
                 const initialQty = {};
-                po.items.forEach((item, idx) => { initialQty[idx] = item.qty; });
+                const initialPrices = {};
+                po.items.forEach((item, idx) => { 
+                    initialQty[idx] = item.qty; 
+                    initialPrices[idx] = ''; // Blank so staff must enter it
+                });
                 setReceivedQuantities(initialQty);
+                setReceivedPrices(initialPrices);
             };
 
             const submitReceive = () => {
-                const receivedItemsData = receivingPO.items.map((item, idx) => ({ ...item, receivedQty: Number(receivedQuantities[idx]) || 0 }));
+                const receivedItemsData = receivingPO.items.map((item, idx) => ({ 
+                    ...item, 
+                    receivedQty: Number(receivedQuantities[idx]) || 0,
+                    totalPrice: Number(receivedPrices[idx]) || 0 // Pass price data up
+                }));
                 onReceive(receivingPO.id, receivedItemsData);
                 setReceivingPO(null);
             };
@@ -466,23 +504,29 @@
                         <div className="mb-5 bg-paper/90 p-4 rounded-sm border border-gray-200">
                             <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Purchase Order</p>
                             <p className="font-bold text-victorian text-lg">{receivingPO.id}</p>
+                            <p className="text-[10px] text-victorian/60 uppercase tracking-widest mt-2 border-t border-gray-200 pt-2 font-bold">Please enter Total Invoice Cost for each item to auto-update Master Price Book.</p>
                         </div>
                         
                         <div className="mb-6 space-y-3">
-                            <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200">
-                                <span className="w-1/2">Item Name</span>
-                                <span className="w-1/4 text-center">Ordered</span>
-                                <span className="w-1/4 text-center">Received</span>
+                            {/* Adjusted Grid for Pricing Column */}
+                            <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2">
+                                <span className="w-2/5">Item Name</span>
+                                <span className="w-1/5 text-center">Ord</span>
+                                <span className="w-1/5 text-center">Rec</span>
+                                <span className="w-1/5 text-center">Inv (₹)</span>
                             </div>
                             {receivingPO.items.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center py-2">
-                                    <span className="text-sm w-1/2 pr-2 font-medium">{item.name}</span>
-                                    <span className="text-sm text-center w-1/4 text-gray-500">{item.qty} {item.unit}</span>
-                                    <input type="number" min="0" step="any" className="w-16 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
+                                <div key={idx} className="flex justify-between items-center py-2 space-x-2 border-b border-gray-100 last:border-0 pb-3">
+                                    <span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name}</span>
+                                    <span className="text-xs text-center w-1/5 text-gray-500 font-medium">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span>
+                                    
+                                    <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
+                                    
+                                    <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
                                 </div>
                             ))}
                         </div>
-                        <button onClick={submitReceive} className="w-full bg-victorian text-antique uppercase tracking-widest text-xs font-bold py-4 rounded-sm hover:bg-victorianLight transition-colors shadow-md">Confirm Delivery</button>
+                        <button onClick={submitReceive} className="w-full bg-victorian text-antique uppercase tracking-widest text-xs font-bold py-4 rounded-sm hover:bg-victorianLight transition-colors shadow-md">Confirm Delivery & Update Prices</button>
                     </div>
                 );
             }
@@ -652,7 +696,7 @@
         }
 
         // --- OWNER VIEW ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices }) {
             const activePOs = pos.filter(po => po.status === 'Approved');
             const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             
@@ -691,7 +735,25 @@
             const [recModalUnit, setRecModalUnit] = useState('gms');
             const [isCustomRecItem, setIsCustomRecItem] = useState(false);
 
+            const [editingPriceItem, setEditingPriceItem] = useState(null);
+            const [tempPriceVal, setTempPriceVal] = useState('');
+            const [tempPriceUnit, setTempPriceUnit] = useState('Kg');
+            const [priceSearchFilter, setPriceSearchFilter] = useState('');
+
             const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
+
+            const convertToCost = (qty, fromUnit, priceObj) => {
+                if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return 0;
+                let factor = 1;
+                const pUnit = priceObj.unit;
+                
+                if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001;
+                if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
+                if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001;
+                if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
+                
+                return (Number(qty) * factor) * Number(priceObj.price);
+            };
 
             const togglePO = (id) => {
                 setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
@@ -868,6 +930,13 @@
                 }
             };
 
+            const savePriceItem = (itemName) => {
+                const newPrices = { ...prices };
+                newPrices[itemName] = { price: Number(tempPriceVal) || 0, unit: tempPriceUnit };
+                db.collection('settings').doc('main').update({ prices: newPrices });
+                setEditingPriceItem(null);
+            };
+
             const allRawNames = Object.values(inventory).flat();
             const allBasicPreps = prepItems.map(p => p.name);
             const allBatchPreps = recipes.filter(r => r.category === 'Batch Prep').map(r => r.name);
@@ -893,9 +962,7 @@
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-20 lg:grid lg:grid-cols-2 lg:gap-6">
                             
-                            {/* LEFT COLUMN ON DESKTOP */}
                             <div className="lg:col-span-1">
-                                {/* 1. PENDING REQUESTS */}
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Pending Staff Requests</h3>
                                 {requests.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-8 rounded-sm text-center border border-white/50 shadow-elegant text-victorian/60 italic text-sm mb-10">All caught up. No pending requests.</div> : 
                                     requests.map(req => (
@@ -926,9 +993,7 @@
                                 }
                             </div>
 
-                            {/* RIGHT COLUMN ON DESKTOP */}
                             <div className="lg:col-span-1">
-                                {/* 2. ACTIVE / UNDELIVERED POs */}
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Active / In-Transit POs</h3>
                                 {activePOs.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-6 rounded-sm text-center shadow-elegant border border-white/50 text-victorian/60 italic text-sm mb-10">No active orders en route.</div> : 
                                     activePOs.map(po => (
@@ -969,7 +1034,6 @@
                                     ))
                                 }
 
-                                {/* 3. DELIVERED HISTORY */}
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mt-10 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Delivered History</h3>
                                 {deliveredPOs.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-6 rounded-sm text-center shadow-elegant border border-white/50 text-victorian/60 italic text-sm">No historical deliveries.</div> : 
                                     deliveredPOs.map(po => (
@@ -1011,7 +1075,16 @@
                                                             <ul className="text-xs space-y-1.5">
                                                                 {po.receivedItems.map((item, idx) => {
                                                                     const hasVar = item.qty !== item.receivedQty;
-                                                                    return <li key={idx} className={`flex justify-between py-1 border-b border-gray-50 last:border-0 ${hasVar ? 'text-danger font-bold' : 'text-gray-600'}`}><span className="truncate pr-2">{item.name}</span><span className="whitespace-nowrap font-bold">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span></li>
+                                                                    const unitCost = item.receivedQty > 0 && item.totalPrice ? (item.totalPrice / item.receivedQty).toFixed(2) : 0;
+                                                                    return (
+                                                                        <li key={idx} className={`flex justify-between py-1 border-b border-gray-50 last:border-0 ${hasVar ? 'text-danger' : 'text-gray-600'}`}>
+                                                                            <span className="truncate pr-2 font-medium">{item.name}</span>
+                                                                            <div className="flex flex-col items-end">
+                                                                                <span className="whitespace-nowrap font-bold">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span>
+                                                                                {item.totalPrice > 0 && <span className="text-[9px] text-victorian/80 mt-0.5 uppercase tracking-widest font-bold">₹{item.totalPrice} (₹{unitCost}/{item.unit})</span>}
+                                                                            </div>
+                                                                        </li>
+                                                                    );
                                                                 })}
                                                             </ul>
                                                         </div>
@@ -1113,7 +1186,7 @@
 
                                 <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60">
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2">Vendor Directory</h3>
-                                    <div className="flex justify-between items-center mb-4">
+                                    <div className="flex justify-between items-center mb-5">
                                         <span className="text-sm font-medium text-gray-800">{suppliers.length} Active Vendors</span>
                                         <button onClick={addSupplier} className="bg-white border border-antique text-antique text-[10px] font-bold py-1.5 px-3 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider shadow-sm">+ Add</button>
                                     </div>
@@ -1136,7 +1209,56 @@
                                 </div>
                             </div>
 
-                            <div className="lg:col-span-1">
+                            <div className="lg:col-span-1 space-y-6">
+                                {/* MASTER PRICE BOOK */}
+                                <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2 flex justify-between items-end">
+                                        <span>🧮 Master Price Book</span>
+                                    </h3>
+                                    
+                                    <div className="relative mb-4 shadow-sm">
+                                        <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span>
+                                        <input type="text" className="w-full pl-11 p-2.5 border border-gray-300 bg-white/90 rounded-sm text-sm" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/>
+                                    </div>
+
+                                    <div className="bg-paper/80 border border-victorian/10 rounded-sm max-h-[300px] overflow-y-auto">
+                                        {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
+                                            const isEditing = editingPriceItem === item;
+                                            const itemPrice = prices[item];
+                                            
+                                            return (
+                                                <div key={item} className={`flex flex-col p-3 border-b border-victorian/5 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-sm' : 'hover:bg-white'}`}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-sm font-medium text-gray-800 pr-2 truncate">{item}</span>
+                                                        {!isEditing && (
+                                                            <div className="flex items-center">
+                                                                <span className="text-xs font-bold text-antique mr-3">{itemPrice && itemPrice.price ? `₹${itemPrice.price} / ${itemPrice.unit}` : <span className="text-gray-400 italic font-normal">Unpriced</span>}</span>
+                                                                <button onClick={() => { setEditingPriceItem(item); setTempPriceVal(itemPrice?.price || ''); setTempPriceUnit(itemPrice?.unit || 'Kg'); }} className="text-gray-400 hover:text-victorian text-sm transition-colors">✏️</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    
+                                                    {isEditing && (
+                                                        <div className="flex items-center space-x-2 mt-2">
+                                                            <span className="text-sm font-bold text-gray-500">₹</span>
+                                                            <input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-24 p-2 border border-antique rounded-sm text-sm font-bold text-center bg-white" placeholder="Price" />
+                                                            <span className="text-xs text-gray-500">per</span>
+                                                            <select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-antique rounded-sm text-sm bg-white font-medium">
+                                                                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                                            </select>
+                                                            <div className="flex-1 flex justify-end space-x-2">
+                                                                <button onClick={() => setEditingPriceItem(null)} className="px-2 py-1.5 text-[10px] uppercase font-bold text-gray-500 hover:text-danger border border-transparent rounded-sm transition-colors">Cancel</button>
+                                                                <button onClick={() => savePriceItem(item)} className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-victorian text-antique rounded-sm transition-colors">Save</button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-3">Note: Prices automatically update when staff confirms delivery intake.</p>
+                                </div>
+
                                 <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60 h-full">
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2">Master Catalog</h3>
                                     <div className="flex justify-between items-center mb-4">
@@ -1193,54 +1315,76 @@
                                 )}
 
                                 {displayedRecipes.length === 0 ? <p className="bg-white/85 backdrop-blur-md p-6 rounded-sm text-center shadow-elegant border border-white/50 text-victorian/60 italic text-sm">No recipes found.</p> : 
-                                    displayedRecipes.map(recipe => (
-                                        <div key={recipe.id} className={`bg-white/85 backdrop-blur-md rounded-sm shadow-elegant border ${editingRecipeId === recipe.id ? 'border-antique ring-2 ring-antique/20' : 'border-white/60'} p-5 mb-6 relative transition-all`}>
-                                            <div className="absolute top-4 right-4 flex space-x-3">
-                                                <button onClick={() => handleEditRecipe(recipe)} className="text-gray-400 hover:text-victorian transition-colors text-lg" title="Edit Recipe">✏️</button>
-                                                <button onClick={() => deleteRecipe(recipe.id)} className="text-gray-400 hover:text-danger transition-colors text-lg" title="Delete Recipe">🗑️</button>
-                                            </div>
-                                            
-                                            <div className="flex flex-col mb-5 pr-16 border-b border-victorian/10 pb-4">
-                                                <h3 className="font-serif font-bold text-victorian text-xl lg:text-2xl leading-tight">{recipe.name}</h3>
-                                                <div className="flex space-x-2 mt-2">
-                                                    <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-paper/90 text-gray-500 border border-gray-200 px-2 py-1 rounded-sm shadow-sm">{recipe.category || 'Beverages'}</span>
-                                                    {recipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2 py-1 rounded-sm shadow-sm">Yields: {recipe.yieldQty} {recipe.yieldUnit}</span>}
+                                    displayedRecipes.map(recipe => {
+                                        // Calculate Total Cost dynamically
+                                        let totalRecipeCost = 0;
+                                        const rawBreakdownEntries = Object.entries(getRawBreakdown(recipe.ingredients)).map(([name, data]) => {
+                                            const cost = convertToCost(data.qty, data.unit, prices[name]);
+                                            totalRecipeCost += cost;
+                                            return { name, qty: data.qty, unit: data.unit, cost };
+                                        });
+
+                                        return (
+                                            <div key={recipe.id} className={`bg-white/85 backdrop-blur-md rounded-sm shadow-elegant border ${editingRecipeId === recipe.id ? 'border-antique ring-2 ring-antique/20' : 'border-white/60'} p-5 mb-6 relative transition-all`}>
+                                                <div className="absolute top-4 right-4 flex space-x-3">
+                                                    <button onClick={() => handleEditRecipe(recipe)} className="text-gray-400 hover:text-victorian transition-colors text-lg" title="Edit Recipe">✏️</button>
+                                                    <button onClick={() => deleteRecipe(recipe.id)} className="text-gray-400 hover:text-danger transition-colors text-lg" title="Delete Recipe">🗑️</button>
                                                 </div>
-                                            </div>
-                                            
-                                            <div className="flex flex-col space-y-4 mb-6">
-                                                <div className="bg-paper/80 p-4 rounded-sm border border-victorian/10">
-                                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Barista Build (Prepped)</p>
-                                                    <ul className="text-sm space-y-2">
-                                                        {recipe.ingredients.map((ing, i) => (
-                                                            <li key={i} className="flex justify-between items-end border-b border-victorian/5 pb-1">
-                                                                <span className="font-medium text-gray-800">{ing.name} {ing.isCustom ? <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span> : ''}</span>
-                                                                <span className="font-bold text-victorian">{ing.qty} {ing.unit}</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                
+                                                <div className="flex flex-col mb-5 pr-16 border-b border-victorian/10 pb-4">
+                                                    <h3 className="font-serif font-bold text-victorian text-xl lg:text-2xl leading-tight">{recipe.name}</h3>
+                                                    <div className="flex space-x-2 mt-2">
+                                                        <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-paper/90 text-gray-500 border border-gray-200 px-2 py-1 rounded-sm shadow-sm">{recipe.category || 'Beverages'}</span>
+                                                        {recipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2 py-1 rounded-sm shadow-sm">Yields: {recipe.yieldQty} {recipe.yieldUnit}</span>}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex flex-col space-y-4 mb-6">
+                                                    <div className="bg-paper/80 p-4 rounded-sm border border-victorian/10">
+                                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Barista Build (Prepped)</p>
+                                                        <ul className="text-sm space-y-2">
+                                                            {recipe.ingredients.map((ing, i) => (
+                                                                <li key={i} className="flex justify-between items-end border-b border-victorian/5 pb-1">
+                                                                    <span className="font-medium text-gray-800">{ing.name} {ing.isCustom ? <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span> : ''}</span>
+                                                                    <span className="font-bold text-victorian">{ing.qty} {ing.unit}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+
+                                                    <div className="bg-white/90 p-4 rounded-sm border border-antique/30 relative overflow-hidden shadow-sm">
+                                                        <div className="absolute top-0 left-0 w-1 h-full bg-antique"></div>
+                                                        <div className="flex justify-between items-end mb-3 border-b border-gray-100 pb-2 pl-2">
+                                                            <p className="text-[10px] font-bold text-antique uppercase tracking-[0.2em]">Costing Engine (Raw)</p>
+                                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Est. Cost</p>
+                                                        </div>
+                                                        
+                                                        <ul className="text-sm text-gray-800 space-y-2 pl-2 mb-3">
+                                                            {rawBreakdownEntries.map((entry, i) => (
+                                                                <li key={i} className="flex justify-between items-end border-b border-gray-50 pb-1 last:border-0">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="font-medium text-gray-700">{entry.name}</span>
+                                                                        <span className="text-[10px] text-gray-500 font-bold">{entry.qty && !isNaN(entry.qty) ? parseFloat(entry.qty.toFixed(2)) : 0} {entry.unit || 'units'}</span>
+                                                                    </div>
+                                                                    <span className="font-bold text-victorian">₹{entry.cost.toFixed(2)}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                        
+                                                        <div className="pl-2 pt-3 border-t border-antique/30 flex justify-between items-end bg-antiqueLight/10 rounded-sm p-2">
+                                                            <span className="text-xs font-bold text-victorian uppercase tracking-widest">Total Food Cost:</span>
+                                                            <span className="text-lg font-bold text-victorian">₹{totalRecipeCost.toFixed(2)}</span>
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                <div className="bg-white/90 p-4 rounded-sm border border-antique/30 relative overflow-hidden shadow-sm">
-                                                    <div className="absolute top-0 left-0 w-1 h-full bg-antique"></div>
-                                                    <p className="text-[10px] font-bold text-antique uppercase tracking-[0.2em] mb-3 pl-2">Costing Engine (Raw Consumption)</p>
-                                                    <ul className="text-sm text-gray-800 space-y-2 pl-2">
-                                                        {Object.entries(getRawBreakdown(recipe.ingredients)).map(([name, data], i) => (
-                                                            <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1">
-                                                                <span className="font-medium text-gray-700">{name}</span>
-                                                                <span className="font-bold text-victorian">{data.qty && !isNaN(data.qty) ? parseFloat(data.qty.toFixed(2)) : 0} <span className="text-[10px] text-gray-500 ml-0.5 uppercase tracking-widest">{data.unit || 'units'}</span></span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Method & Notes</p>
+                                                <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique/50 pl-3 py-1">
+                                                    {recipe.instructions || "Standard preparation."}
                                                 </div>
                                             </div>
-
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">Method & Notes</p>
-                                            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique/50 pl-3 py-1">
-                                                {recipe.instructions || "Standard preparation."}
-                                            </div>
-                                        </div>
-                                    ))
+                                        );
+                                    })
                                 }
                             </div>
 
@@ -1261,6 +1405,7 @@
                                             {RECIPE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                         </select>
 
+                                        {/* BATCH PREP YIELD INPUTS */}
                                         {recipeCategory === 'Batch Prep' && (
                                             <div className="mb-6 bg-paper/90 p-4 rounded-sm border border-victorian/10">
                                                 <label className="block text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Total Yield of this Batch</label>
