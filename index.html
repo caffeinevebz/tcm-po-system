@@ -55,7 +55,7 @@
             outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important;
         }
 
-        /* --- DYNAMIC THEMATIC BACKGROUNDS (Using Your Uploaded Photos) --- */
+        /* --- DYNAMIC THEMATIC BACKGROUNDS --- */
         .bg-theme-orders {
             background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
@@ -71,6 +71,15 @@
         .bg-theme-databases {
             background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
+        }
+
+        /* --- CUSTOM ALERT FLASHING ANIMATION --- */
+        @keyframes alert-flash {
+            0%, 100% { border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1); background-color: rgba(255, 255, 255, 0.95); }
+            50% { border-color: rgba(212, 175, 55, 1); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); background-color: rgba(250, 248, 245, 1); }
+        }
+        .animate-alert-flash {
+            animation: alert-flash 2s infinite ease-in-out;
         }
     </style>
 </head>
@@ -115,7 +124,7 @@
             const [loading, setLoading] = useState(true);
 
             const [staffTab, setStaffTab] = useState('order'); 
-            const [ownerTab, setOwnerTab] = useState('recipes'); 
+            const [ownerTab, setOwnerTab] = useState('orders'); 
 
             const [requests, setRequests] = useState([]); 
             const [pos, setPos] = useState([]); 
@@ -300,7 +309,7 @@
 
             if (loading) return (
                 <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian">
-                    <img src="TCM Logo.png" alt="TCM Logo" className="h-32 w-32 object-cover rounded-full border-4 border-antique mb-6 shadow-elegant animate-pulse" />
+                    <img src="TCM logo.png" alt="TCM Logo" className="h-32 w-32 object-cover rounded-full border-4 border-antique mb-6 shadow-elegant animate-pulse" />
                     <h1 className="text-sm font-bold tracking-widest uppercase mb-1">The Caffeine Ministry</h1>
                     <p className="text-[10px] text-antique font-sans tracking-[0.2em] uppercase font-bold">A Ministry of Fine Coffee & Cuisine</p>
                 </div>
@@ -322,7 +331,7 @@
                     <header className="bg-victorian/95 backdrop-blur-md text-paper p-4 shadow-elegant sticky top-0 z-40 border-b border-antique">
                         <div className="flex justify-between items-center max-w-md mx-auto">
                             <div className="flex items-center space-x-3">
-                                <img src="TCM Logo.png" alt="TCM Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full border border-antique/50 shadow-sm" />
+                                <img src="TCM logo.png" alt="TCM Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full border border-antique/50 shadow-sm" />
                                 <div className="flex flex-col">
                                     <h1 className="text-xs sm:text-sm font-serif font-bold tracking-wider uppercase leading-tight">The Caffeine Ministry</h1>
                                     <p className="text-[7px] sm:text-[8px] text-antique uppercase tracking-[0.1em] font-sans mt-0.5">A Ministry of Fine Coffee & Cuisine</p>
@@ -442,7 +451,7 @@
                         <button onClick={() => setStaffTab('recipes')} className={`w-1/2 py-3 font-bold text-xs uppercase tracking-widest transition-all ${staffTab === 'recipes' ? 'border-b-2 border-victorian text-victorian -mb-[2px]' : 'text-victorian/50 hover:text-victorian/80'}`}>Recipe Book</button>
                     </div>
 
-                    {/* STAFF VIEW - RECIPE BOOK */}
+                    {/* STAFF VIEW - RECIPES */}
                     {staffTab === 'recipes' && (
                         <div className="animate-fade-in">
                             <div className="relative mb-5 shadow-sm">
@@ -520,10 +529,11 @@
                                 </div>
                             )}
 
+                            {/* FLASHING INCOMING DELIVERIES */}
                             {incomingPOs.length > 0 && (
-                                <div className="mb-8 bg-white/90 backdrop-blur-md border border-white/60 rounded-sm p-5 shadow-elegant">
+                                <div className="mb-8 bg-white/90 backdrop-blur-md rounded-sm p-5 animate-alert-flash">
                                     <h3 className="text-xs font-bold uppercase tracking-widest text-victorian mb-4 flex items-center">
-                                        <span className="mr-2">🚚</span> Incoming Deliveries
+                                        <span className="mr-2 text-lg">⚠️</span> Incoming Deliveries
                                     </h3>
                                     {incomingPOs.map(po => (
                                         <div key={po.id} className="bg-paper/80 p-4 rounded-sm border border-victorian/10 mb-3 flex justify-between items-center last:mb-0">
@@ -596,13 +606,14 @@
 
         // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab }) {
-            const historyPOs = pos.filter(po => po.status !== 'Pending');
+            const activePOs = pos.filter(po => po.status === 'Approved');
+            const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             
             const [selectedItems, setSelectedItems] = useState([]);
             const [selectedVendor, setSelectedVendor] = useState('');
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
             const [localPhone, setLocalPhone] = useState(ownerPhone);
-            const [expandedPOs, setExpandedPOs] = useState({}); // New state for accordion
+            const [expandedPOs, setExpandedPOs] = useState({});
 
             const [prepName, setPrepName] = useState('');
             const [prepYieldQty, setPrepYieldQty] = useState('');
@@ -831,12 +842,15 @@
                         ))}
                     </div>
 
+                    {/* OWNER TAB: ORDERS */}
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-20">
+                            
+                            {/* 1. PENDING REQUESTS */}
                             <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Pending Staff Requests</h3>
-                            {requests.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-8 rounded-sm text-center border border-white/50 shadow-elegant text-victorian/60 italic text-sm">All caught up. No pending requests.</div> : 
+                            {requests.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-8 rounded-sm text-center border border-white/50 shadow-elegant text-victorian/60 italic text-sm mb-10">All caught up. No pending requests.</div> : 
                                 requests.map(req => (
-                                    <div key={req.id} className="bg-white/85 backdrop-blur-md rounded-sm shadow-elegant border border-white/60 mb-5 overflow-hidden">
+                                    <div key={req.id} className="bg-white/85 backdrop-blur-md rounded-sm shadow-elegant border border-white/60 mb-8 overflow-hidden">
                                         <div className="bg-paper/90 px-5 py-3 flex justify-between items-center border-b border-victorian/10">
                                             <span className="font-serif font-bold text-victorian text-lg">{req.id}</span>
                                             <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">{req.date}</span>
@@ -862,51 +876,94 @@
                                 ))
                             }
 
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mt-10 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Recent Official POs</h3>
-                            {historyPOs.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-6 rounded-sm text-center shadow-elegant border border-white/50 text-victorian/60 italic text-sm">No history found.</div> : 
-                                historyPOs.map(po => (
-                                    <div key={po.id} className={`flex flex-col bg-white/90 backdrop-blur-md p-5 rounded-sm shadow-elegant mb-4 border-l-4 transition-colors ${po.status === 'Delivered' ? 'border-l-victorian' : 'border-l-antique'}`}>
-                                        
-                                        <div className="flex justify-between items-start cursor-pointer" onClick={() => togglePO(po.id)}>
-                                            <div className="flex-1">
+                            {/* 2. ACTIVE / UNDELIVERED POs */}
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Active / In-Transit POs</h3>
+                            {activePOs.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-6 rounded-sm text-center shadow-elegant border border-white/50 text-victorian/60 italic text-sm mb-10">No active orders en route.</div> : 
+                                activePOs.map(po => (
+                                    <div key={po.id} className="bg-white/90 backdrop-blur-md p-5 rounded-sm shadow-elegant mb-4 border-l-4 border-l-antique transition-colors">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}>
                                                 <p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center">
                                                     <span className="text-xs text-antique mr-2">{expandedPOs[po.id] ? '▼' : '▶'}</span> {po.id}
                                                 </p>
                                                 <p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p>
                                             </div>
-                                            <span className={`text-[9px] px-2.5 py-1 rounded-sm font-bold uppercase tracking-widest shadow-sm ${po.status === 'Delivered' ? 'bg-victorian text-paper' : 'bg-antiqueLight text-victorian'}`}>
-                                                {po.status}
-                                            </span>
+                                            
+                                            <div className="flex flex-col items-end space-y-3">
+                                                <span className="text-[9px] px-2.5 py-1 rounded-sm font-bold uppercase tracking-widest shadow-sm bg-antiqueLight text-victorian">
+                                                    {po.status}
+                                                </span>
+                                                <div className="flex space-x-3">
+                                                    <button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-500 hover:text-victorian transition-colors text-lg leading-none" title="Resend PO">🔁</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger transition-colors text-lg leading-none" title="Delete PO">🗑️</button>
+                                                </div>
+                                            </div>
                                         </div>
                                         
                                         {expandedPOs[po.id] && (
                                             <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10">
                                                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Requested Items</p>
-                                                <ul className="text-xs space-y-1.5 mb-4">
+                                                <ul className="text-xs space-y-2">
                                                     {po.items.map((item, idx) => (
-                                                        <li key={idx} className="flex justify-between text-gray-700">
+                                                        <li key={idx} className="flex justify-between text-gray-700 border-b border-gray-100 pb-1 last:border-0">
                                                             <span>{item.name}</span>
-                                                            <span className="font-bold">{item.qty} {item.unit}</span>
+                                                            <span className="font-bold text-victorian">{item.qty} {item.unit}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))
+                            }
+
+                            {/* 3. DELIVERED HISTORY */}
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mt-10 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Delivered History</h3>
+                            {deliveredPOs.length === 0 ? <div className="bg-white/85 backdrop-blur-md p-6 rounded-sm text-center shadow-elegant border border-white/50 text-victorian/60 italic text-sm">No historical deliveries.</div> : 
+                                deliveredPOs.map(po => (
+                                    <div key={po.id} className="bg-white/90 backdrop-blur-md p-5 rounded-sm shadow-elegant mb-4 border-l-4 border-l-victorian transition-colors opacity-90 hover:opacity-100">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}>
+                                                <p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center">
+                                                    <span className="text-xs text-gray-400 mr-2">{expandedPOs[po.id] ? '▼' : '▶'}</span> {po.id}
+                                                </p>
+                                                <p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p>
+                                            </div>
+                                            
+                                            <div className="flex flex-col items-end space-y-3">
+                                                <span className="text-[9px] px-2.5 py-1 rounded-sm font-bold uppercase tracking-widest shadow-sm bg-victorian text-paper">
+                                                    {po.status}
+                                                </span>
+                                                <div className="flex space-x-3">
+                                                    <button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian transition-colors text-lg leading-none" title="Resend Records">🔁</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-300 hover:text-danger transition-colors text-lg leading-none" title="Delete Record">🗑️</button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {expandedPOs[po.id] && (
+                                            <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10">
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Original Request</p>
+                                                <ul className="text-xs space-y-2 mb-4">
+                                                    {po.items.map((item, idx) => (
+                                                        <li key={idx} className="flex justify-between text-gray-600 border-b border-gray-100 pb-1 last:border-0">
+                                                            <span>{item.name}</span>
+                                                            <span className="font-medium">{item.qty} {item.unit}</span>
                                                         </li>
                                                     ))}
                                                 </ul>
 
-                                                {po.status === 'Delivered' && po.receivedItems && (
-                                                    <div className="mb-4 bg-gray-50 p-3 rounded-sm border border-gray-100">
-                                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Receipt Details ({po.deliveryDate})</p>
+                                                {po.receivedItems && (
+                                                    <div className="bg-paper p-3 rounded-sm border border-gray-200">
+                                                        <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-2">Intake Receipt ({po.deliveryDate})</p>
                                                         <ul className="text-xs space-y-1.5">
                                                             {po.receivedItems.map((item, idx) => {
                                                                 const hasVar = item.qty !== item.receivedQty;
-                                                                return <li key={idx} className={`flex justify-between py-1 border-b border-gray-50 last:border-0 ${hasVar ? 'text-danger font-medium' : 'text-gray-600'}`}><span className="truncate pr-2">{item.name}</span><span className="whitespace-nowrap font-bold">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span></li>
+                                                                return <li key={idx} className={`flex justify-between py-1 border-b border-gray-50 last:border-0 ${hasVar ? 'text-danger font-bold' : 'text-gray-600'}`}><span className="truncate pr-2">{item.name}</span><span className="whitespace-nowrap font-bold">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span></li>
                                                             })}
                                                         </ul>
                                                     </div>
                                                 )}
-
-                                                <div className="flex justify-end space-x-3 mt-2">
-                                                    <button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-victorian hover:bg-white border border-transparent hover:border-victorian/20 px-3 py-1.5 rounded-sm text-[10px] font-bold flex items-center transition-colors uppercase tracking-wider shadow-sm">🔁 Resend PO</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-danger hover:bg-dangerLight border border-transparent hover:border-danger/20 px-3 py-1.5 rounded-sm text-[10px] font-bold flex items-center transition-colors uppercase tracking-wider shadow-sm">🗑️ Delete</button>
-                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -915,6 +972,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: CONVERSIONS */}
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in">
                             <div className="mb-6 shadow-sm bg-white/30 backdrop-blur-sm inline-block p-3 rounded">
@@ -986,6 +1044,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: DATABASES */}
                     {ownerTab === 'databases' && (
                         <div className="animate-fade-in space-y-6">
                             <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60">
@@ -1025,6 +1084,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: RECIPES */}
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in">
                             {!isBuildingRecipe ? (
@@ -1041,7 +1101,7 @@
                                     {!recipeSearchFilter && (
                                         <div className="flex overflow-x-auto space-x-3 mb-8 pb-2 hide-scrollbar">
                                             {['All', ...RECIPE_CATEGORIES].map(cat => (
-                                                <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-5 py-2 text-xs uppercase tracking-wider rounded-sm border transition-colors shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper border-victorian font-bold' : 'bg-white/85 backdrop-blur-md text-victorian border-white/50 hover:bg-white font-medium'}`}>
+                                                <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-5 py-2 text-xs uppercase tracking-wider rounded-sm border transition-colors shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold' : 'bg-white/85 backdrop-blur-md text-victorian border-white/50 hover:bg-white font-medium'}`}>
                                                     {cat}
                                                 </button>
                                             ))}
