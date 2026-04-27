@@ -161,8 +161,7 @@
                         if (doc.exists) {
                             const data = doc.data();
                             
-                            // --- NEW: Cloud Data Scrubber ---
-                            // Instantly filters out any duplicate items like the Penne Pasta glitch
+                            // Cloud Data Scrubber: instantly filters out duplicates
                             const rawInv = data.inventory || DEFAULT_INVENTORY;
                             const scrubbedInv = {};
                             Object.keys(rawInv).forEach(key => {
@@ -318,9 +317,9 @@
 
             if (loading) return (
                 <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian">
-                    <img src="TCM Logo.png" alt="TCM Logo" className="h-32 w-32 object-cover rounded-full border-4 border-antique mb-6 shadow-elegant animate-pulse" />
-                    <h1 className="text-sm font-bold tracking-widest uppercase mb-1">The Caffeine Ministry</h1>
-                    <p className="text-[10px] text-antique font-sans tracking-[0.2em] uppercase font-bold">A Ministry of Fine Coffee & Cuisine</p>
+                    <img src="TCM logo.png" alt="TCM Logo" className="h-32 w-32 object-cover rounded-full border-4 border-antique mb-6 shadow-elegant animate-pulse" />
+                    <h1 className="text-base sm:text-lg font-bold tracking-widest uppercase mb-1">The Caffeine Ministry</h1>
+                    <p className="text-[10px] sm:text-xs text-antique font-sans tracking-[0.2em] uppercase font-bold">A Ministry of Fine Coffee & Cuisine</p>
                 </div>
             );
 
@@ -340,14 +339,15 @@
                     <header className="bg-victorian/95 backdrop-blur-md text-paper p-4 shadow-elegant sticky top-0 z-40 border-b border-antique">
                         <div className="flex justify-between items-center max-w-md mx-auto">
                             <div className="flex items-center space-x-3">
-                                <img src="TCM Logo.png" alt="TCM Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full border border-antique/50 shadow-sm" />
+                                <img src="TCM logo.png" alt="TCM Logo" className="h-10 w-10 sm:h-12 sm:w-12 object-cover rounded-full border border-antique/50 shadow-sm" />
                                 <div className="flex flex-col">
-                                    <h1 className="text-xs sm:text-sm font-serif font-bold tracking-wider uppercase leading-tight">The Caffeine Ministry</h1>
-                                    <p className="text-[7px] sm:text-[8px] text-antique uppercase tracking-[0.1em] font-sans mt-0.5">A Ministry of Fine Coffee & Cuisine</p>
+                                    {/* Increased Font Sizes for the Header */}
+                                    <h1 className="text-[13px] sm:text-base font-serif font-bold tracking-wider uppercase leading-tight">The Caffeine Ministry</h1>
+                                    <p className="text-[8px] sm:text-[10px] text-antique uppercase tracking-[0.1em] font-sans mt-0.5">A Ministry of Fine Coffee & Cuisine</p>
                                 </div>
                             </div>
-                            <button onClick={handleSwitchRole} className="bg-transparent border border-antique text-antique text-[10px] sm:text-xs font-bold py-1.5 px-3 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider">
-                                {role === 'staff' ? 'Owner Login' : 'Log Out'}
+                            <button onClick={handleSwitchRole} className="bg-transparent border border-antique text-antique text-[10px] sm:text-xs font-bold py-1.5 px-3.5 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider whitespace-nowrap">
+                                {role === 'staff' ? 'Login' : 'Log Out'}
                             </button>
                         </div>
                     </header>
