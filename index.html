@@ -57,19 +57,19 @@
 
         /* --- DYNAMIC THEMATIC BACKGROUNDS --- */
         .bg-theme-orders {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8017.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-recipes {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8052.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8052.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-conversions {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8038.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8038.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
         .bg-theme-databases {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('DSC_8017.jpg');
+            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
         }
 
@@ -112,7 +112,7 @@
             "Packing and Consumables": ["Brown Paper Bag", "Hot coffee cup (180 ML)", "Pizza Boxes"]
         };
         
-        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr", "ml", "tsp", "tbsp"];
+        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr", "ml", "tsp", "tbsp", "Bottle"];
         const RECIPE_CATEGORIES = ["Beverages", "Kitchen", "Desserts", "Batch Prep"]; 
 
         function App() {
@@ -131,7 +131,7 @@
             const [ownerPhone, setOwnerPhone] = useState('');
             const [recipes, setRecipes] = useState([]); 
             const [prices, setPrices] = useState({}); 
-            const [geminiKey, setGeminiKey] = useState(''); // NEW: AI Key State
+            const [geminiKey, setGeminiKey] = useState(''); 
 
             useEffect(() => {
                 let unsubSettings = () => {};
@@ -171,7 +171,7 @@
                             setPoCounter(data.poCounter);
                             setOwnerPhone(data.ownerPhone || '');
                             setPrices(data.prices || {}); 
-                            setGeminiKey(data.geminiKey || ''); // Load Key
+                            setGeminiKey(data.geminiKey || ''); 
                         }
                     });
 
@@ -200,7 +200,6 @@
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
 
-            // Centralized Smart Unit Converter
             const convertToCost = (qty, fromUnit, priceObj) => {
                 if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return 0;
                 let factor = 1;
@@ -274,7 +273,6 @@
                 sendWhatsApp(newPo);
             };
 
-            // THE INVOICE AUTO-SYNC ENGINE
             const receivePO = (poId, receivedItemsData) => {
                 const safeDbId = poId.replace(/\//g, '-');
                 
@@ -483,7 +481,6 @@
                 setReceivedPrices(initialPrices);
             };
 
-            // DIRECT HTML TO GEMINI API CALL
             const handleRealAIScan = async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -496,7 +493,6 @@
                 setIsScanning(true);
                 
                 try {
-                    // Convert image to base64 format required by Gemini REST API
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
                     reader.onload = async () => {
@@ -522,18 +518,15 @@
                         });
 
                         const data = await response.json();
-                        
                         if (!data.candidates) throw new Error("AI failed to read document.");
 
                         const aiText = data.candidates[0].content.parts[0].text;
                         const aiData = JSON.parse(aiText);
 
-                        const autoQty = {};
-                        const autoPrices = {};
+                        const autoQty = { ...receivedQuantities };
+                        const autoPrices = { ...receivedPrices };
                         
-                        // We attempt to map the AI's random text back to the ordered PO items
                         receivingPO.items.forEach((poItem, idx) => {
-                            // Find an AI item that vaguely matches the PO item name (basic fuzzy search)
                             const matchedAI = aiData.lineItems?.find(ai => 
                                 poItem.name.toLowerCase().includes(ai.name.toLowerCase().split(' ')[0]) || 
                                 ai.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
@@ -543,7 +536,6 @@
                                 autoQty[idx] = matchedAI.quantity;
                                 autoPrices[idx] = matchedAI.totalPrice;
                             } else {
-                                // Fallback: Fill what we expected if AI missed it
                                 autoQty[idx] = poItem.qty;
                                 const expectedCost = convertToCost(poItem.qty, poItem.unit, prices[poItem.name]);
                                 autoPrices[idx] = expectedCost > 0 ? expectedCost.toFixed(2) : '';
@@ -555,7 +547,6 @@
                         alert("AI Scan Complete: Extracted quantities and invoice prices. Please verify before confirming.");
                         setIsScanning(false);
                     };
-                    
                 } catch (error) {
                     console.error("AI Error:", error);
                     alert("Scan failed. Please enter manually.");
@@ -804,6 +795,12 @@
             const [localPhone, setLocalPhone] = useState(ownerPhone);
             const [expandedPOs, setExpandedPOs] = useState({});
 
+            // Owner PO Edit States
+            const [editingDeliveredPO, setEditingDeliveredPO] = useState(null);
+            const [editQuantities, setEditQuantities] = useState({});
+            const [editPrices, setEditPrices] = useState({});
+            const [isOwnerScanning, setIsOwnerScanning] = useState(false);
+
             const [prepName, setPrepName] = useState('');
             const [prepYieldQty, setPrepYieldQty] = useState('');
             const [prepYieldUnit, setPrepYieldUnit] = useState('ml');
@@ -838,7 +835,6 @@
             const [tempPriceUnit, setTempPriceUnit] = useState('Kg');
             const [priceSearchFilter, setPriceSearchFilter] = useState('');
             
-            // NEW: State for API Key
             const [localGeminiKey, setLocalGeminiKey] = useState(geminiKey);
 
             const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
@@ -846,6 +842,129 @@
 
             const togglePO = (id) => {
                 setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
+            };
+
+            // Owner AI Scan for Delivered POs
+            const startEditingDeliveredPO = (po) => {
+                setEditingDeliveredPO(po);
+                const initialQty = {};
+                const initialPrices = {};
+                const targetItems = po.receivedItems || po.items;
+                targetItems.forEach((item, idx) => {
+                    initialQty[idx] = item.receivedQty !== undefined ? item.receivedQty : item.qty;
+                    initialPrices[idx] = item.totalPrice || '';
+                });
+                setEditQuantities(initialQty);
+                setEditPrices(initialPrices);
+            };
+
+            const handleOwnerRealAIScan = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (!localGeminiKey || localGeminiKey.trim() === '') {
+                    alert("AI is not configured. Please enter an API Key in the Database Tab.");
+                    return;
+                }
+                
+                setIsOwnerScanning(true);
+                
+                try {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = async () => {
+                        const base64Data = reader.result.split(',')[1];
+                        
+                        const payload = {
+                            contents: [{
+                                parts: [
+                                    { text: "Extract all line items from this delivery invoice. Return a strict JSON array called 'lineItems'. Match the names to standard cafe ingredients if possible. Each item needs 'name', 'quantity' (number), and 'totalPrice' (number)." },
+                                    { inlineData: { mimeType: file.type, data: base64Data } }
+                                ]
+                            }],
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                temperature: 0.1
+                            }
+                        };
+
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localGeminiKey}`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(payload)
+                        });
+
+                        const data = await response.json();
+                        if (!data.candidates) throw new Error("AI failed to read document.");
+
+                        const aiText = data.candidates[0].content.parts[0].text;
+                        const aiData = JSON.parse(aiText);
+
+                        const autoQty = { ...editQuantities };
+                        const autoPrices = { ...editPrices };
+                        
+                        const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+                        targetItems.forEach((poItem, idx) => {
+                            const matchedAI = aiData.lineItems?.find(ai => 
+                                poItem.name.toLowerCase().includes(ai.name.toLowerCase().split(' ')[0]) || 
+                                ai.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
+                            );
+
+                            if (matchedAI) {
+                                autoQty[idx] = matchedAI.quantity;
+                                autoPrices[idx] = matchedAI.totalPrice;
+                            }
+                        });
+                        
+                        setEditQuantities(autoQty);
+                        setEditPrices(autoPrices);
+                        alert("AI Scan Complete: Extracted quantities and invoice prices. Please verify before saving.");
+                        setIsOwnerScanning(false);
+                    };
+                } catch (error) {
+                    console.error("AI Error:", error);
+                    alert("Scan failed. Please enter manually.");
+                    setIsOwnerScanning(false);
+                }
+            };
+
+            const saveDeliveredPOEdit = () => {
+                const safeDbId = editingDeliveredPO.id.replace(/\//g, '-');
+                const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+                
+                const updatedItems = targetItems.map((item, idx) => ({
+                    ...item,
+                    receivedQty: Number(editQuantities[idx]) || 0,
+                    totalPrice: Number(editPrices[idx]) || 0
+                }));
+
+                db.collection('pos').doc(safeDbId).update({
+                    receivedItems: updatedItems,
+                    status: 'Delivered' 
+                });
+
+                const newPrices = { ...prices };
+                let pricesUpdated = false;
+
+                updatedItems.forEach(item => {
+                    if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) {
+                        const unitPrice = Number(item.totalPrice) / Number(item.receivedQty);
+                        newPrices[item.name] = { 
+                            price: Number(unitPrice.toFixed(2)), 
+                            unit: item.unit 
+                        };
+                        pricesUpdated = true;
+                    }
+                });
+
+                if (pricesUpdated) {
+                    db.collection('settings').doc('main').update({ prices: newPrices });
+                    alert('PO Updated & Master Price Book auto-updated with latest rates!');
+                } else {
+                    alert('PO Updated successfully!');
+                }
+
+                setEditingDeliveredPO(null);
             };
 
             const getRawBreakdown = (ingredients) => {
@@ -1146,7 +1265,7 @@
                                                 </div>
                                             </div>
 
-                                            {expandedPOs[po.id] && (
+                                            {expandedPOs[po.id] && editingDeliveredPO?.id !== po.id && (
                                                 <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10">
                                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Original Request</p>
                                                     <ul className="text-xs space-y-2 mb-4">
@@ -1159,7 +1278,7 @@
                                                     </ul>
 
                                                     {po.receivedItems && (
-                                                        <div className="bg-paper p-3 rounded-sm border border-gray-200">
+                                                        <div className="bg-paper p-3 rounded-sm border border-gray-200 mb-3">
                                                             <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-2">Intake Receipt ({po.deliveryDate})</p>
                                                             <ul className="text-xs space-y-1.5">
                                                                 {po.receivedItems.map((item, idx) => {
@@ -1178,6 +1297,45 @@
                                                             </ul>
                                                         </div>
                                                     )}
+                                                    
+                                                    <button onClick={(e) => { e.stopPropagation(); startEditingDeliveredPO(po); }} className="w-full bg-white border border-victorian text-victorian uppercase tracking-widest text-[10px] font-bold py-2 rounded-sm hover:bg-paper transition-colors shadow-sm mb-2 flex items-center justify-center">
+                                                        <span className="mr-2 text-sm leading-none">✏️</span> Scan Invoice & Update Prices
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* OWNER EDIT VIEW FOR DELIVERED PO */}
+                                            {expandedPOs[po.id] && editingDeliveredPO?.id === po.id && (
+                                                <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10">
+                                                    <div className="bg-paper p-3 rounded-sm border border-gray-200">
+                                                        <div className="flex justify-between items-center mb-3">
+                                                            <p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update PO & Prices</p>
+                                                            <button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest hover:underline">Cancel</button>
+                                                        </div>
+                                                        
+                                                        <div className="relative mb-4">
+                                                            <input type="file" accept="image/*" capture="environment" id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} />
+                                                            <label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-2.5 border rounded-sm text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight border-antique text-victorian shadow-inner' : 'bg-white border-victorian text-victorian hover:bg-paper shadow-sm'}`}>
+                                                                {isOwnerScanning ? '⏳ AI Analyzing...' : '📸 Auto-Scan Invoice (AI)'}
+                                                            </label>
+                                                        </div>
+
+                                                        <div className="space-y-3 mb-4">
+                                                            <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-1 border-b border-gray-200 space-x-2">
+                                                                <span className="w-2/5">Item Name</span>
+                                                                <span className="w-1/5 text-center">Rec</span>
+                                                                <span className="w-1/5 text-center">Inv (₹)</span>
+                                                            </div>
+                                                            {(po.receivedItems || po.items).map((item, idx) => (
+                                                                <div key={idx} className="flex justify-between items-center py-1 space-x-2 border-b border-gray-100 last:border-0">
+                                                                    <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name} <span className="text-[8px] text-gray-400 block">({item.unit})</span></span>
+                                                                    <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-[10px] bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={editQuantities[idx]} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
+                                                                    <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-[10px] bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <button onClick={saveDeliveredPOEdit} className="w-full bg-victorian text-antique uppercase tracking-widest text-[10px] font-bold py-3 rounded-sm hover:bg-victorianLight transition-colors shadow-sm">Save & Update Master Prices</button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </div>
@@ -1280,7 +1438,7 @@
 
                                 <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60">
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2">Vendor Directory</h3>
-                                    <div className="flex justify-between items-center mb-5">
+                                    <div className="flex justify-between items-center mb-4">
                                         <span className="text-sm font-medium text-gray-800">{suppliers.length} Active Vendors</span>
                                         <button onClick={addSupplier} className="bg-white border border-antique text-antique text-[10px] font-bold py-1.5 px-3 rounded-sm hover:bg-antique hover:text-victorian transition-colors uppercase tracking-wider shadow-sm">+ Add</button>
                                     </div>
@@ -1439,7 +1597,7 @@
                                                         <ul className="text-sm space-y-2">
                                                             {recipe.ingredients.map((ing, i) => (
                                                                 <li key={i} className="flex justify-between items-end border-b border-victorian/5 pb-1">
-                                                                    <span className="font-medium text-gray-800">{ing.name} {ing.isCustom ? <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span> : ''}</span>
+                                                                    <span className="font-medium text-victorian/80">{ing.name} {ing.isCustom ? <span className="text-[10px] text-victorian/40 font-normal ml-1 italic">(Custom)</span> : ''}</span>
                                                                     <span className="font-bold text-victorian">{ing.qty} {ing.unit}</span>
                                                                 </li>
                                                             ))}
