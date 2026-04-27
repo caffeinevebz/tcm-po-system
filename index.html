@@ -131,7 +131,7 @@
             const [recipes, setRecipes] = useState([]); 
             const [prices, setPrices] = useState({}); 
             const [geminiKey, setGeminiKey] = useState(''); 
-            const [aliases, setAliases] = useState({}); // NEW: Learning Mapping Engine
+            const [aliases, setAliases] = useState({});
 
             useEffect(() => {
                 let unsubSettings = () => {};
@@ -172,7 +172,7 @@
                             setOwnerPhone(data.ownerPhone || '');
                             setPrices(data.prices || {}); 
                             setGeminiKey(data.geminiKey || ''); 
-                            setAliases(data.aliases || {}); // Load AI Aliases
+                            setAliases(data.aliases || {});
                         }
                     });
 
@@ -201,7 +201,6 @@
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
 
-            // Centralized Alias Update Engine
             const updateAlias = (rawInvoiceName, dbItemName) => {
                 const newAliases = { ...aliases, [rawInvoiceName]: dbItemName };
                 setAliases(newAliases);
@@ -449,7 +448,7 @@
             
             const [receivedQuantities, setReceivedQuantities] = useState({});
             const [receivedPrices, setReceivedPrices] = useState({}); 
-            const [unmatchedScans, setUnmatchedScans] = useState([]); // NEW: Learning Array
+            const [unmatchedScans, setUnmatchedScans] = useState([]); 
             const [isScanning, setIsScanning] = useState(false);
 
             const [recipeSearchFilter, setRecipeSearchFilter] = useState('');
@@ -487,7 +486,7 @@
                 });
                 setReceivedQuantities(initialQty);
                 setReceivedPrices(initialPrices);
-                setUnmatchedScans([]); // Clear old scans
+                setUnmatchedScans([]); 
             };
 
             const handleRealAIScan = async (e) => {
@@ -537,13 +536,9 @@
                         const unmatched = [];
                         const usedScans = new Set();
 
-                        // 1. AI Intelligent Match (Alias first, then Fuzzy)
                         receivingPO.items.forEach((poItem, idx) => {
-                            
-                            // Check known aliases first (The Learning Engine)
                             let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
 
-                            // If no learned alias, try a fuzzy name match
                             if (matchIndex === -1) {
                                 matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
                                     poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
@@ -557,13 +552,11 @@
                                 autoPrices[idx] = match.totalPrice;
                                 usedScans.add(matchIndex);
                             } else {
-                                // Clear inputs if AI couldn't find it
                                 autoQty[idx] = '';
                                 autoPrices[idx] = '';
                             }
                         });
 
-                        // 2. Collect leftover scans for manual mapping
                         scannedItems.forEach((scan, i) => {
                             if (!usedScans.has(i)) unmatched.push(scan);
                         });
@@ -590,14 +583,10 @@
                 const scanObj = unmatchedScans.find(u => u.name === scannedRawName);
                 if (!scanObj) return;
 
-                // Fill inputs
                 setReceivedQuantities({...receivedQuantities, [poIdx]: scanObj.quantity});
                 setReceivedPrices({...receivedPrices, [poIdx]: scanObj.totalPrice});
-
-                // Remove from unmatched queue
                 setUnmatchedScans(unmatchedScans.filter(u => u.name !== scannedRawName));
-
-                // TEACH THE ENGINE
+                
                 updateAlias(scannedRawName, poItemName);
                 alert(`Engine Learned: "${scannedRawName}" will now auto-map to "${poItemName}" on future scans.`);
             };
@@ -662,7 +651,6 @@
                                         <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
                                         <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
                                     </div>
-                                    {/* ALIAS MAPPER DROPDOWN */}
                                     {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
                                         <div className="mt-2 w-full">
                                             <select 
@@ -863,7 +851,7 @@
             const [editingDeliveredPO, setEditingDeliveredPO] = useState(null);
             const [editQuantities, setEditQuantities] = useState({});
             const [editPrices, setEditPrices] = useState({});
-            const [unmatchedScans, setUnmatchedScans] = useState([]); // NEW: Learning Array
+            const [unmatchedScans, setUnmatchedScans] = useState([]); 
             const [isOwnerScanning, setIsOwnerScanning] = useState(false);
 
             const [prepName, setPrepName] = useState('');
@@ -962,8 +950,8 @@
                         const data = await response.json();
                         if (!data.candidates) throw new Error("AI failed to read document.");
 
-                        const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
-                        const scannedItems = aiData.lineItems || [];
+                        const aiText = data.candidates[0].content.parts[0].text;
+                        const aiData = JSON.parse(aiText);
 
                         const autoQty = { ...editQuantities };
                         const autoPrices = { ...editPrices };
@@ -972,7 +960,6 @@
                         
                         const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
 
-                        // 1. AI Match
                         targetItems.forEach((poItem, idx) => {
                             let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
 
@@ -988,13 +975,9 @@
                                 autoQty[idx] = match.quantity;
                                 autoPrices[idx] = match.totalPrice;
                                 usedScans.add(matchIndex);
-                            } else {
-                                autoQty[idx] = '';
-                                autoPrices[idx] = '';
                             }
                         });
 
-                        // 2. Unmatched
                         scannedItems.forEach((scan, i) => {
                             if (!usedScans.has(i)) unmatched.push(scan);
                         });
@@ -1071,14 +1054,14 @@
             const getRawBreakdown = (ingredients) => {
                 const rawTotals = {};
 
-                const processIngredient = (ingName, ingQty) => {
+                const processIngredient = (ingName, ingQty, ingUnit) => {
                     const prepMatch = prepItems.find(p => p.name === ingName);
                     const batchMatch = recipes.find(r => r.category === 'Batch Prep' && r.name === ingName);
 
                     if (batchMatch && batchMatch.yieldQty) {
                         const ratio = Number(ingQty) / Number(batchMatch.yieldQty);
                         batchMatch.ingredients.forEach(subIng => {
-                            if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio);
+                            if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit);
                         });
                     } else if (prepMatch) {
                         const ratio = Number(ingQty) / Number(prepMatch.yieldQty);
@@ -1087,11 +1070,11 @@
                         else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit };
                     } else {
                         if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty);
-                        else rawTotals[ingName] = { qty: Number(ingQty), unit: 'unit' }; 
+                        else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; 
                     }
                 };
 
-                ingredients.forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty)); });
+                ingredients.forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
                 return rawTotals;
             };
 
