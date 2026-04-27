@@ -55,7 +55,6 @@
             outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important;
         }
 
-        /* --- DYNAMIC THEMATIC BACKGROUNDS --- */
         .bg-theme-orders {
             background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
@@ -132,6 +131,7 @@
             const [recipes, setRecipes] = useState([]); 
             const [prices, setPrices] = useState({}); 
             const [geminiKey, setGeminiKey] = useState(''); 
+            const [aliases, setAliases] = useState({}); // NEW: Learning Mapping Engine
 
             useEffect(() => {
                 let unsubSettings = () => {};
@@ -153,14 +153,14 @@
                             poCounter: { month: initialMonth, count: 1 },
                             ownerPhone: '',
                             prices: {},
-                            geminiKey: ''
+                            geminiKey: '',
+                            aliases: {}
                         });
                     }
 
                     unsubSettings = settingsRef.onSnapshot(doc => {
                         if (doc.exists) {
                             const data = doc.data();
-                            
                             const rawInv = data.inventory || DEFAULT_INVENTORY;
                             const scrubbedInv = {};
                             Object.keys(rawInv).forEach(key => { scrubbedInv[key] = [...new Set(rawInv[key])]; });
@@ -172,6 +172,7 @@
                             setOwnerPhone(data.ownerPhone || '');
                             setPrices(data.prices || {}); 
                             setGeminiKey(data.geminiKey || ''); 
+                            setAliases(data.aliases || {}); // Load AI Aliases
                         }
                     });
 
@@ -199,6 +200,13 @@
                 initializeDB();
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
+
+            // Centralized Alias Update Engine
+            const updateAlias = (rawInvoiceName, dbItemName) => {
+                const newAliases = { ...aliases, [rawInvoiceName]: dbItemName };
+                setAliases(newAliases);
+                db.collection('settings').doc('main').update({ aliases: newAliases });
+            };
 
             const convertToCost = (qty, fromUnit, priceObj) => {
                 if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return 0;
@@ -275,7 +283,6 @@
 
             const receivePO = (poId, receivedItemsData) => {
                 const safeDbId = poId.replace(/\//g, '-');
-                
                 db.collection('pos').doc(safeDbId).update({ 
                     status: 'Delivered', 
                     receivedItems: receivedItemsData, 
@@ -424,8 +431,8 @@
                         )}
                         <div className={`flex-1 ${role === 'staff' ? 'max-w-md mx-auto mt-6' : 'mt-6 lg:mt-0'}`}>
                             {role === 'staff' ? 
-                                <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} geminiKey={geminiKey} /> : 
-                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} geminiKey={geminiKey} setGeminiKey={setGeminiKey} />
+                                <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} geminiKey={geminiKey} aliases={aliases} updateAlias={updateAlias} /> : 
+                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} geminiKey={geminiKey} setGeminiKey={setGeminiKey} aliases={aliases} updateAlias={updateAlias} />
                             }
                         </div>
                     </main>
@@ -434,7 +441,7 @@
         }
 
         // --- STAFF VIEW ---
-        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, geminiKey }) {
+        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, geminiKey, aliases, updateAlias }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
@@ -442,6 +449,7 @@
             
             const [receivedQuantities, setReceivedQuantities] = useState({});
             const [receivedPrices, setReceivedPrices] = useState({}); 
+            const [unmatchedScans, setUnmatchedScans] = useState([]); // NEW: Learning Array
             const [isScanning, setIsScanning] = useState(false);
 
             const [recipeSearchFilter, setRecipeSearchFilter] = useState('');
@@ -479,6 +487,7 @@
                 });
                 setReceivedQuantities(initialQty);
                 setReceivedPrices(initialPrices);
+                setUnmatchedScans([]); // Clear old scans
             };
 
             const handleRealAIScan = async (e) => {
@@ -501,7 +510,7 @@
                         const payload = {
                             contents: [{
                                 parts: [
-                                    { text: "Extract all line items from this delivery invoice. Return a strict JSON array called 'lineItems'. Match the names to standard cafe ingredients if possible. Each item needs 'name', 'quantity' (number), and 'totalPrice' (number)." },
+                                    { text: "Extract all line items from this delivery invoice exactly as written on the paper. Return a strict JSON array called 'lineItems'. Each item needs 'name' (exactly as printed), 'quantity' (number), and 'totalPrice' (number)." },
                                     { inlineData: { mimeType: file.type, data: base64Data } }
                                 ]
                             }],
@@ -520,31 +529,54 @@
                         const data = await response.json();
                         if (!data.candidates) throw new Error("AI failed to read document.");
 
-                        const aiText = data.candidates[0].content.parts[0].text;
-                        const aiData = JSON.parse(aiText);
+                        const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
+                        const scannedItems = aiData.lineItems || [];
 
                         const autoQty = { ...receivedQuantities };
                         const autoPrices = { ...receivedPrices };
-                        
-                        receivingPO.items.forEach((poItem, idx) => {
-                            const matchedAI = aiData.lineItems?.find(ai => 
-                                poItem.name.toLowerCase().includes(ai.name.toLowerCase().split(' ')[0]) || 
-                                ai.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
-                            );
+                        const unmatched = [];
+                        const usedScans = new Set();
 
-                            if (matchedAI) {
-                                autoQty[idx] = matchedAI.quantity;
-                                autoPrices[idx] = matchedAI.totalPrice;
-                            } else {
-                                autoQty[idx] = poItem.qty;
-                                const expectedCost = convertToCost(poItem.qty, poItem.unit, prices[poItem.name]);
-                                autoPrices[idx] = expectedCost > 0 ? expectedCost.toFixed(2) : '';
+                        // 1. AI Intelligent Match (Alias first, then Fuzzy)
+                        receivingPO.items.forEach((poItem, idx) => {
+                            
+                            // Check known aliases first (The Learning Engine)
+                            let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
+
+                            // If no learned alias, try a fuzzy name match
+                            if (matchIndex === -1) {
+                                matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
+                                    poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
+                                    scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
+                                ));
                             }
+
+                            if (matchIndex !== -1) {
+                                const match = scannedItems[matchIndex];
+                                autoQty[idx] = match.quantity;
+                                autoPrices[idx] = match.totalPrice;
+                                usedScans.add(matchIndex);
+                            } else {
+                                // Clear inputs if AI couldn't find it
+                                autoQty[idx] = '';
+                                autoPrices[idx] = '';
+                            }
+                        });
+
+                        // 2. Collect leftover scans for manual mapping
+                        scannedItems.forEach((scan, i) => {
+                            if (!usedScans.has(i)) unmatched.push(scan);
                         });
                         
                         setReceivedQuantities(autoQty);
                         setReceivedPrices(autoPrices);
-                        alert("AI Scan Complete: Extracted quantities and invoice prices. Please verify before confirming.");
+                        setUnmatchedScans(unmatched);
+                        
+                        if (unmatched.length > 0) {
+                            alert(`Scan Complete. Found ${unmatched.length} unknown items. Please use the dropdowns to map them.`);
+                        } else {
+                            alert("AI Scan Complete: All items auto-matched perfectly!");
+                        }
                         setIsScanning(false);
                     };
                 } catch (error) {
@@ -552,6 +584,22 @@
                     alert("Scan failed. Please enter manually.");
                     setIsScanning(false);
                 }
+            };
+
+            const handleManualMap = (poIdx, poItemName, scannedRawName) => {
+                const scanObj = unmatchedScans.find(u => u.name === scannedRawName);
+                if (!scanObj) return;
+
+                // Fill inputs
+                setReceivedQuantities({...receivedQuantities, [poIdx]: scanObj.quantity});
+                setReceivedPrices({...receivedPrices, [poIdx]: scanObj.totalPrice});
+
+                // Remove from unmatched queue
+                setUnmatchedScans(unmatchedScans.filter(u => u.name !== scannedRawName));
+
+                // TEACH THE ENGINE
+                updateAlias(scannedRawName, poItemName);
+                alert(`Engine Learned: "${scannedRawName}" will now auto-map to "${poItemName}" on future scans.`);
             };
 
             const submitReceive = () => {
@@ -607,11 +655,28 @@
                                 <span className="w-1/5 text-center">Inv (₹)</span>
                             </div>
                             {receivingPO.items.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center py-2 space-x-2 border-b border-gray-100 last:border-0 pb-3">
-                                    <span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name}</span>
-                                    <span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span>
-                                    <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
-                                    <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
+                                <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0 pb-3">
+                                    <div className="flex justify-between items-center space-x-2">
+                                        <span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name}</span>
+                                        <span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span>
+                                        <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
+                                        <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
+                                    </div>
+                                    {/* ALIAS MAPPER DROPDOWN */}
+                                    {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
+                                        <div className="mt-2 w-full">
+                                            <select 
+                                                className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-1.5 font-bold uppercase tracking-widest rounded-sm focus:outline-none"
+                                                value=""
+                                                onChange={(e) => handleManualMap(idx, item.name, e.target.value)}
+                                            >
+                                                <option value="">🔗 AI Missed this. Select scanned item to teach engine...</option>
+                                                {unmatchedScans.map(u => (
+                                                    <option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
@@ -785,7 +850,7 @@
         }
 
         // --- OWNER VIEW ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, geminiKey, setGeminiKey }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, geminiKey, setGeminiKey, aliases, updateAlias }) {
             const activePOs = pos.filter(po => po.status === 'Approved');
             const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             
@@ -795,10 +860,10 @@
             const [localPhone, setLocalPhone] = useState(ownerPhone);
             const [expandedPOs, setExpandedPOs] = useState({});
 
-            // Owner PO Edit States
             const [editingDeliveredPO, setEditingDeliveredPO] = useState(null);
             const [editQuantities, setEditQuantities] = useState({});
             const [editPrices, setEditPrices] = useState({});
+            const [unmatchedScans, setUnmatchedScans] = useState([]); // NEW: Learning Array
             const [isOwnerScanning, setIsOwnerScanning] = useState(false);
 
             const [prepName, setPrepName] = useState('');
@@ -844,7 +909,6 @@
                 setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
             };
 
-            // Owner AI Scan for Delivered POs
             const startEditingDeliveredPO = (po) => {
                 setEditingDeliveredPO(po);
                 const initialQty = {};
@@ -856,6 +920,7 @@
                 });
                 setEditQuantities(initialQty);
                 setEditPrices(initialPrices);
+                setUnmatchedScans([]);
             };
 
             const handleOwnerRealAIScan = async (e) => {
@@ -878,7 +943,7 @@
                         const payload = {
                             contents: [{
                                 parts: [
-                                    { text: "Extract all line items from this delivery invoice. Return a strict JSON array called 'lineItems'. Match the names to standard cafe ingredients if possible. Each item needs 'name', 'quantity' (number), and 'totalPrice' (number)." },
+                                    { text: "Extract all line items from this delivery invoice exactly as written on the paper. Return a strict JSON array called 'lineItems'. Each item needs 'name' (exactly as printed), 'quantity' (number), and 'totalPrice' (number)." },
                                     { inlineData: { mimeType: file.type, data: base64Data } }
                                 ]
                             }],
@@ -897,28 +962,52 @@
                         const data = await response.json();
                         if (!data.candidates) throw new Error("AI failed to read document.");
 
-                        const aiText = data.candidates[0].content.parts[0].text;
-                        const aiData = JSON.parse(aiText);
+                        const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
+                        const scannedItems = aiData.lineItems || [];
 
                         const autoQty = { ...editQuantities };
                         const autoPrices = { ...editPrices };
+                        const unmatched = [];
+                        const usedScans = new Set();
                         
                         const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
-                        targetItems.forEach((poItem, idx) => {
-                            const matchedAI = aiData.lineItems?.find(ai => 
-                                poItem.name.toLowerCase().includes(ai.name.toLowerCase().split(' ')[0]) || 
-                                ai.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
-                            );
 
-                            if (matchedAI) {
-                                autoQty[idx] = matchedAI.quantity;
-                                autoPrices[idx] = matchedAI.totalPrice;
+                        // 1. AI Match
+                        targetItems.forEach((poItem, idx) => {
+                            let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
+
+                            if (matchIndex === -1) {
+                                matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
+                                    poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
+                                    scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
+                                ));
                             }
+
+                            if (matchIndex !== -1) {
+                                const match = scannedItems[matchIndex];
+                                autoQty[idx] = match.quantity;
+                                autoPrices[idx] = match.totalPrice;
+                                usedScans.add(matchIndex);
+                            } else {
+                                autoQty[idx] = '';
+                                autoPrices[idx] = '';
+                            }
+                        });
+
+                        // 2. Unmatched
+                        scannedItems.forEach((scan, i) => {
+                            if (!usedScans.has(i)) unmatched.push(scan);
                         });
                         
                         setEditQuantities(autoQty);
                         setEditPrices(autoPrices);
-                        alert("AI Scan Complete: Extracted quantities and invoice prices. Please verify before saving.");
+                        setUnmatchedScans(unmatched);
+
+                        if (unmatched.length > 0) {
+                            alert(`Scan Complete. Found ${unmatched.length} unknown items. Please map them below.`);
+                        } else {
+                            alert("AI Scan Complete: All items matched perfectly!");
+                        }
                         setIsOwnerScanning(false);
                     };
                 } catch (error) {
@@ -926,6 +1015,18 @@
                     alert("Scan failed. Please enter manually.");
                     setIsOwnerScanning(false);
                 }
+            };
+
+            const handleOwnerManualMap = (poIdx, poItemName, scannedRawName) => {
+                const scanObj = unmatchedScans.find(u => u.name === scannedRawName);
+                if (!scanObj) return;
+
+                setEditQuantities({...editQuantities, [poIdx]: scanObj.quantity});
+                setEditPrices({...editPrices, [poIdx]: scanObj.totalPrice});
+                setUnmatchedScans(unmatchedScans.filter(u => u.name !== scannedRawName));
+                
+                updateAlias(scannedRawName, poItemName);
+                alert(`Engine Learned: "${scannedRawName}" maps to "${poItemName}".`);
             };
 
             const saveDeliveredPOEdit = () => {
@@ -1327,10 +1428,26 @@
                                                                 <span className="w-1/5 text-center">Inv (₹)</span>
                                                             </div>
                                                             {(po.receivedItems || po.items).map((item, idx) => (
-                                                                <div key={idx} className="flex justify-between items-center py-1 space-x-2 border-b border-gray-100 last:border-0">
-                                                                    <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name} <span className="text-[8px] text-gray-400 block">({item.unit})</span></span>
-                                                                    <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-[10px] bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={editQuantities[idx]} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
-                                                                    <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-[10px] bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
+                                                                <div key={idx} className="flex flex-col py-1 border-b border-gray-100 last:border-0">
+                                                                    <div className="flex justify-between items-center space-x-2">
+                                                                        <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name} <span className="text-[8px] text-gray-400 block">({item.unit})</span></span>
+                                                                        <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-[10px] bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={editQuantities[idx]} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
+                                                                        <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-[10px] bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
+                                                                    </div>
+                                                                    {unmatchedScans.length > 0 && (!editQuantities[idx] && !editPrices[idx]) && (
+                                                                        <div className="mt-2 w-full">
+                                                                            <select 
+                                                                                className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-1.5 font-bold uppercase tracking-widest rounded-sm focus:outline-none"
+                                                                                value=""
+                                                                                onChange={(e) => handleOwnerManualMap(idx, item.name, e.target.value)}
+                                                                            >
+                                                                                <option value="">🔗 Map missing item...</option>
+                                                                                {unmatchedScans.map(u => (
+                                                                                    <option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>
+                                                                                ))}
+                                                                            </select>
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             ))}
                                                         </div>
