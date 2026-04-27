@@ -441,6 +441,7 @@
                         <button onClick={() => setStaffTab('recipes')} className={`w-1/2 py-3 font-bold text-xs uppercase tracking-widest transition-all ${staffTab === 'recipes' ? 'border-b-2 border-victorian text-victorian -mb-[2px]' : 'text-victorian/50 hover:text-victorian/80'}`}>Recipe Book</button>
                     </div>
 
+                    {/* STAFF VIEW - RECIPE BOOK */}
                     {staffTab === 'recipes' && (
                         <div className="animate-fade-in">
                             <div className="relative mb-5 shadow-sm">
@@ -490,6 +491,7 @@
                         </div>
                     )}
 
+                    {/* STAFF VIEW - ORDER */}
                     {staffTab === 'order' && (
                         <div className="animate-fade-in">
                             {showAddModal && (
@@ -600,13 +602,16 @@
             const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
             const [localPhone, setLocalPhone] = useState(ownerPhone);
 
+            // Conversion State
             const [prepName, setPrepName] = useState('');
             const [prepYieldQty, setPrepYieldQty] = useState('');
             const [prepYieldUnit, setPrepYieldUnit] = useState('ml');
             const [prepRawQty, setPrepRawQty] = useState('');
             const [prepRawUnit, setPrepRawUnit] = useState('gms');
             const [prepRawItem, setPrepRawItem] = useState('');
+            const [editingPrepId, setEditingPrepId] = useState(null); // NEW: Edit state for Conversions
 
+            // Recipe State
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false);
             const [editingRecipeId, setEditingRecipeId] = useState(null); 
             const [recipeName, setRecipeName] = useState('');
@@ -752,15 +757,47 @@
                 }
             };
 
-            const handleAddPrepItem = () => {
-                if (!prepName || !prepYieldQty || !prepRawItem || !prepRawQty) return alert("Fill all conversion fields.");
-                const newPrep = {
-                    id: 'PREP-' + Date.now(), name: prepName.trim(), yieldQty: Number(prepYieldQty), yieldUnit: prepYieldUnit,
-                    rawItem: prepRawItem, rawQty: Number(prepRawQty), rawUnit: prepRawUnit
-                };
-                const updatedPreps = [...prepItems, newPrep];
-                db.collection('settings').doc('main').update({ prepItems: updatedPreps });
+            // PREP CONVERSION EDITING LOGIC
+            const handleEditPrepItem = (prep) => {
+                setPrepName(prep.name);
+                setPrepYieldQty(prep.yieldQty);
+                setPrepYieldUnit(prep.yieldUnit);
+                setPrepRawQty(prep.rawQty);
+                setPrepRawUnit(prep.rawUnit);
+                setPrepRawItem(prep.rawItem);
+                setEditingPrepId(prep.id);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            const cancelEditPrep = () => {
                 setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem('');
+                setEditingPrepId(null);
+            };
+
+            const handleSavePrepItem = () => {
+                if (!prepName || !prepYieldQty || !prepRawItem || !prepRawQty) return alert("Fill all conversion fields.");
+                
+                const prepData = {
+                    name: prepName.trim(), 
+                    yieldQty: Number(prepYieldQty), 
+                    yieldUnit: prepYieldUnit,
+                    rawItem: prepRawItem, 
+                    rawQty: Number(prepRawQty), 
+                    rawUnit: prepRawUnit
+                };
+
+                let updatedPreps;
+                if (editingPrepId) {
+                    updatedPreps = prepItems.map(p => p.id === editingPrepId ? { ...prepData, id: editingPrepId } : p);
+                } else {
+                    prepData.id = 'PREP-' + Date.now();
+                    updatedPreps = [...prepItems, prepData];
+                }
+                
+                db.collection('settings').doc('main').update({ prepItems: updatedPreps });
+                
+                setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem('');
+                setEditingPrepId(null);
             };
 
             const handleDeletePrepItem = (id) => {
@@ -791,6 +828,7 @@
                         ))}
                     </div>
 
+                    {/* OWNER TAB: ORDERS */}
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-20">
                             <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Pending Staff Requests</h3>
@@ -858,6 +896,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: CONVERSIONS */}
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in">
                             <div className="mb-6 shadow-sm bg-white/30 backdrop-blur-sm inline-block p-3 rounded">
@@ -866,7 +905,9 @@
                             </div>
                             
                             <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60 mb-8">
-                                <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2">New Basic Conversion</h3>
+                                <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-victorian/10 pb-2">
+                                    {editingPrepId ? 'Edit Conversion Rule' : 'New Basic Conversion'}
+                                </h3>
                                 <div className="space-y-5">
                                     <div>
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1.5">Prepped Item Name</label>
@@ -893,22 +934,33 @@
                                             {allRawNames.map(item => <option key={item} value={item}>{item}</option>)}
                                         </select>
                                     </div>
-                                    <button onClick={handleAddPrepItem} className="w-full bg-victorian text-antique font-bold py-3.5 text-xs uppercase tracking-widest rounded-sm shadow-md hover:bg-victorianLight transition-colors mt-2">
-                                        Save Engine Rule
-                                    </button>
+                                    
+                                    <div className="flex space-x-3 mt-2">
+                                        {editingPrepId && (
+                                            <button onClick={cancelEditPrep} className="w-1/2 bg-white text-gray-600 border border-gray-300 font-bold py-3.5 text-xs uppercase tracking-widest rounded-sm shadow-sm hover:bg-gray-50 transition-colors">
+                                                Cancel
+                                            </button>
+                                        )}
+                                        <button onClick={handleSavePrepItem} className={`${editingPrepId ? 'w-1/2' : 'w-full'} bg-victorian text-antique font-bold py-3.5 text-xs uppercase tracking-widest rounded-sm shadow-md hover:bg-victorianLight transition-colors`}>
+                                            {editingPrepId ? 'Update Rule' : 'Save Engine Rule'}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
                             <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-3 border-b border-victorian/10 pb-2 shadow-sm bg-white/30 backdrop-blur-sm inline-block px-2 rounded">Active Engine Rules ({prepItems.length})</h3>
                             {prepItems.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/85 backdrop-blur-md p-6 rounded-sm shadow-elegant text-center border border-white/50">No conversion rules set up yet.</p> : 
-                                <div className="bg-white/85 backdrop-blur-md border border-white/60 rounded-sm shadow-elegant overflow-hidden">
+                                <div className="bg-white/85 backdrop-blur-md border border-white/60 rounded-sm shadow-elegant overflow-hidden mb-12">
                                     {prepItems.map(p => (
                                         <div key={p.id} className="flex justify-between items-center p-4 border-b border-victorian/5 last:border-0 hover:bg-white transition-colors">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-victorian mb-1">{p.name} <span className="text-antique font-serif ml-1">({p.yieldQty} {p.yieldUnit})</span></span>
                                                 <span className="text-xs text-gray-600">Requires: <span className="font-semibold text-gray-800">{p.rawQty} {p.rawUnit}</span> of {p.rawItem}</span>
                                             </div>
-                                            <button onClick={() => handleDeletePrepItem(p.id)} className="text-gray-400 hover:text-danger p-2 rounded-sm transition-colors text-lg ml-2" title="Delete Rule">🗑️</button>
+                                            <div className="flex space-x-1 ml-2">
+                                                <button onClick={() => handleEditPrepItem(p)} className="text-gray-400 hover:text-victorian p-2 rounded-sm transition-colors text-lg" title="Edit Rule">✏️</button>
+                                                <button onClick={() => handleDeletePrepItem(p.id)} className="text-gray-400 hover:text-danger p-2 rounded-sm transition-colors text-lg" title="Delete Rule">🗑️</button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -916,6 +968,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: DATABASES */}
                     {ownerTab === 'databases' && (
                         <div className="animate-fade-in space-y-6">
                             <div className="bg-white/85 backdrop-blur-md p-5 rounded-sm shadow-elegant border border-white/60">
@@ -955,6 +1008,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: RECIPES */}
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in">
                             {!isBuildingRecipe ? (
@@ -971,7 +1025,7 @@
                                     {!recipeSearchFilter && (
                                         <div className="flex overflow-x-auto space-x-3 mb-8 pb-2 hide-scrollbar">
                                             {['All', ...RECIPE_CATEGORIES].map(cat => (
-                                                <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-5 py-2 text-xs uppercase tracking-wider rounded-sm transition-colors shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold' : 'bg-white/85 backdrop-blur-md text-victorian border-white/50 hover:bg-white font-medium'}`}>
+                                                <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-5 py-2 text-xs uppercase tracking-wider rounded-sm border transition-colors shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper border-victorian font-bold' : 'bg-white/85 backdrop-blur-md text-victorian border-white/50 hover:bg-white font-medium'}`}>
                                                     {cat}
                                                 </button>
                                             ))}
@@ -1152,6 +1206,7 @@
                         </div>
                     )}
 
+                    {/* OWNER TAB: BOTTOM ORDER DISPATCH */}
                     {ownerTab === 'orders' && selectedItems.length > 0 && (
                         <div className="fixed bottom-0 left-0 right-0 bg-paper border-t-2 border-victorian shadow-[0_-8px_30px_rgba(19,42,27,0.15)] p-5 z-50 animate-fade-in">
                             <div className="max-w-md mx-auto flex flex-col space-y-4">
