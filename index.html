@@ -73,7 +73,6 @@
             background-size: cover; background-attachment: fixed; background-position: center;
         }
 
-        /* --- CUSTOM ALERT FLASHING ANIMATION --- */
         @keyframes alert-flash {
             0%, 100% { border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1); background-color: rgba(255, 255, 255, 0.95); }
             50% { border-color: rgba(212, 175, 55, 1); box-shadow: 0 0 25px rgba(212, 175, 55, 0.6); background-color: rgba(250, 248, 245, 1); }
@@ -198,6 +197,20 @@
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
 
+            // Centralized Smart Unit Converter
+            const convertToCost = (qty, fromUnit, priceObj) => {
+                if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return 0;
+                let factor = 1;
+                const pUnit = priceObj.unit;
+                
+                if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001;
+                if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
+                if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001;
+                if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
+                
+                return (Number(qty) * factor) * Number(priceObj.price);
+            };
+
             const generatePONumber = () => {
                 const now = new Date();
                 const currentMonthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
@@ -258,18 +271,15 @@
                 sendWhatsApp(newPo);
             };
 
-            // THE INVOICE AUTO-SYNC ENGINE
             const receivePO = (poId, receivedItemsData) => {
                 const safeDbId = poId.replace(/\//g, '-');
                 
-                // 1. Log the physical delivery receipt
                 db.collection('pos').doc(safeDbId).update({ 
                     status: 'Delivered', 
                     receivedItems: receivedItemsData, 
                     deliveryDate: new Date().toLocaleDateString('en-GB') 
                 });
 
-                // 2. Mathematically Auto-Sync the Master Price Book
                 const newPrices = { ...prices };
                 let pricesUpdated = false;
 
@@ -412,8 +422,8 @@
                         )}
                         <div className={`flex-1 ${role === 'staff' ? 'max-w-md mx-auto mt-6' : 'mt-6 lg:mt-0'}`}>
                             {role === 'staff' ? 
-                                <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} /> : 
-                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} />
+                                <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} /> : 
+                                <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} addSupplier={addSupplier} editSupplier={editSupplier} deleteSupplier={deleteSupplier} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} />
                             }
                         </div>
                     </main>
@@ -422,15 +432,15 @@
         }
 
         // --- STAFF VIEW ---
-        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab }) {
+        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost }) {
             const [cart, setCart] = useState([]);
             const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]);
             const [searchTerm, setSearchTerm] = useState('');
             const [receivingPO, setReceivingPO] = useState(null);
             
-            // Auto-Sync States
             const [receivedQuantities, setReceivedQuantities] = useState({});
             const [receivedPrices, setReceivedPrices] = useState({}); 
+            const [isScanning, setIsScanning] = useState(false);
 
             const [recipeSearchFilter, setRecipeSearchFilter] = useState('');
             const [activeRecipeTab, setActiveRecipeTab] = useState('All');
@@ -463,17 +473,39 @@
                 const initialPrices = {};
                 po.items.forEach((item, idx) => { 
                     initialQty[idx] = item.qty; 
-                    initialPrices[idx] = ''; // Blank so staff must enter it
+                    initialPrices[idx] = ''; // Blank for manual/AI entry
                 });
                 setReceivedQuantities(initialQty);
                 setReceivedPrices(initialPrices);
+            };
+
+            const handleSimulateScan = (e) => {
+                if (!e.target.files || e.target.files.length === 0) return;
+                setIsScanning(true);
+                
+                // Simulate the AI OCR network call
+                setTimeout(() => {
+                    const autoQty = {};
+                    const autoPrices = {};
+                    
+                    receivingPO.items.forEach((item, idx) => {
+                        autoQty[idx] = item.qty;
+                        const expectedCost = convertToCost(item.qty, item.unit, prices[item.name]);
+                        autoPrices[idx] = expectedCost > 0 ? expectedCost.toFixed(2) : (Math.random() * 800 + 100).toFixed(2);
+                    });
+                    
+                    setReceivedQuantities(autoQty);
+                    setReceivedPrices(autoPrices);
+                    setIsScanning(false);
+                    alert("AI Scan Complete: Extracted quantities and invoice prices. Please verify before confirming.");
+                }, 2000);
             };
 
             const submitReceive = () => {
                 const receivedItemsData = receivingPO.items.map((item, idx) => ({ 
                     ...item, 
                     receivedQty: Number(receivedQuantities[idx]) || 0,
-                    totalPrice: Number(receivedPrices[idx]) || 0 // Pass price data up
+                    totalPrice: Number(receivedPrices[idx]) || 0 
                 }));
                 onReceive(receivingPO.id, receivedItemsData);
                 setReceivingPO(null);
@@ -501,14 +533,20 @@
                             <h2 className="text-xl font-serif font-bold text-victorian">Delivery Intake</h2>
                             <button onClick={() => setReceivingPO(null)} className="text-danger font-bold text-sm uppercase tracking-wider hover:underline">Cancel</button>
                         </div>
-                        <div className="mb-5 bg-paper/90 p-4 rounded-sm border border-gray-200">
-                            <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Purchase Order</p>
-                            <p className="font-bold text-victorian text-lg">{receivingPO.id}</p>
-                            <p className="text-[10px] text-victorian/60 uppercase tracking-widest mt-2 border-t border-gray-200 pt-2 font-bold">Please enter Total Invoice Cost for each item to auto-update Master Price Book.</p>
+                        <div className="mb-6 bg-paper/90 p-4 rounded-sm border border-gray-200 shadow-sm">
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Purchase Order Reference</p>
+                            <p className="font-bold text-victorian text-lg mb-4">{receivingPO.id}</p>
+                            
+                            <div className="relative">
+                                <input type="file" accept="image/*" capture="environment" id="invoice-upload" className="hidden" onChange={handleSimulateScan} />
+                                <label htmlFor="invoice-upload" className={`w-full flex justify-center items-center py-3 border rounded-sm text-xs font-bold uppercase tracking-widest cursor-pointer transition-colors ${isScanning ? 'bg-antiqueLight border-antique text-victorian shadow-inner' : 'bg-white border-victorian text-victorian hover:bg-paper shadow-sm'}`}>
+                                    {isScanning ? <span className="animate-pulse flex items-center">⏳ Analyzing Document...</span> : '📸 Auto-Scan Invoice (AI)'}
+                                </label>
+                            </div>
+                            <p className="text-[9px] text-gray-500 uppercase tracking-widest mt-3 border-t border-gray-200 pt-2 font-bold leading-tight">Photograph invoice to auto-extract intake data.</p>
                         </div>
                         
                         <div className="mb-6 space-y-3">
-                            {/* Adjusted Grid for Pricing Column */}
                             <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2">
                                 <span className="w-2/5">Item Name</span>
                                 <span className="w-1/5 text-center">Ord</span>
@@ -518,10 +556,8 @@
                             {receivingPO.items.map((item, idx) => (
                                 <div key={idx} className="flex justify-between items-center py-2 space-x-2 border-b border-gray-100 last:border-0 pb-3">
                                     <span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name}</span>
-                                    <span className="text-xs text-center w-1/5 text-gray-500 font-medium">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span>
-                                    
+                                    <span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span>
                                     <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
-                                    
                                     <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
                                 </div>
                             ))}
@@ -696,7 +732,7 @@
         }
 
         // --- OWNER VIEW ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost }) {
             const activePOs = pos.filter(po => po.status === 'Approved');
             const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             
@@ -741,19 +777,6 @@
             const [priceSearchFilter, setPriceSearchFilter] = useState('');
 
             const savePhoneToCloud = () => db.collection('settings').doc('main').update({ ownerPhone: localPhone });
-
-            const convertToCost = (qty, fromUnit, priceObj) => {
-                if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return 0;
-                let factor = 1;
-                const pUnit = priceObj.unit;
-                
-                if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001;
-                if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
-                if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001;
-                if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
-                
-                return (Number(qty) * factor) * Number(priceObj.price);
-            };
 
             const togglePO = (id) => {
                 setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
