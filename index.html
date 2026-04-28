@@ -55,6 +55,7 @@
             outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important;
         }
 
+        /* --- DYNAMIC THEMATIC BACKGROUNDS --- */
         .bg-theme-orders {
             background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
             background-size: cover; background-attachment: fixed; background-position: center;
@@ -489,7 +490,6 @@
                 setUnmatchedScans([]); 
             };
 
-            // UPGRADED: Multi-file AI Scan
             const handleRealAIScan = async (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
@@ -502,7 +502,6 @@
                 setIsScanning(true);
                 
                 try {
-                    // Convert all selected images to base64 promises
                     const readPromises = files.map(file => {
                         return new Promise((resolve, reject) => {
                             const reader = new FileReader();
@@ -534,8 +533,7 @@
                         }
                     };
 
-                    // Switch to stable 1.5 flash for reliable vision support
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
@@ -648,7 +646,6 @@
                             <p className="font-bold text-victorian text-lg mb-4">{receivingPO.id}</p>
                             
                             <div className="relative">
-                                {/* Removed capture="environment" and added multiple to allow gallery/multi-page */}
                                 <input type="file" accept="image/*" multiple id="invoice-upload" className="hidden" onChange={handleRealAIScan} />
                                 <label htmlFor="invoice-upload" className={`w-full flex justify-center items-center py-3 border rounded-sm text-xs font-bold uppercase tracking-widest cursor-pointer transition-colors ${isScanning ? 'bg-antiqueLight border-antique text-victorian shadow-inner' : 'bg-white border-victorian text-victorian hover:bg-paper shadow-sm'}`}>
                                     {isScanning ? <span className="animate-pulse flex items-center">⏳ AI Analyzing...</span> : '📸 Auto-Scan Invoice (Pages/Images)'}
@@ -672,7 +669,6 @@
                                         <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
                                         <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
                                     </div>
-                                    {/* ALIAS MAPPER DROPDOWN */}
                                     {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
                                         <div className="mt-2 w-full">
                                             <select 
@@ -976,13 +972,14 @@
                         }
                     };
 
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${localGeminiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${localGeminiKey}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
                     });
 
                     const data = await response.json();
+                    
                     if (data.error) {
                         throw new Error(data.error.message || "Google API Error");
                     }
@@ -1435,7 +1432,6 @@
                                                         </div>
                                                         
                                                         <div className="relative mb-4">
-                                                            {/* Added multiple support for Owner scan too */}
                                                             <input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} />
                                                             <label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-2.5 border rounded-sm text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight border-antique text-victorian shadow-inner' : 'bg-white border-victorian text-victorian hover:bg-paper shadow-sm'}`}>
                                                                 {isOwnerScanning ? '⏳ AI Analyzing...' : '📸 Auto-Scan Invoice (Pages/Images)'}
