@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>The Caffeine Ministry - PO System</title>
     
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)" crossorigin></script>
-    <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)" crossorigin></script>
-    <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <script src="[https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js](https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js)"></script>
-    <script src="[https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js](https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js)"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap)" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#132A1B">
@@ -489,7 +489,7 @@
                 setUnmatchedScans([]); 
             };
 
-            // DYNAMIC AUTO-DISCOVERY SCANNER
+            // NEW FIX: Target gemini-2.0-flash to bypass deprecation limits
             const handleRealAIScan = async (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
@@ -502,7 +502,6 @@
                 setIsScanning(true);
                 
                 try {
-                    // 1. Convert files to base64
                     const readPromises = files.map(file => {
                         return new Promise((resolve, reject) => {
                             const reader = new FileReader();
@@ -521,26 +520,6 @@
 
                     const imageParts = await Promise.all(readPromises);
                     
-                    // 2. Discover available model
-                    let targetModel = 'models/gemini-1.5-flash'; // Fallback default
-                    try {
-                        const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
-                        const modelData = await modelRes.json();
-                        if (modelData.error) throw new Error(modelData.error.message);
-                        
-                        const validModels = modelData.models.filter(m => 
-                            m.supportedGenerationMethods?.includes("generateContent") && 
-                            (m.name.includes("1.5") || m.name.includes("2.0"))
-                        );
-                        
-                        if (validModels.length > 0) {
-                            targetModel = validModels.find(m => m.name.includes('flash'))?.name || validModels[0].name;
-                        }
-                    } catch (modelErr) {
-                        console.warn("Auto-discovery failed. Proceeding with default flash model.", modelErr);
-                    }
-
-                    // 3. Construct payload and fetch
                     const payload = {
                         contents: [{
                             parts: [
@@ -554,20 +533,20 @@
                         }
                     };
 
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent?key=${geminiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
                     });
 
                     const data = await response.json();
-                    if (data.error) throw new Error(data.error.message);
+                    
+                    if (data.error) {
+                        throw new Error(data.error.message || "Google API Error");
+                    }
                     if (!data.candidates) throw new Error("AI failed to read document.");
 
-                    // 4. Sanitize JSON (Remove markdown code blocks if the AI hallucinates them)
-                    const rawText = data.candidates[0].content.parts[0].text;
-                    const cleanText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                    const aiData = JSON.parse(cleanText);
+                    const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
                     const scannedItems = aiData.lineItems || [];
 
                     const autoQty = { ...receivedQuantities };
@@ -690,6 +669,7 @@
                                         <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
                                         <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
                                     </div>
+                                    {/* ALIAS MAPPER DROPDOWN */}
                                     {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
                                         <div className="mt-2 w-full">
                                             <select 
@@ -993,24 +973,7 @@
                         }
                     };
 
-                    let targetModel = 'models/gemini-1.5-flash';
-                    try {
-                        const modelRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${localGeminiKey}`);
-                        const modelData = await modelRes.json();
-                        if (!modelData.error) {
-                            const validModels = modelData.models.filter(m => 
-                                m.supportedGenerationMethods?.includes("generateContent") && 
-                                (m.name.includes("1.5") || m.name.includes("2.0"))
-                            );
-                            if (validModels.length > 0) {
-                                targetModel = validModels.find(m => m.name.includes('flash'))?.name || validModels[0].name;
-                            }
-                        }
-                    } catch (err) {
-                        console.warn("Auto-discovery failed. Proceeding with default flash model.", err);
-                    }
-
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/${targetModel}:generateContent?key=${localGeminiKey}`, {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${localGeminiKey}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(payload)
@@ -1018,12 +981,12 @@
 
                     const data = await response.json();
                     
-                    if (data.error) throw new Error(data.error.message || "Google API Error");
+                    if (data.error) {
+                        throw new Error(data.error.message || "Google API Error");
+                    }
                     if (!data.candidates) throw new Error("AI failed to read document.");
 
-                    const rawText = data.candidates[0].content.parts[0].text;
-                    const cleanText = rawText.replace(/```json/gi, '').replace(/```/g, '').trim();
-                    const aiData = JSON.parse(cleanText);
+                    const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
                     const scannedItems = aiData.lineItems || [];
 
                     const autoQty = { ...editQuantities };
