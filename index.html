@@ -14,6 +14,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     
     <link rel="manifest" href="/manifest.json">
@@ -55,22 +57,10 @@
             outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important;
         }
 
-        .bg-theme-orders {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
-            background-size: cover; background-attachment: fixed; background-position: center;
-        }
-        .bg-theme-recipes {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8052.jpg');
-            background-size: cover; background-attachment: fixed; background-position: center;
-        }
-        .bg-theme-conversions {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8038.jpg');
-            background-size: cover; background-attachment: fixed; background-position: center;
-        }
-        .bg-theme-databases {
-            background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg');
-            background-size: cover; background-attachment: fixed; background-position: center;
-        }
+        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        .bg-theme-recipes { background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8052.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        .bg-theme-conversions { background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8038.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        .bg-theme-databases { background-image: linear-gradient(rgba(250, 248, 245, 0.60), rgba(250, 248, 245, 0.75)), url('./DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
 
         @keyframes alert-flash {
             0%, 100% { border-color: rgba(212, 175, 55, 0.4); box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1); background-color: rgba(255, 255, 255, 0.95); }
@@ -489,112 +479,141 @@
                 setUnmatchedScans([]); 
             };
 
-            // NEW FIX: Target gemini-2.0-flash to bypass deprecation limits
+            // HYBRID SCANNER: Gemini First, Tesseract Fallback
             const handleRealAIScan = async (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
 
-                if (!geminiKey || geminiKey.trim() === '') {
-                    alert("AI is not configured. The owner must enter an API Key in the Database Tab.");
-                    return;
-                }
-                
                 setIsScanning(true);
+                let usedCloud = false;
+                let scannedItems = [];
                 
-                try {
-                    const readPromises = files.map(file => {
-                        return new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.readAsDataURL(file);
-                            reader.onload = () => {
-                                resolve({
-                                    inlineData: {
-                                        mimeType: file.type,
-                                        data: reader.result.split(',')[1]
-                                    }
-                                });
-                            };
-                            reader.onerror = reject;
+                // 1. Attempt Cloud AI (If Key Exists)
+                if (geminiKey && geminiKey.trim() !== '') {
+                    try {
+                        const readPromises = files.map(file => {
+                            return new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.readAsDataURL(file);
+                                reader.onload = () => resolve({ inlineData: { mimeType: file.type, data: reader.result.split(',')[1] } });
+                                reader.onerror = reject;
+                            });
                         });
-                    });
+                        const imageParts = await Promise.all(readPromises);
+                        
+                        const payload = {
+                            contents: [{
+                                parts: [
+                                    { text: "Extract all line items from this delivery invoice (which may span multiple pages). Return a strict JSON array called 'lineItems'. Each item needs 'name' (exactly as printed), 'quantity' (number), and 'totalPrice' (number)." },
+                                    ...imageParts
+                                ]
+                            }],
+                            generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+                        };
 
-                    const imageParts = await Promise.all(readPromises);
-                    
-                    const payload = {
-                        contents: [{
-                            parts: [
-                                { text: "Extract all line items from this delivery invoice (which may span multiple pages). Return a strict JSON array called 'lineItems'. Each item needs 'name' (exactly as printed), 'quantity' (number), and 'totalPrice' (number)." },
-                                ...imageParts
-                            ]
-                        }],
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            temperature: 0.1
-                        }
-                    };
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
+                            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+                        });
 
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    });
+                        const data = await response.json();
+                        
+                        if (data.error) throw new Error(data.error.message);
+                        if (!data.candidates) throw new Error("AI returned empty.");
 
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        throw new Error(data.error.message || "Google API Error");
+                        const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
+                        scannedItems = aiData.lineItems || [];
+                        usedCloud = true;
+                        
+                    } catch (error) {
+                        console.warn("Cloud AI Blocked/Failed. Falling back to Local Scanner...", error);
+                        usedCloud = false;
                     }
-                    if (!data.candidates) throw new Error("AI failed to read document.");
-
-                    const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
-                    const scannedItems = aiData.lineItems || [];
-
-                    const autoQty = { ...receivedQuantities };
-                    const autoPrices = { ...receivedPrices };
-                    const unmatched = [];
-                    const usedScans = new Set();
-
-                    receivingPO.items.forEach((poItem, idx) => {
-                        let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
-
-                        if (matchIndex === -1) {
-                            matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
-                                poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
-                                scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
-                            ));
-                        }
-
-                        if (matchIndex !== -1) {
-                            const match = scannedItems[matchIndex];
-                            autoQty[idx] = match.quantity;
-                            autoPrices[idx] = match.totalPrice;
-                            usedScans.add(matchIndex);
-                        } else {
-                            autoQty[idx] = '';
-                            autoPrices[idx] = '';
-                        }
-                    });
-
-                    scannedItems.forEach((scan, i) => {
-                        if (!usedScans.has(i)) unmatched.push(scan);
-                    });
-                    
-                    setReceivedQuantities(autoQty);
-                    setReceivedPrices(autoPrices);
-                    setUnmatchedScans(unmatched);
-                    
-                    if (unmatched.length > 0) {
-                        alert(`Scan Complete. Found ${unmatched.length} unknown items. Please use the dropdowns to map them.`);
-                    } else {
-                        alert("AI Scan Complete: All items auto-matched perfectly!");
-                    }
-                    
-                } catch (error) {
-                    console.error("AI Error:", error);
-                    alert(`Scan failed: ${error.message || "Please enter manually."}`);
-                } finally {
-                    setIsScanning(false);
                 }
+
+                // 2. Fallback to Local Offline Scanner (Tesseract)
+                if (!usedCloud) {
+                    try {
+                        alert("Cloud AI is unavailable (Quota Limits). Switching to Free Offline Scanner. This may take a moment to load the language package.");
+                        const worker = await Tesseract.createWorker('eng');
+                        let fullText = "";
+                        for (const file of files) {
+                            const { data: { text } } = await worker.recognize(file);
+                            fullText += text + "\n";
+                        }
+                        await worker.terminate();
+
+                        const rawLines = fullText.split('\n').map(l => l.toLowerCase());
+                        const autoQty = { ...receivedQuantities };
+                        const autoPrices = { ...receivedPrices };
+
+                        receivingPO.items.forEach((poItem, idx) => {
+                            const firstWord = poItem.name.toLowerCase().split(' ')[0];
+                            const matchLine = rawLines.find(line => {
+                                const hasAlias = Object.keys(aliases).some(alias => aliases[alias] === poItem.name && line.includes(alias.toLowerCase()));
+                                return line.includes(firstWord) || hasAlias;
+                            });
+
+                            if (matchLine) {
+                                const numbers = matchLine.match(/\d+(\.\d{1,2})?/g);
+                                if (numbers && numbers.length > 0) {
+                                    const lastNum = parseFloat(numbers[numbers.length - 1]);
+                                    autoPrices[idx] = lastNum > 0 ? lastNum : '';
+                                    if (numbers.length > 1) {
+                                        const firstNum = parseFloat(numbers[0]);
+                                        autoQty[idx] = firstNum > 0 ? firstNum : poItem.qty;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        setReceivedQuantities(autoQty);
+                        setReceivedPrices(autoPrices);
+                        alert("Offline Scan Complete: Please verify the extracted numbers manually.");
+                        setIsScanning(false);
+                        return; // Exit early since local scan handles its own state setting
+                    } catch (err) {
+                        alert("Offline scan failed. Please enter manually.");
+                        setIsScanning(false);
+                        return;
+                    }
+                }
+
+                // 3. Process Cloud Data (If successful)
+                const autoQty = { ...receivedQuantities };
+                const autoPrices = { ...receivedPrices };
+                const unmatched = [];
+                const usedScans = new Set();
+
+                receivingPO.items.forEach((poItem, idx) => {
+                    let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
+                    if (matchIndex === -1) {
+                        matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
+                            poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
+                            scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
+                        ));
+                    }
+                    if (matchIndex !== -1) {
+                        const match = scannedItems[matchIndex];
+                        autoQty[idx] = match.quantity;
+                        autoPrices[idx] = match.totalPrice;
+                        usedScans.add(matchIndex);
+                    } else {
+                        autoQty[idx] = ''; autoPrices[idx] = '';
+                    }
+                });
+
+                scannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
+                
+                setReceivedQuantities(autoQty);
+                setReceivedPrices(autoPrices);
+                setUnmatchedScans(unmatched);
+                
+                if (unmatched.length > 0) {
+                    alert(`Cloud Scan Complete. Found ${unmatched.length} unknown items. Please use the dropdowns to map them.`);
+                } else {
+                    alert("Cloud Scan Complete: All items auto-matched perfectly!");
+                }
+                setIsScanning(false);
             };
 
             const handleManualMap = (poIdx, poItemName, scannedRawName) => {
@@ -648,7 +667,7 @@
                             <div className="relative">
                                 <input type="file" accept="image/*" multiple id="invoice-upload" className="hidden" onChange={handleRealAIScan} />
                                 <label htmlFor="invoice-upload" className={`w-full flex justify-center items-center py-3 border rounded-sm text-xs font-bold uppercase tracking-widest cursor-pointer transition-colors ${isScanning ? 'bg-antiqueLight border-antique text-victorian shadow-inner' : 'bg-white border-victorian text-victorian hover:bg-paper shadow-sm'}`}>
-                                    {isScanning ? <span className="animate-pulse flex items-center">⏳ AI Analyzing...</span> : '📸 Auto-Scan Invoice (Pages/Images)'}
+                                    {isScanning ? <span className="animate-pulse flex items-center">⏳ Scanner Running...</span> : '📸 Auto-Scan Invoice (Pages/Images)'}
                                 </label>
                             </div>
                             <p className="text-[9px] text-gray-500 uppercase tracking-widest mt-3 border-t border-gray-200 pt-2 font-bold leading-tight">Take a photo or upload multiple images from your gallery.</p>
@@ -669,7 +688,6 @@
                                         <input type="number" min="0" step="any" className="w-1/5 border border-gray-300 rounded-sm p-1.5 text-center font-bold text-sm bg-white/90 focus:bg-white" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} />
                                         <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique rounded-sm p-1.5 text-center font-bold text-sm bg-white focus:bg-white focus:ring-1 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} />
                                     </div>
-                                    {/* ALIAS MAPPER DROPDOWN */}
                                     {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
                                         <div className="mt-2 w-full">
                                             <select 
@@ -934,105 +952,132 @@
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
 
-                if (!localGeminiKey || localGeminiKey.trim() === '') {
-                    alert("AI is not configured. Please enter an API Key in the Database Tab.");
-                    return;
-                }
-                
                 setIsOwnerScanning(true);
-                
-                try {
-                    const readPromises = files.map(file => {
-                        return new Promise((resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.readAsDataURL(file);
-                            reader.onload = () => {
-                                resolve({
-                                    inlineData: {
-                                        mimeType: file.type,
-                                        data: reader.result.split(',')[1]
-                                    }
-                                });
-                            };
-                            reader.onerror = reject;
+                let usedCloud = false;
+                let scannedItems = [];
+
+                if (localGeminiKey && localGeminiKey.trim() !== '') {
+                    try {
+                        const readPromises = files.map(file => {
+                            return new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.readAsDataURL(file);
+                                reader.onload = () => resolve({ inlineData: { mimeType: file.type, data: reader.result.split(',')[1] } });
+                                reader.onerror = reject;
+                            });
                         });
-                    });
+                        const imageParts = await Promise.all(readPromises);
+                        
+                        const payload = {
+                            contents: [{
+                                parts: [
+                                    { text: "Extract all line items from this delivery invoice (which may span multiple pages). Return a strict JSON array called 'lineItems'. Each item needs 'name' (exactly as printed), 'quantity' (number), and 'totalPrice' (number)." },
+                                    ...imageParts
+                                ]
+                            }],
+                            generationConfig: { responseMimeType: "application/json", temperature: 0.1 }
+                        };
 
-                    const imageParts = await Promise.all(readPromises);
-                    
-                    const payload = {
-                        contents: [{
-                            parts: [
-                                { text: "Extract all line items from this delivery invoice (which may span multiple pages). Return a strict JSON array called 'lineItems'. Each item needs 'name' (exactly as printed), 'quantity' (number), and 'totalPrice' (number)." },
-                                ...imageParts
-                            ]
-                        }],
-                        generationConfig: {
-                            responseMimeType: "application/json",
-                            temperature: 0.1
-                        }
-                    };
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${localGeminiKey}`, {
+                            method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload)
+                        });
 
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${localGeminiKey}`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(payload)
-                    });
+                        const data = await response.json();
+                        
+                        if (data.error) throw new Error(data.error.message);
+                        if (!data.candidates) throw new Error("AI returned empty.");
 
-                    const data = await response.json();
-                    
-                    if (data.error) {
-                        throw new Error(data.error.message || "Google API Error");
+                        const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
+                        scannedItems = aiData.lineItems || [];
+                        usedCloud = true;
+                    } catch (error) {
+                        console.warn("Cloud AI Blocked/Failed. Falling back to Local Scanner...", error);
+                        usedCloud = false;
                     }
-                    if (!data.candidates) throw new Error("AI failed to read document.");
-
-                    const aiData = JSON.parse(data.candidates[0].content.parts[0].text);
-                    const scannedItems = aiData.lineItems || [];
-
-                    const autoQty = { ...editQuantities };
-                    const autoPrices = { ...editPrices };
-                    const unmatched = [];
-                    const usedScans = new Set();
-                    
-                    const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
-
-                    targetItems.forEach((poItem, idx) => {
-                        let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
-
-                        if (matchIndex === -1) {
-                            matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
-                                poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
-                                scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
-                            ));
-                        }
-
-                        if (matchIndex !== -1) {
-                            const match = scannedItems[matchIndex];
-                            autoQty[idx] = match.quantity;
-                            autoPrices[idx] = match.totalPrice;
-                            usedScans.add(matchIndex);
-                        }
-                    });
-
-                    scannedItems.forEach((scan, i) => {
-                        if (!usedScans.has(i)) unmatched.push(scan);
-                    });
-                    
-                    setEditQuantities(autoQty);
-                    setEditPrices(autoPrices);
-                    setUnmatchedScans(unmatched);
-
-                    if (unmatched.length > 0) {
-                        alert(`Scan Complete. Found ${unmatched.length} unknown items. Please map them below.`);
-                    } else {
-                        alert("AI Scan Complete: All items matched perfectly!");
-                    }
-                } catch (error) {
-                    console.error("AI Error:", error);
-                    alert(`Scan failed: ${error.message || "Please enter manually."}`);
-                } finally {
-                    setIsOwnerScanning(false);
                 }
+
+                if (!usedCloud) {
+                    try {
+                        alert("Cloud AI is unavailable (Quota Limits). Switching to Free Offline Scanner. This may take a moment to load the language package.");
+                        const worker = await Tesseract.createWorker('eng');
+                        let fullText = "";
+                        for (const file of files) {
+                            const { data: { text } } = await worker.recognize(file);
+                            fullText += text + "\n";
+                        }
+                        await worker.terminate();
+
+                        const rawLines = fullText.split('\n').map(l => l.toLowerCase());
+                        const autoQty = { ...editQuantities };
+                        const autoPrices = { ...editPrices };
+                        const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+
+                        targetItems.forEach((poItem, idx) => {
+                            const firstWord = poItem.name.toLowerCase().split(' ')[0];
+                            const matchLine = rawLines.find(line => {
+                                const hasAlias = Object.keys(aliases).some(alias => aliases[alias] === poItem.name && line.includes(alias.toLowerCase()));
+                                return line.includes(firstWord) || hasAlias;
+                            });
+
+                            if (matchLine) {
+                                const numbers = matchLine.match(/\d+(\.\d{1,2})?/g);
+                                if (numbers && numbers.length > 0) {
+                                    const lastNum = parseFloat(numbers[numbers.length - 1]);
+                                    autoPrices[idx] = lastNum > 0 ? lastNum : '';
+                                    if (numbers.length > 1) {
+                                        const firstNum = parseFloat(numbers[0]);
+                                        autoQty[idx] = firstNum > 0 ? firstNum : poItem.qty;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        setEditQuantities(autoQty);
+                        setEditPrices(autoPrices);
+                        alert("Offline Scan Complete: Please verify the extracted numbers manually.");
+                        setIsOwnerScanning(false);
+                        return; 
+                    } catch (err) {
+                        alert("Offline scan failed. Please enter manually.");
+                        setIsOwnerScanning(false);
+                        return;
+                    }
+                }
+
+                const autoQty = { ...editQuantities };
+                const autoPrices = { ...editPrices };
+                const unmatched = [];
+                const usedScans = new Set();
+                const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+
+                targetItems.forEach((poItem, idx) => {
+                    let matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
+                    if (matchIndex === -1) {
+                        matchIndex = scannedItems.findIndex((scan, i) => !usedScans.has(i) && (
+                            poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || 
+                            scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])
+                        ));
+                    }
+                    if (matchIndex !== -1) {
+                        const match = scannedItems[matchIndex];
+                        autoQty[idx] = match.quantity;
+                        autoPrices[idx] = match.totalPrice;
+                        usedScans.add(matchIndex);
+                    }
+                });
+
+                scannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
+                
+                setEditQuantities(autoQty);
+                setEditPrices(autoPrices);
+                setUnmatchedScans(unmatched);
+
+                if (unmatched.length > 0) {
+                    alert(`Cloud Scan Complete. Found ${unmatched.length} unknown items. Please map them below.`);
+                } else {
+                    alert("Cloud Scan Complete: All items auto-matched perfectly!");
+                }
+                setIsOwnerScanning(false);
             };
 
             const handleOwnerManualMap = (poIdx, poItemName, scannedRawName) => {
@@ -1435,7 +1480,7 @@
                                                         <div className="relative mb-4">
                                                             <input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} />
                                                             <label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-2.5 border rounded-sm text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight border-antique text-victorian shadow-inner' : 'bg-white border-victorian text-victorian hover:bg-paper shadow-sm'}`}>
-                                                                {isOwnerScanning ? '⏳ AI Analyzing...' : '📸 Auto-Scan Invoice (Pages/Images)'}
+                                                                {isOwnerScanning ? '⏳ Scanner Running...' : '📸 Auto-Scan Invoice (Pages/Images)'}
                                                             </label>
                                                         </div>
 
