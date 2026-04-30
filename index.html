@@ -292,7 +292,7 @@
                     let allScannedItems = [];
                     for (let file of files) {
                         const compressedBase64 = await compressImage(file);
-                        const scanInvoice = firebase.functions().httpsCallable('scanInvoice');
+                        const scanInvoice = firebase.app().functions('us-central1').httpsCallable('scanInvoice');
                         const response = await scanInvoice({ image: compressedBase64 });
                         if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems];
                     }
@@ -421,7 +421,7 @@
                     let allScannedItems = [];
                     for (let file of files) {
                         const compressedBase64 = await compressImage(file);
-                        const scanInvoice = firebase.functions().httpsCallable('scanInvoice');
+                        const scanInvoice = firebase.app().functions('us-central1').httpsCallable('scanInvoice');
                         const response = await scanInvoice({ image: compressedBase64 });
                         if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems];
                     }
