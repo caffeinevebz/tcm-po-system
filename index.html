@@ -19,8 +19,8 @@
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#132A1B">
-    <link rel="icon" href="icon-192.png?v=2">
-    <link rel="apple-touch-icon" href="icon-192.png?v=2">
+    <link rel="icon" href="TCM BrewOps icon.jpg?v=2">
+    <link rel="apple-touch-icon" href="TCM BrewOps icon.jpg?v=2">
 
     <script>
         tailwind.config = {
@@ -28,6 +28,7 @@
                 extend: {
                     colors: { 
                         paper: '#FAF8F5', 
+                        paperDark: '#e8dfd1',
                         victorian: '#132A1B', 
                         victorianLight: '#23452F', 
                         antique: '#D4AF37', 
@@ -35,7 +36,8 @@
                         danger: '#8B2626', 
                         dangerLight: '#FCE8E8',
                         brandBrown: '#8b5e3c',
-                        brandLightBrown: '#c08a5b'
+                        brandLightBrown: '#c08a5b',
+                        vintageGreen: '#4A5D23'
                     },
                     fontFamily: { 
                         serif: ['"Playfair Display"', 'serif'], 
@@ -46,7 +48,9 @@
                         'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 
                         'float': '0 -4px 24px -4px rgba(19, 42, 27, 0.15)', 
                         'glass': 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
-                        'login': '0 15px 40px rgba(0,0,0,0.1)'
+                        'login': '0 15px 40px rgba(0,0,0,0.1)',
+                        'vintage': '0 10px 30px rgba(44, 26, 15, 0.08)', 
+                        'inner-vintage': 'inset 0 2px 10px rgba(44, 26, 15, 0.05)'
                     }
                 }
             }
@@ -58,7 +62,15 @@
         .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input[type="text"], input[type="number"], input[type="password"], select, textarea { transition: all 0.2s ease-in-out; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
+        
         .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.65), rgba(250, 248, 245, 0.85)), url('./DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        
+        /* Vintage Leaf Background Texture */
+        .bg-leaf-pattern { background-image: url('leaf-pattern.jpg'); background-size: cover; background-position: center; }
+        
+        .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
+        .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
+
         @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
@@ -104,510 +116,6 @@
             Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
             Box: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>,
             FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-        };
-
-        const compressImage = (file) => {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader(); reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image(); img.src = event.target.result;
-                    img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const scaleSize = 1500 / img.width;
-                        canvas.width = 1500; canvas.height = img.height * scaleSize;
-                        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-                        resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
-                    }; img.onerror = reject;
-                }; reader.onerror = reject;
-            });
-        };
-
-        // --- DASHBOARD LAYOUT WRAPPER ---
-        const DashboardLayout = ({ role, onLogout, activeTab, setActiveTab, children }) => {
-            const [isSidebarOpen, setSidebarOpen] = useState(false);
-            
-            const staffMenu = [
-                { id: 'dashboard', label: 'Dashboard' },
-                { id: 'order', label: 'Draft TCM BrewOps Order' },
-                { id: 'recipes', label: 'Recipe Book' }
-            ];
-            const ownerMenu = [
-                { id: 'dashboard', label: 'Welcome Dashboard' },
-                { id: 'orders', label: 'Manage Orders & POs' },
-                { id: 'recipes', label: 'Kitchen Recipe Book' },
-                { id: 'conversions', label: 'Prep Kitchen Engine' },
-                { id: 'databases', label: 'System Settings & DB' }
-            ];
-            const menuItems = role === 'owner' ? ownerMenu : staffMenu;
-
-            return (
-                <div className="min-h-screen pb-24 lg:pb-0 transition-all duration-700 ease-in-out bg-theme-orders relative">
-                    {/* Sidebar Overlay */}
-                    {isSidebarOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setSidebarOpen(false)}></div>}
-                    
-                    {/* Sidebar Drawer */}
-                    <div className={`fixed inset-y-0 left-0 w-72 bg-victorian text-paper shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <div className="flex justify-between items-center p-6 border-b border-white/10">
-                            <div className="flex items-center space-x-3">
-                                <div className="flex flex-col"><h1 className="text-xl font-serif font-bold uppercase tracking-wider text-antique">TCM<br/>BrewOps</h1></div>
-                            </div>
-                            <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white"><Icons.Close/></button>
-                        </div>
-                        <div className="p-4 space-y-2 flex flex-col h-[calc(100vh-100px)]">
-                            <div className="flex-1 space-y-2 mt-4">
-                                <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold px-4 mb-4">{role} Navigation</p>
-                                {menuItems.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-antique text-victorian shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>
-                                        {item.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <button onClick={onLogout} className="w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl text-dangerLight hover:bg-danger/20 transition-all">Log Out</button>
-                        </div>
-                    </div>
-
-                    <header className="bg-victorian/95 backdrop-blur-xl text-paper p-4 shadow-elegant sticky top-0 z-30 border-b border-antique/30">
-                        <div className="flex items-center max-w-6xl mx-auto px-2 lg:px-6 relative">
-                            <button onClick={() => setSidebarOpen(true)} className="mr-4 text-antique hover:text-white transition-colors"><Icons.Menu/></button>
-                            <div className="flex-1 flex justify-center py-2">
-                                <p className="font-serif font-bold text-3xl uppercase tracking-widest text-white drop-shadow-sm flex items-center gap-3">
-                                    <Icons.FileText />TCM BrewOps<Icons.Box />
-                                </p>
-                            </div>
-                        </div>
-                    </header>
-
-                    <main className="max-w-4xl mx-auto mt-6 px-4 lg:px-6">
-                        {children}
-                    </main>
-                </div>
-            );
-        };
-
-        function App() {
-            const [role, setRole] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [staffTab, setStaffTab] = useState('dashboard'); 
-            const [ownerTab, setOwnerTab] = useState('dashboard'); 
-            
-            const [requests, setRequests] = useState([]); const [pos, setPos] = useState([]); const [poCounter, setPoCounter] = useState({ month: '', count: 1 });
-            const [suppliers, setSuppliers] = useState([]); const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
-            const [prepItems, setPrepItems] = useState([]); const [ownerPhone, setOwnerPhone] = useState('');
-            const [recipes, setRecipes] = useState([]); const [prices, setPrices] = useState({}); const [aliases, setAliases] = useState({});
-            
-            const [toast, setToast] = useState(null); const [confirmDialog, setConfirmDialog] = useState(null);
-
-            const showToast = (message, type = 'info') => { setToast({ message, type }); setTimeout(() => setToast(null), 3500); };
-            const confirmAction = (message, onConfirm) => { setConfirmDialog({ message, onConfirm: () => { onConfirm(); setConfirmDialog(null); } }); };
-
-            useEffect(() => {
-                let unsubSettings = () => {}; let unsubReqs = () => {}; let unsubPOs = () => {}; let unsubRecipes = () => {};
-                const initializeDB = async () => {
-                    const settingsRef = db.collection('settings').doc('main'); const docSnap = await settingsRef.get();
-                    if (!docSnap.exists) {
-                        const now = new Date(); const initialMonth = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
-                        await settingsRef.set({ suppliers: DEFAULT_SUPPLIERS, inventory: DEFAULT_INVENTORY, prepItems: [], poCounter: { month: initialMonth, count: 1 }, ownerPhone: '', prices: {}, aliases: {} });
-                    }
-                    unsubSettings = settingsRef.onSnapshot(doc => {
-                        if (doc.exists) {
-                            const data = doc.data(); const rawInv = data.inventory || DEFAULT_INVENTORY; const scrubbedInv = {};
-                            Object.keys(rawInv).forEach(key => { scrubbedInv[key] = [...new Set(rawInv[key])]; });
-                            setSuppliers(data.suppliers || DEFAULT_SUPPLIERS); setInventory(scrubbedInv); setPrepItems(data.prepItems || []); setPoCounter(data.poCounter); setOwnerPhone(data.ownerPhone || ''); setPrices(data.prices || {}); setAliases(data.aliases || {});
-                        }
-                    });
-                    unsubReqs = db.collection('requests').onSnapshot(snap => { const reqData = []; snap.forEach(d => reqData.push(d.data())); setRequests(reqData.sort((a,b) => String(b.id).localeCompare(String(a.id)))); });
-                    unsubPOs = db.collection('pos').onSnapshot(snap => { const poData = []; snap.forEach(d => poData.push(d.data())); setPos(poData.sort((a,b) => String(b.id).localeCompare(String(a.id)))); });
-                    unsubRecipes = db.collection('recipes').onSnapshot(snap => { const recData = []; snap.forEach(d => recData.push(d.data())); setRecipes(recData.sort((a,b) => String(a.name).localeCompare(String(b.name)))); });
-                    setLoading(false);
-                };
-                initializeDB();
-                return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
-            }, []);
-
-            const updateAlias = (rawInvoiceName, dbItemName) => { const newAliases = { ...aliases, [rawInvoiceName]: dbItemName }; setAliases(newAliases); db.collection('settings').doc('main').update({ aliases: newAliases }); };
-            
-            const convertToCost = (qty, fromUnit, priceObj) => {
-                if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return 0;
-                let factor = 1; const pUnit = priceObj.unit;
-                if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001; if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
-                if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001; if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
-                return (Number(qty) * factor) * Number(priceObj.price);
-            };
-
-            const generatePONumber = () => {
-                const now = new Date(); const currentMonthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
-                let newCount = poCounter.count; if (poCounter.month !== currentMonthYear) { newCount = 1; }
-                const paddedCount = String(newCount).padStart(3, '0');
-                db.collection('settings').doc('main').update({ poCounter: { month: currentMonthYear, count: newCount + 1 } });
-                return `TCM/${currentMonthYear}/${paddedCount}`;
-            };
-
-            const submitMasterRequest = (items) => {
-                const reqId = 'REQ-' + Math.floor(1000 + Math.random() * 9000);
-                db.collection('requests').doc(reqId).set({ id: reqId, items, date: new Date().toLocaleDateString('en-GB') });
-                
-                if (ownerPhone && ownerPhone.trim() !== '') {
-                    const itemList = items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
-                    const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM Dashboard.`;
-                    
-                    let phoneStr = ownerPhone.replace(/\D/g, ''); 
-                    if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
-                    
-                    window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(message)}`, '_blank');
-                } else {
-                    showToast('Master Request sent to database!', 'success');
-                }
-            };
-
-            const sendWhatsApp = (po) => {
-                if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
-                
-                const itemList = po.items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
-                const isResend = po.status === 'Delivered'; 
-                const prefix = isResend ? `*[RESENT FOR RECORDS]*\n` : ``;
-
-                const message = `${prefix}*Subject:* Purchase Order - TCM BrewOps\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
-                
-                let url = `https://wa.me/`;
-                if (po.supplierPhone) { 
-                    let phoneStr = po.supplierPhone.replace(/\D/g, ''); 
-                    if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
-                    url += `${phoneStr}?text=${encodeURIComponent(message)}`; 
-                } else {
-                    url += `?text=${encodeURIComponent(message)}`;
-                }
-                
-                window.open(url, '_blank');
-            };
-
-            const createCombinedPO = (selectedItems, vendorObj) => {
-                const rawPoId = generatePONumber(); const safeDbId = rawPoId.replace(/\//g, '-');
-                const newPo = { id: rawPoId, supplier: vendorObj.name, supplierPhone: vendorObj.phone, status: 'Approved', date: new Date().toLocaleDateString('en-GB') };
-                
-                const combinedItems = [];
-                selectedItems.forEach(si => {
-                    const existing = combinedItems.find(i => i.name === si.item.name && i.unit === si.item.unit);
-                    if (existing) existing.qty = Number(existing.qty) + Number(si.item.qty); else combinedItems.push({...si.item, qty: Number(si.item.qty)});
-                });
-                newPo.items = combinedItems; 
-                db.collection('pos').doc(safeDbId).set(newPo);
-                
-                const reqsToUpdate = {};
-                selectedItems.forEach(si => { if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = []; reqsToUpdate[si.reqId].push(si.itemIndex); });
-                
-                Object.keys(reqsToUpdate).forEach(reqId => {
-                    const req = requests.find(r => r.id === reqId);
-                    if (req) {
-                        const indicesToRemove = reqsToUpdate[reqId]; const remaining = req.items.filter((_, idx) => !indicesToRemove.includes(idx));
-                        if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining });
-                    }
-                });
-                
-                sendWhatsApp(newPo);
-            };
-
-            const receivePO = (poId, receivedItemsData) => {
-                db.collection('pos').doc(poId.replace(/\//g, '-')).update({ status: 'Delivered', receivedItems: receivedItemsData, deliveryDate: new Date().toLocaleDateString('en-GB') });
-                const newPrices = { ...prices }; let pricesUpdated = false;
-                receivedItemsData.forEach(item => {
-                    if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) {
-                        newPrices[item.name] = { price: Number((Number(item.totalPrice) / Number(item.receivedQty)).toFixed(2)), unit: item.unit }; pricesUpdated = true;
-                    }
-                });
-                if (pricesUpdated) db.collection('settings').doc('main').update({ prices: newPrices });
-                showToast(pricesUpdated ? 'Intake logged & Price Book updated!' : 'Intake logged successfully!', 'success');
-            };
-
-            const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
-            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
-
-            if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="TCM BrewOps icon.jpg?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
-
-            // --- REDESIGNED LOGIN SCREEN WITH RESTORED GREEN & GOLD THEME ---
-            if (!role) {
-                return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#132A1B]">
-                        
-                        {/* Custom Style Block for Login Screen précis CSS */}
-                        <style>{`
-                            .vintage-leaf-overlay::before {
-                                content: "";
-                                position: absolute;
-                                inset: 0;
-                                background-image: url('leaf-pattern.jpg');
-                                background-repeat: repeat;
-                                background-size: 400px;
-                                opacity: 0.08;
-                                pointer-events: none;
-                            }
-                            
-                            .login-card {
-                                background: rgba(255, 255, 255, 0.75);
-                                backdrop-filter: blur(10px);
-                            }
-                            
-                            .logo-portrait {
-                                width: 90px;
-                                height: 90px;
-                                border-radius: 50%;
-                                border: 1px solid rgba(212, 175, 55, 0.4);
-                                object-fit: cover;
-                            }
-                            
-                            input:focus {
-                                border-color: #D4AF37 !important;
-                                box-shadow: 0 0 5px rgba(212, 175, 55, 0.3) !important;
-                            }
-                            
-                            .btn-gold {
-                                background: linear-gradient(135deg, #D4AF37, #F2DF96);
-                                color: #132A1B;
-                                text-shadow: 0 1px 0 rgba(255,255,255,0.2);
-                            }
-                        `}</style>
-                        
-                        {/* Leaf pattern overlay */}
-                        <div className="absolute inset-0 vintage-leaf-overlay z-0"></div>
-
-                        <div className="relative z-10 flex justify-center items-center w-full max-w-4xl mx-auto">
-                            
-                            {/* Left Illustration */}
-                            <img src="left_clipboard.jpg" className="absolute left-[-140px] md:left-[-120px] bottom-[20px] w-[180px] md:w-[200px] opacity-90 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply" alt="Inventory" />
-                            
-                            {/* Right Illustration */}
-                            <img src="right_coffee.png" className="absolute right-[-140px] md:right-[-120px] bottom-[-20px] w-[180px] md:w-[200px] opacity-90 hidden md:block pointer-events-none transform rotate-6 mix-blend-multiply" alt="Stock" />
-
-                            <div className="login-card w-[360px] p-[30px] rounded-[20px] shadow-login text-center relative z-20">
-
-                                {/* Logo (Restored circular portrait style) */}
-                                <img src="Brewster-Pen.jpg" className="logo-portrait mx-auto mb-[5px] mix-blend-multiply" alt="TCM BrewOps" />
-
-                                {/* Main App Name (Image replacement for text) */}
-                                <img src="Name.jpg" className="app-name-img w-[280px] mx-auto block mix-blend-multiply" alt="TCM BrewOps" />
-
-                                {/* Tagline (Poppins font, gold color, uppercase) */}
-                                <div className="tagline font-poppins text-xs text-[#D4AF37] font-medium my-[10px] mb-[25px] tracking-wide uppercase">
-                                    Inventory & Recipe Management
-                                </div>
-
-                                <form onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const pin = e.target.pin.value;
-                                    if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
-                                    else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
-                                    else showToast('Invalid PIN', 'error');
-                                }}>
-                                    <div className="mb-[15px]">
-                                        <input 
-                                            type="password" 
-                                            name="pin" 
-                                            autoFocus 
-                                            placeholder="••••••" 
-                                            className="w-full p-4 rounded-[10px] border border-gray-300 outline-none transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80" 
-                                        />
-                                    </div>
-
-                                    {/* Gold gradient button */}
-                                    <button type="submit" className="btn-gold w-full p-4 border-none rounded-[10px] text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">
-                                        Access BrewOps
-                                    </button>
-                                </form>
-                                <div className="mt-6 text-[10px] text-gray-400 font-medium">Internal Use Only</div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            return (
-                <>
-                    {toast && ( <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[100] animate-slide-up"> <div className={`px-6 py-3 rounded-full shadow-2xl backdrop-blur-md border border-white/20 font-medium text-sm text-white flex items-center space-x-2 ${toast.type === 'error' ? 'bg-danger/90' : toast.type === 'success' ? 'bg-victorian/90' : 'bg-gray-800/90'}`}> {toast.type === 'success' && <Icons.Check />} <span>{toast.message}</span> </div> </div> )}
-                    {confirmDialog && ( <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in"> <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30 text-center"> <h3 className="font-serif font-bold text-xl text-victorian mb-2">Are you sure?</h3> <p className="text-sm text-gray-600 mb-6">{confirmDialog.message}</p> <div className="flex space-x-3"> <button onClick={() => setConfirmDialog(null)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button> <button onClick={confirmDialog.onConfirm} className="w-1/2 bg-danger text-white font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-danger/90 transition-colors shadow-md">Confirm</button> </div> </div> </div> )}
-
-                    <DashboardLayout role={role} activeTab={role === 'owner' ? ownerTab : staffTab} setActiveTab={role === 'owner' ? setOwnerTab : setStaffTab} onLogout={() => setRole(null)}>
-                        {role === 'staff' ? 
-                            <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} /> : 
-                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile:"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile:",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} onResend={sendWhatsApp} />
-                        }
-                    </DashboardLayout>
-                </>
-            );
-        }
-
-        // --- DASHBOARD SUMMARY COMPONENTS ---
-        const DashboardMetric = ({ title, value, subtitle, icon, bgColor = "bg-white/80" }) => (
-            <div className={`${bgColor} backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col justify-between hover:-translate-y-1 transition-transform`}>
-                <div className="flex justify-between items-start mb-4">
-                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest leading-tight w-2/3">{title}</p>
-                    <div className="text-antique bg-antiqueLight/20 p-2 rounded-xl">{icon}</div>
-                </div>
-                <div>
-                    <h3 className="text-4xl font-serif font-bold text-victorian">{value}</h3>
-                    {subtitle && <p className="text-xs text-gray-600 font-medium mt-1">{subtitle}</p>}
-                </div>
-            </div>
-        );
-
-        const OwnerDashboardSummary = ({ pos, requests, recipes, prepItems, setOwnerTab }) => {
-            const activePOs = pos.filter(po => po.status === 'Approved');
-            return (
-                <div className="animate-fade-in space-y-6">
-                    <h2 className="text-2xl font-serif font-bold text-white drop-shadow-md mb-2">System Overview</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                        <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Recipes" value={recipes.length} icon={<Icons.FileText/>} /></div>
-                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active BrewOps Orders" value={activePOs.length} icon={<Icons.Box/>} bgColor={activePOs.length > 0 ? "bg-antiqueLight/90 border-antique" : "bg-white/80"} subtitle={activePOs.length > 0 ? "Deliveries arriving soon" : "No pending deliveries"} /></div>
-                        <div onClick={()=>setOwnerTab('conversions')} className="cursor-pointer"><DashboardMetric title="Inventory Alerts (Low)" value={3} icon={<Icons.Activity/>} bgColor="bg-dangerLight border-danger/30" subtitle="Prep reglas need raw materials" /></div>
-                    </div>
-                </div>
-            );
-        };
-
-        const StaffDashboardSummary = ({ pos, requests, setStaffTab }) => {
-            const activePOs = pos.filter(po => po.status === 'Approved');
-            return (
-                <div className="animate-fade-in space-y-6">
-                    <h2 className="text-2xl font-serif font-bold text-white drop-shadow-md mb-2">Terminal Overview</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries (Awaiting Scanner)" value={activePOs.length} icon={<Icons.Box/>} bgColor={activePOs.length > 0 ? "bg-antiqueLight/90 border-antique" : "bg-white/80"} subtitle={activePOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
-                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={requests.length} icon={<Icons.FileText/>} subtitle="Awaiting Owner action" /></div>
-                    </div>
-                    <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
-                        <span className="text-xl font-light leading-none">+</span> Draft BrewOps Order
-                    </button>
-                </div>
-            );
-        };
-
-        // --- STAFF VIEW ---
-        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
-            const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]); const [searchTerm, setSearchTerm] = useState('');
-            const [receivingPO, setReceivingPO] = useState(null); const [receivedQuantities, setReceivedQuantities] = useState({}); const [receivedPrices, setReceivedPrices] = useState({}); 
-            const [unmatchedScans, setUnmatchedScans] = useState([]); const [isScanning, setIsScanning] = useState(false);
-            const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
-            const [showAddModal, setShowAddModal] = useState(false); const [modalItemName, setModalItemName] = useState(''); const [modalQty, setModalQty] = useState(''); const [modalUnit, setModalUnit] = useState('Kg');
-
-            const openAddModal = (item) => { if (cart.find(i => i.name === item)) return showToast("Already in cart", "error"); setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true); };
-            const confirmAddItem = () => { if(!modalQty || Number(modalQty) <= 0) return showToast("Invalid quantity", "error"); setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]); setShowAddModal(false); };
-            const removeItem =Based on your screenshot and request, I have updated the login page design to perfectly match the original vintage green and gold "Brewster" theme. 
-
-I have integrated all your assets and branding changes as follows:
-
-1.  **Background Theme:** The cream and tan background gradient has been replaced by a deep, rich forest green, which now serves as the primary workbench background.
-2.  **Asset Integration:**
-    * **Leaf Background:** The repeating leaf pattern from your `leaf-pattern.jpg` is now correctly applied as a subtle, faint gold texture over the green background.
-    * **illustrations:** `left_clipboard.jpg` and `right_coffee.png` are correctly positioned outside the login card on the left and right, styled with a cohesive antique gold texture and using mixed-blend-multiply to blend seamlessly into the green background.
-3.  **Login Box and Elements:** The central login card retains its glassmorphism effect, rounded corners, and shadow.
-    * **Logo:** The main logo is now the circular, antique-gold-framed portrait of the colonial man writing with a quill from `Brewster-Pen.jpg`.
-    * **App Name:** The text titles for "TCM" and "BREWOPS" have been removed and replaced with the `Name.jpg` image, scaled to span the title area.
-    * **Tagline and UI:** The tagline ("Inventory & Recipe Management") is now in Poppins font with a gold color and is styled uppercase for a professional sub-header feel. Input fields feature an antique gold border upon focus, and the button, still reading "Access BrewOps" in Poppins font, now has a rich gold gradient.
-
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCM BrewOps - Inventory & Recipe Management</title>
-    
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    
-    <script src="[https://unpkg.com/react@18/umd/react.production.min.js](https://unpkg.com/react@18/umd/react.production.min.js)" crossorigin></script>
-    <script src="[https://unpkg.com/react-dom@18/umd/react-dom.production.min.js](https://unpkg.com/react-dom@18/umd/react-dom.production.min.js)" crossorigin></script>
-    <script src="[https://unpkg.com/@babel/standalone/babel.min.js](https://unpkg.com/@babel/standalone/babel.min.js)"></script>
-    
-    <script src="[https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js](https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js)"></script>
-    <script src="[https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js](https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js)"></script>
-    <script src="[https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js](https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js)"></script>
-
-    <link href="[https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap](https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap)" rel="stylesheet">
-    
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#132A1B">
-    <link rel="icon" href="icon-192.png?v=2">
-    <link rel="apple-touch-icon" href="icon-192.png?v=2">
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { 
-                        paper: '#FAF8F5', 
-                        victorian: '#132A1B', 
-                        victorianLight: '#23452F', 
-                        antique: '#D4AF37', 
-                        antiqueLight: '#F2DF96', 
-                        danger: '#8B2626', 
-                        dangerLight: '#FCE8E8',
-                        brandBrown: '#8b5e3c',
-                        brandLightBrown: '#c08a5b'
-                    },
-                    fontFamily: { 
-                        serif: ['"Playfair Display"', 'serif'], 
-                        sans: ['"Inter"', 'system-ui', 'sans-serif'],
-                        poppins: ['"Poppins"', 'sans-serif']
-                    },
-                    boxShadow: { 
-                        'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 
-                        'float': '0 -4px 24px -4px rgba(19, 42, 27, 0.15)', 
-                        'glass': 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
-                        'login': '0 15px 40px rgba(0,0,0,0.1)'
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body { background-color: #FAF8F5; color: #132A1B; font-family: 'Inter', sans-serif; margin: 0; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        input[type="text"], input[type="number"], input[type="password"], select, textarea { transition: all 0.2s ease-in-out; }
-        input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
-        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.65), rgba(250, 248, 245, 0.85)), url('./DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
-        @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-        .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
-        // --- FIREBASE INITIALIZATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE",
-            authDomain: "tcm-orders.firebaseapp.com",
-            projectId: "tcm-orders",
-            storageBucket: "tcm-orders.firebasestorage.app",
-            messagingSenderId: "994764639663",
-            appId: "1:994764639663:web:2b0a682f2cb1001d37335a"
-        };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const functions = firebase.functions();
-
-        const DEFAULT_SUPPLIERS = [ { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" }, { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" } ];
-        const DEFAULT_INVENTORY = {
-            "Fruits and Vegetables": ["Apple (सेव)", "Avocado (अवोकेडो)", "Banana (केले)", "Broccoli (ब्रोकली)", "Tomato (टमाटर)", "Garlic (लहसुन)", "Onion (प्याज़)"],
-            "Coffee and Matcha": ["Full House Green (Arabica)", "Baarbara Green (Cold Brew)", "Matcha (Premium)"],
-            "Groceries": ["Aata", "Amul Butter", "Amul Cheese", "Sugar", "Milk (Full Cream)", "Olive Oil"],
-            "Packing and Consumables": ["Brown Paper Bag", "Hot coffee cup", "Pizza Boxes"]
-        };
-        const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr", "ml", "tsp", "tbsp", "Bottle"];
-        const RECIPE_CATEGORIES = ["Beverages", "Kitchen", "Desserts", "Batch Prep"]; 
-
-        // --- ICONS ---
-        const Icons = {
-            Trash: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
-            Edit: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
-            Send: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
-            Camera: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>,
-            Check: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>,
-            Menu: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>,
-            Close: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
-            Activity: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
-            Box: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>,
-            FileText: () => <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         };
 
         const compressImage = (file) => {
@@ -823,74 +331,35 @@ I have integrated all your assets and branding changes as follows:
             };
 
             const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
-            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
+            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => !indicesToRemove.includes(idx)); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="TCM BrewOps icon.jpg?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
 
-            // --- REDESIGNED LOGIN SCREEN WITH RESTORED GREEN & GOLD THEME ---
+            // --- REDESIGNED LOGIN SCREEN WITH ASSETS AND GREEN & GOLD THEME ---
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#132A1B]">
-                        
-                        {/* Custom Style Block for Login Screen précis CSS */}
-                        <style>{`
-                            .vintage-leaf-overlay::before {
-                                content: "";
-                                position: absolute;
-                                inset: 0;
-                                background-image: url('leaf-pattern.jpg');
-                                background-repeat: repeat;
-                                background-size: 400px;
-                                opacity: 0.08;
-                                pointer-events: none;
-                            }
-                            
-                            .login-card {
-                                background: rgba(255, 255, 255, 0.75);
-                                backdrop-filter: blur(10px);
-                            }
-                            
-                            .logo-portrait {
-                                width: 90px;
-                                height: 90px;
-                                border-radius: 50%;
-                                border: 1px solid rgba(212, 175, 55, 0.4);
-                                object-fit: cover;
-                            }
-                            
-                            input:focus {
-                                border-color: #D4AF37 !important;
-                                box-shadow: 0 0 5px rgba(212, 175, 55, 0.3) !important;
-                            }
-                            
-                            .btn-gold {
-                                background: linear-gradient(135deg, #D4AF37, #F2DF96);
-                                color: #132A1B;
-                                text-shadow: 0 1px 0 rgba(255,255,255,0.2);
-                            }
-                        `}</style>
-                        
-                        {/* Leaf pattern overlay */}
-                        <div className="absolute inset-0 vintage-leaf-overlay z-0"></div>
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-victorian">
+                        {/* Decorative background leaves texture using leaf-pattern.jpg with blending */}
+                        <div className="absolute inset-0 bg-[url('leaf-pattern.jpg')] bg-center bg-cover opacity-[0.03] pointer-events-none mix-blend-screen z-0"></div>
 
-                        <div className="relative z-10 flex justify-center items-center w-full max-w-4xl mx-auto">
+                        <div className="relative z-10 flex justify-center items-center w-full">
                             
-                            {/* Left Illustration */}
-                            <img src="left_clipboard.jpg" className="absolute left-[-140px] md:left-[-120px] bottom-[20px] w-[180px] md:w-[200px] opacity-90 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply" alt="Inventory" />
+                            {/* Left Illustration: Clipboard (JPEG blending) */}
+                            <img src="left_clipboard.jpg" className="absolute left-[-110px] bottom-[20px] w-[210px] opacity-90 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply drop-shadow-xl" alt="Inventory" />
                             
-                            {/* Right Illustration */}
-                            <img src="right_coffee.png" className="absolute right-[-140px] md:right-[-120px] bottom-[-20px] w-[180px] md:w-[200px] opacity-90 hidden md:block pointer-events-none transform rotate-6 mix-blend-multiply" alt="Stock" />
+                            {/* Right Illustration: Coffee Sacks (PNG) */}
+                            <img src="right_coffee.png" className="absolute right-[-90px] bottom-[-30px] w-[190px] opacity-90 hidden md:block pointer-events-none transform rotate-6 drop-shadow-xl" alt="Stock" />
 
-                            <div className="login-card w-[360px] p-[30px] rounded-[20px] shadow-login text-center relative z-20">
+                            {/* FINSISHED ELEGANT LOGIN CARD (Gold border, Glassmorphic box) */}
+                            <div className="bg-paper/80 backdrop-blur-sm shadow-elegant rounded-3xl w-full max-w-[360px] p-[30px] text-center mx-4 relative animate-slide-up border-2 border-antique">
+                                
+                                {/* Brewster Logo */}
+                                <img src="Brewster-Pen.jpg" className="w-[100px] mx-auto mb-[5px] mix-blend-multiply object-cover rounded-full" alt="TCM BrewOps" />
 
-                                {/* Logo (Restored circular portrait style) */}
-                                <img src="Brewster-Pen.jpg" className="logo-portrait mx-auto mb-[5px] mix-blend-multiply" alt="TCM BrewOps" />
+                                {/* Name.jpg for App Name (Gold-on-Green visual) */}
+                                <img src="Name.jpg" className="w-full h-auto mt-2 mb-1" alt="TCM BREWOPS" />
 
-                                {/* Main App Name (Image replacement for text) */}
-                                <img src="Name.jpg" className="app-name-img w-[280px] mx-auto block mix-blend-multiply" alt="TCM BrewOps" />
-
-                                {/* Tagline (Poppins font, gold color, uppercase) */}
-                                <div className="tagline font-poppins text-xs text-[#D4AF37] font-medium my-[10px] mb-[25px] tracking-wide uppercase">
+                                <div className="text-[11px] text-gray-500 my-[10px] mb-[25px] font-poppins uppercase tracking-widest font-semibold">
                                     Inventory & Recipe Management
                                 </div>
 
@@ -907,16 +376,16 @@ I have integrated all your assets and branding changes as follows:
                                             name="pin" 
                                             autoFocus 
                                             placeholder="••••••" 
-                                            className="w-full p-4 rounded-[10px] border border-gray-300 outline-none transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80" 
+                                            className="w-full p-4 rounded-[10px] border border-gray-300 outline-none focus:border-antique focus:shadow-[0_0_5px_rgba(212,175,55,0.3)] transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80" 
                                         />
                                     </div>
 
-                                    {/* Gold gradient button */}
-                                    <button type="submit" className="btn-gold w-full p-4 border-none rounded-[10px] text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">
-                                        Access BrewOps
+                                    {/* restored button back to "Login" and set to gold theme */}
+                                    <button type="submit" className="w-full p-4 border-none rounded-[10px] bg-gradient-to-br from-antique to-antiqueLight text-white text-[14px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">
+                                        Login
                                     </button>
                                 </form>
-                                <div className="mt-6 text-[10px] text-gray-400 font-medium">Internal Use Only</div>
+                                <a href="#" className="mt-6 text-[10px] text-brandBrown hover:text-antique font-medium tracking-wide">Reset Password?</a>
                             </div>
                         </div>
                     </div>
@@ -1098,3 +567,507 @@ I have integrated all your assets and branding changes as follows:
                 </div>
             );
         }
+
+        // --- OWNER VIEW ---
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
+            const activePOs = pos.filter(po => po.status === 'Approved'); const deliveredPOs = pos.filter(po => po.status === 'Delivered');
+            const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
+            const [localPhone, setLocalPhone] = useState(ownerPhone); const [expandedPOs, setExpandedPOs] = useState({});
+            const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); const [editQuantities, setEditQuantities] = useState({}); const [editPrices, setEditPrices] = useState({}); const [unmatchedScans, setUnmatchedScans] = useState([]); const [isOwnerScanning, setIsOwnerScanning] = useState(false);
+            const [prepName, setPrepName] = useState(''); const [prepYieldQty, setPrepYieldQty] = useState(''); const [prepYieldUnit, setPrepYieldUnit] = useState('ml'); const [prepRawQty, setPrepRawQty] = useState(''); const [prepRawUnit, setPrepRawUnit] = useState('gms'); const [prepRawItem, setPrepRawItem] = useState(''); const [editingPrepId, setEditingPrepId] = useState(null); 
+            const [isBuildingRecipe, setIsBuildingRecipe] = useState(false); const [editingRecipeId, setEditingRecipeId] = useState(null); const [recipeName, setRecipeName] = useState(''); const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]); const [recipeYieldQty, setRecipeYieldQty] = useState(''); const [recipeYieldUnit, setRecipeYieldUnit] = useState('ml'); const [recipeInstructions, setRecipeInstructions] = useState(''); const [recipeCart, setRecipeCart] = useState([]);
+            const [recSearch, setRecSearch] = useState(''); const [recCat, setRecCat] = useState('Batch Preps'); const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
+            const [showRecAdd, setShowRecAdd] = useState(false); const [recModalItem, setRecModalItem] = useState(''); const [recModalQty, setRecModalQty] = useState(''); const [recModalUnit, setRecModalUnit] = useState('gms'); const [isCustomRecItem, setIsCustomRecItem] = useState(false);
+            const [editingPriceItem, setEditingPriceItem] = useState(null); const [tempPriceVal, setTempPriceVal] = useState(''); const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); const [priceSearchFilter, setPriceSearchFilter] = useState('');
+
+            const savePhoneToCloud = () => { db.collection('settings').doc('main').update({ ownerPhone: localPhone }); showToast("Settings saved", "success"); };
+            const togglePO = (id) => setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
+
+            const startEditingDeliveredPO = (po) => {
+                setEditingDeliveredPO(po); const initialQty = {}; const initialPrices = {}; const targetItems = po.receivedItems || po.items;
+                targetItems.forEach((item, idx) => { initialQty[idx] = item.receivedQty !== undefined ? item.receivedQty : item.qty; initialPrices[idx] = item.totalPrice || ''; });
+                setEditQuantities(initialQty); setEditPrices(initialPrices); setUnmatchedScans([]);
+            };
+
+            const handleOwnerRealAIScan = async (e) => {
+                const files = Array.from(e.target.files); if (files.length === 0) return;
+                setIsOwnerScanning(true);
+                try {
+                    let allScannedItems = [];
+                    for (let file of files) {
+                        const compressedBase64 = await compressImage(file);
+                        const scanInvoice = firebase.functions().httpsCallable('scanInvoice');
+                        const response = await scanInvoice({ image: compressedBase64 });
+                        if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems];
+                    }
+                    const autoQty = { ...editQuantities }; const autoPrices = { ...editPrices }; const unmatched = []; const usedScans = new Set(); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+                    targetItems.forEach((poItem, idx) => {
+                        let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
+                        if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && (poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])));
+                        if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); }
+                    });
+                    allScannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
+                    setEditQuantities(autoQty); setEditPrices(autoPrices); setUnmatchedScans(unmatched);
+                    if (unmatched.length > 0) showToast(`Scan Complete. ${unmatched.length} unknown items found.`, 'info'); else showToast("Scan Complete: All matched perfectly!", "success");
+                } catch (error) { console.error(error); showToast(`Scan failed: Server error.`, "error"); } finally { setIsOwnerScanning(false); }
+            };
+
+            const saveDeliveredPOEdit = () => {
+                const safeDbId = editingDeliveredPO.id.replace(/\//g, '-'); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+                const updatedItems = targetItems.map((item, idx) => ({ ...item, receivedQty: Number(editQuantities[idx]) || 0, totalPrice: Number(editPrices[idx]) || 0 }));
+                db.collection('pos').doc(safeDbId).update({ receivedItems: updatedItems, status: 'Delivered' });
+                const newPrices = { ...prices }; let pricesUpdated = false;
+                updatedItems.forEach(item => { if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) { const unitPrice = Number(item.totalPrice) / Number(item.receivedQty); newPrices[item.name] = { price: Number(unitPrice.toFixed(2)), unit: item.unit }; pricesUpdated = true; } });
+                if (pricesUpdated) { db.collection('settings').doc('main').update({ prices: newPrices }); showToast('Order & Master Price Book Updated!', 'success'); } else showToast('Order Updated!', 'success');
+                setEditingDeliveredPO(null);
+            };
+
+            const getRawBreakdown = (ingredients) => {
+                const rawTotals = {};
+                const processIngredient = (ingName, ingQty, ingUnit) => {
+                    const prepMatch = prepItems.find(p => p.name === ingName); const batchMatch = recipes.find(r => r.category === 'Batch Prep' && r.name === ingName);
+                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); batchMatch.ingredients.forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
+                };
+                ingredients.forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
+                return rawTotals;
+            };
+
+            const handleCheck = (reqId, itemIndex, item) => { const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex); if (isSelected) setSelectedItems(selectedItems.filter(i => !(i.reqId === reqId && i.itemIndex === itemIndex))); else setSelectedItems([...selectedItems, { reqId, itemIndex, item }]); };
+            const handleGeneratePO = () => { if (selectedItems.length === 0) return showToast('Check at least one item.', 'error'); if (!selectedVendor) return showToast('Select a vendor.', 'error'); const vendorObj = suppliers.find(s => s.name === selectedVendor); onCreateCombinedPO(selectedItems, vendorObj); setSelectedItems([]); setSelectedVendor(''); };
+
+            const handleSaveRecipe = () => {
+                if(!recipeName.trim()) return showToast("Recipe needs a name.", "error"); if(recipeCart.length === 0) return showToast("Add at least one ingredient.", "error"); if(recipeCategory === 'Batch Prep' && (!recipeYieldQty || Number(recipeYieldQty) <= 0)) return showToast("Batch Preps need a Yield Qty.", "error");
+                const recipeData = { name: recipeName.trim(), category: recipeCategory, yieldQty: recipeCategory === 'Batch Prep' ? Number(recipeYieldQty) : null, yieldUnit: recipeCategory === 'Batch Prep' ? recipeYieldUnit : null, instructions: recipeInstructions.trim(), ingredients: recipeCart, date: new Date().toLocaleDateString('en-GB') };
+                if (editingRecipeId) { db.collection('recipes').doc(editingRecipeId).update(recipeData); showToast("Recipe updated!", "success"); } else { const recipeId = 'REC-' + Date.now(); recipeData.id = recipeId; db.collection('recipes').doc(recipeId).set(recipeData); showToast("Recipe added!", "success");}
+                setIsBuildingRecipe(false); setEditingRecipeId(null); setRecipeName(''); setRecipeInstructions(''); setRecipeCart([]); setRecipeCategory(RECIPE_CATEGORIES[0]); setRecipeYieldQty('');
+            };
+
+            const handleSavePrepItem = () => {
+                if (!prepName || !prepYieldQty || !prepRawItem || !prepRawQty) return showToast("Fill all fields.", "error");
+                const prepData = { name: prepName.trim(), yieldQty: Number(prepYieldQty), yieldUnit: prepYieldUnit, rawItem: prepRawItem, rawQty: Number(prepRawQty), rawUnit: prepRawUnit };
+                let updatedPreps; if (editingPrepId) { updatedPreps = prepItems.map(p => p.id === editingPrepId ? { ...prepData, id: editingPrepId } : p); } else { prepData.id = 'PREP-' + Date.now(); updatedPreps = [...prepItems, prepData]; }
+                db.collection('settings').doc('main').update({ prepItems: updatedPreps }); showToast("Rule saved.", "success"); setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem(''); setEditingPrepId(null);
+            };
+
+            const allRawNames = Object.values(inventory).flat(); const allBasicPreps = prepItems.map(p => p.name); const allBatchPreps = recipes.filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...allBatchPreps, ...allBasicPreps, ...allRawNames]; 
+            const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
+
+            if (ownerTab === 'dashboard') return <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} setOwnerTab={setOwnerTab} />;
+
+            return (
+                <div className="animate-fade-in relative">
+                    {ownerTab === 'workbench' && (
+                        <div className="animate-fade-in space-y-8">
+                            
+                            {/* GOOGLE CLOUD DOCUMENT AI UI INTEGRATION */}
+                            <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
+                                <div className="absolute inset-0 bg-leaf-pattern opacity-[0.08] pointer-events-none z-0"></div>
+                                
+                                {/* Workbench Left Sidebar */}
+                                <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
+                                    <div className="p-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
+                                        <ul className="space-y-1">
+                                            <li><div className="flex items-center gap-3 px-3 py-2 bg-brandLightBrown/20 text-brandBrown font-bold rounded-lg border border-brandBrown/20 transition-colors">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
+                                                Overview
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                My processors
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                Processor gallery
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                Monitoring
+                                            </div></li>
+                                        </ul>
+                                    </div>
+                                    <img src="left_clipboard.jpg" alt="Clipboard" className="absolute bottom-[-20px] left-[-30px] w-40 opacity-90 mix-blend-multiply pointer-events-none" />
+                                </aside>
+
+                                {/* Workbench Main Area */}
+                                <div className="flex-1 flex flex-col relative overflow-hidden bg-white/60 z-10">
+                                    <div className="h-14 border-b border-brandBrown/20 flex items-center justify-between px-6 bg-paper/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-brandBrown font-bold">←</span>
+                                            <h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brandBrown border border-brandBrown/30 rounded-lg bg-white/50">
+                                                Activity
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-b border-brandBrown/20 px-6 flex gap-6 text-sm font-medium">
+                                        <button className="py-3 border-b-2 border-brandBrown text-brandBrown font-bold">Processor details</button>
+                                        <button className="py-3 text-victorian/60">Train</button>
+                                        <button class="py-3 text-victorian/60">Monitoring</button>
+                                    </div>
+
+                                    <div className="p-8 overflow-y-auto hide-scrollbar flex-1 relative z-10 pb-20">
+                                        
+                                        <div className="max-w-3xl mb-10">
+                                            <h3 className="font-serif text-2xl text-victorian mb-4">Basic information</h3>
+                                            <div className="bg-paper/80 border-2 border-brandBrown/30 rounded-2xl p-6 shadow-vintage relative overflow-hidden">
+                                                <div className="absolute inset-2 border border-brandBrown/10 rounded-xl pointer-events-none"></div>
+                                                <div className="grid grid-cols-3 gap-y-4 text-sm relative z-10">
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Name</div>
+                                                    <div className="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">TCM-Invoice Scanner</div>
+                                                    
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">ID</div>
+                                                    <div className="col-span-2 text-brandBrown font-mono tracking-widest border-b border-brandBrown/10 pb-2">bb2c04df74b4f962</div>
+                                                    
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2 flex items-center">Status</div>
+                                                    <div className="col-span-2 flex items-center gap-2 border-b border-brandBrown/10 pb-2">
+                                                        <input type="checkbox" defaultChecked className="vintage-checkbox pointer-events-none" />
+                                                        <span className="text-vintageGreen font-bold tracking-wider uppercase text-xs">Enabled</span>
+                                                    </div>
+                                                    
+                                                    <div class="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Type</div>
+                                                    <div class="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Invoice Parser</div>
+                                                    
+                                                    <div class="text-victorian/70 font-semibold">Region</div>
+                                                    <div class="col-span-2 text-victorian font-medium">asia-south1</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="max-w-3xl">
+                                            <h3 className="font-serif text-2xl text-victorian mb-4">Prediction endpoint</h3>
+                                            <div className="bg-paper/80 border border-brandBrown/30 rounded-2xl p-6 shadow-vintage">
+                                                <div className="bg-white/80 border border-brandBrown/20 rounded-lg p-3 font-mono text-xs text-brandBrown break-all shadow-inner-vintage">
+                                                    https://asia-south1-documentai.googleapis.com/v1/projects/tcm-orders/locations/asia-south1/processors/bb2c04df74b4f962:process
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <img src="right_coffee.png" alt="Coffee Bags" className="absolute bottom-[-10px] right-[-10px] w-48 opacity-80 mix-blend-multiply pointer-events-none z-0" />
+                                </div>
+                                
+                                {/* Workbench Right Sidebar */}
+                                <aside className="w-72 border-l-2 border-brandBrown/20 bg-paper/60 backdrop-blur-sm hide-scrollbar overflow-y-auto relative z-10 hidden xl:block">
+                                    <div className="p-6">
+                                        <h3 className="font-serif font-bold text-lg text-victorian mb-6 border-b border-brandBrown/20 pb-2">Admin Tutorials</h3>
+                                        <div className="space-y-6">
+                                            <div className="group">
+                                                <div className="flex items-start gap-3 mb-1">
+                                                    <span className="text-brandBrown mt-0.5">📚</span>
+                                                    <h4 className="font-semibold text-sm text-victorian">Brewster Console Docs</h4>
+                                                </div>
+                                                <div className="ml-7">
+                                                    <span className="inline-block bg-brandLightBrown/20 text-brandBrown text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2 border border-brandBrown/20">Tutorial</span>
+                                                    <p className="text-xs text-victorian/70 leading-relaxed">Extract text from a PDF ledger.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </aside>
+                            </div>
+
+                            {/* STANDARD DB SETTINGS CARDS BELOW WORKBENCH */}
+                            <div className="lg:grid lg:grid-cols-2 lg:gap-8">
+                                <div className="lg:col-span-1 space-y-6">
+                                    <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
+                                        <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">System Settings</h3>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Owner Alerts (WhatsApp)</label>
+                                        <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
+                                    </div>
+                                    <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
+                                        <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">Vendor Directory</h3>
+                                        <div className="flex justify-between items-center mb-4"><span className="text-sm font-medium text-gray-800 bg-white/50 px-3 py-1 rounded-lg">{suppliers.length} Active Vendors</span><button onClick={addSupplier} className="bg-white border border-brandBrown/50 text-brandBrown text-[10px] font-bold py-2 px-4 rounded-xl hover:border-brandBrown hover:text-victorian transition-all shadow-sm uppercase tracking-wider">+ Add</button></div>
+                                        <div className="bg-paper/50 border border-brandBrown/20 rounded-xl max-h-64 overflow-y-auto shadow-sm">
+                                            {suppliers.length === 0 ? <p className="text-center text-xs py-6 text-gray-500 italic">No vendors found.</p> : 
+                                                suppliers.map(vendor => (
+                                                    <div key={vendor.name} className="flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 hover:bg-white/80 transition-colors">
+                                                        <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
+                                                        <div className="flex space-x-2 shrink-0"><button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="lg:col-span-1 space-y-6">
+                                    <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20 h-full">
+                                        <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3 flex justify-between items-end"><span>🧮 Master Price Book</span></h3>
+                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/></div>
+                                        <div className="bg-paper/50 border border-brandBrown/20 rounded-xl max-h-[300px] overflow-y-auto shadow-sm">
+                                            {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
+                                                const isEditing = editingPriceItem === item; const itemPrice = prices[item];
+                                                return (
+                                                    <div key={item} className={`flex flex-col p-4 border-b border-brandBrown/10 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-md rounded-lg mx-1 my-1' : 'hover:bg-white/80'}`}>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm font-medium text-gray-800 pr-2 truncate">{item}</span>
+                                                            {!isEditing && (<div className="flex items-center bg-white/50 px-2 py-1 rounded-lg"><span className="text-xs font-bold text-antique mr-3">{itemPrice && itemPrice.price ? `₹${itemPrice.price} / ${itemPrice.unit}` : <span className="text-gray-400 italic font-normal">Unpriced</span>}</span><button onClick={() => { setEditingPriceItem(item); setTempPriceVal(itemPrice?.price || ''); setTempPriceUnit(itemPrice?.unit || 'Kg'); }} className="text-gray-400 hover:text-victorian transition-colors"><Icons.Edit/></button></div>)}
+                                                        </div>
+                                                        {isEditing && (
+                                                            <div className="flex items-center space-x-2 mt-3 bg-paper/50 p-2 rounded-lg border border-antique/20"><span className="text-sm font-bold text-gray-500">₹</span><input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-24 p-2 border border-brandBrown/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-brandBrown" placeholder="Price" /><span className="text-xs text-gray-500">per</span><select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-brandBrown/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-brandBrown">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select><div className="flex-1 flex justify-end space-x-2"><button onClick={() => setEditingPriceItem(null)} className="px-3 py-2 text-[10px] uppercase font-bold text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button><button onClick={() => {const newPrices = { ...prices }; newPrices[item] = { price: Number(tempPriceVal) || 0, unit: tempPriceUnit }; db.collection('settings').doc('main').update({ prices: newPrices }); setEditingPriceItem(null); showToast("Price saved", "success");}} className="px-4 py-2 text-[10px] uppercase tracking-widest font-bold bg-brandBrown text-white rounded-lg transition-all shadow-sm hover:shadow">Save</button></div></div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {ownerTab === 'orders' && (
+                        <div className="animate-fade-in mb-24 lg:grid lg:grid-cols-2 lg:gap-8">
+                            <div className="lg:col-span-1">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Pending Staff Requests</h3>
+                                {requests.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm mb-10">All caught up. No pending requests.</div> : 
+                                    requests.map(req => (
+                                        <div key={req.id} className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 mb-8 overflow-hidden">
+                                            <div className="bg-paper/70 px-5 py-4 flex justify-between items-center border-b border-victorian/10"><span className="font-serif font-bold text-victorian text-lg">{req.id}</span><span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-white/50 px-2 py-1 rounded-md">{req.date}</span></div>
+                                            <div className="p-2">
+                                                {req.items.map((item, idx) => {
+                                                    const isChecked = selectedItems.some(i => i.reqId === req.id && i.itemIndex === idx);
+                                                    return (
+                                                        <div key={idx} className={`flex items-center justify-between border-b border-victorian/5 py-3 px-4 last:border-0 transition-colors rounded-xl ${isChecked ? 'bg-victorian/5' : 'hover:bg-white/50'}`}>
+                                                            <label className="flex items-center space-x-4 cursor-pointer w-[85%]">
+                                                                <input type="checkbox" checked={isChecked} onChange={() => handleCheck(req.id, idx, item)} className="w-5 h-5 text-victorian rounded border-gray-300 focus:ring-victorian" />
+                                                                <div className="flex flex-col"><span className="text-sm font-semibold text-victorian/90 leading-tight">{item.name}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty} {item.unit}</span></div>
+                                                            </label>
+                                                            <button onClick={() => onRemoveRequestItem(req.id, idx)} className="text-gray-400 hover:text-danger p-2 rounded-lg transition-colors bg-white/50 shadow-sm"><Icons.Trash/></button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                            <div className="lg:col-span-1">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Shipments</h3>
+                                {activePOs.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm mb-10">No active orders en route.</div> : 
+                                    activePOs.map(po => (
+                                        <div key={po.id} className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant mb-5 border-l-4 border-l-antique transition-all hover:shadow-xl">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-antique mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
+                                                <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-antiqueLight text-victorian">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors" title="Resend PO"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors" title="Delete PO"><Icons.Trash/></button></div></div>
+                                            </div>
+                                            {expandedPOs[po.id] && (
+                                                <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 bg-white/50 inline-block px-2 py-1 rounded">Requested Items</p><ul className="text-sm space-y-2.5">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-700 border-b border-white/50 pb-1.5 last:border-0"><span className="font-medium">{item.name}</span><span className="font-bold text-victorian bg-white/50 px-2 rounded">{item.qty} {item.unit}</span></li>))}</ul></div>
+                                            )}
+                                        </div>
+                                    ))
+                                }
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mt-10 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Delivered History</h3>
+                                {deliveredPOs.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm">No historical deliveries.</div> : 
+                                    deliveredPOs.map(po => (
+                                        <div key={po.id} className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant mb-5 border-l-4 border-l-victorian transition-all hover:shadow-xl opacity-90 hover:opacity-100">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-gray-400 mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
+                                                <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-victorian text-paper">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Trash/></button></div></div>
+                                            </div>
+
+                                            {expandedPOs[po.id] && editingDeliveredPO?.id !== po.id && (
+                                                <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
+                                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Original Request</p>
+                                                    <ul className="text-xs space-y-2 mb-4 px-1">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-600 border-b border-white/50 pb-1 last:border-0"><span>{item.name}</span><span className="font-medium">{item.qty} {item.unit}</span></li>))}</ul>
+
+                                                    {po.receivedItems && (
+                                                        <div className="bg-paper/70 p-4 rounded-xl border border-white/60 shadow-sm mb-4">
+                                                            <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Intake Receipt ({po.deliveryDate})</p>
+                                                            <ul className="text-xs space-y-2.5">
+                                                                {po.receivedItems.map((item, idx) => {
+                                                                    const hasVar = item.qty !== item.receivedQty; const unitCost = item.receivedQty > 0 && item.totalPrice ? (item.totalPrice / item.receivedQty).toFixed(2) : 0;
+                                                                    return (
+                                                                        <li key={idx} className={`flex justify-between items-center py-1.5 border-b border-white/50 last:border-0 ${hasVar ? 'text-danger' : 'text-gray-700'}`}>
+                                                                            <span className="truncate pr-2 font-medium">{item.name}</span>
+                                                                            <div className="flex flex-col items-end text-right">
+                                                                                <span className="whitespace-nowrap font-bold bg-white/50 px-2 py-0.5 rounded">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span>
+                                                                                {item.totalPrice > 0 && <span className="text-[9px] text-victorian/80 mt-1 uppercase tracking-widest font-bold">₹{item.totalPrice} (₹{unitCost}/{item.unit})</span>}
+                                                                            </div>
+                                                                        </li>
+                                                                    );
+                                                                })}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    <button onClick={(e) => { e.stopPropagation(); startEditingDeliveredPO(po); }} className="w-full bg-white border border-victorian/30 text-victorian uppercase tracking-widest text-[10px] font-bold py-3 rounded-xl hover:border-victorian transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"><Icons.Edit/> Edit & Update Prices</button>
+                                                </div>
+                                            )}
+
+                                            {expandedPOs[po.id] && editingDeliveredPO?.id === po.id && (
+                                                <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
+                                                    <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
+                                                        <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan</>}</label></div>
+                                                        <div className="space-y-3 mb-5">
+                                                            <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
+                                                            {(po.receivedItems || po.items).map((item, idx) => (
+                                                                <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0">
+                                                                    <div className="flex justify-between items-center space-x-2">
+                                                                        <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name} <span className="text-[8px] text-gray-400 block mt-0.5">({item.unit})</span></span>
+                                                                        <input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique/50" value={editQuantities[idx]} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
+                                                                        <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
+                                                                    </div>
+                                                                    {unmatchedScans.length > 0 && (!editQuantities[idx] && !editPrices[idx]) && (
+                                                                        <div className="mt-2 w-full"><select className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => handleOwnerManualMap(idx, item.name, e.target.value)}><option value="">🔗 Map missing item...</option>{unmatchedScans.map(u => (<option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>))}</select></div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <button onClick={saveDeliveredPOEdit} className="w-full bg-victorian text-antique uppercase tracking-widest text-[10px] font-bold py-3.5 rounded-xl hover:bg-victorianLight transition-all hover:shadow-md hover:-translate-y-0.5">Save & Update Master Prices</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                }
+                            </div>
+                        </div>
+                    )}
+
+                    {ownerTab === 'conversions' && (
+                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
+                            <div className="lg:col-span-1">
+                                <div className="mb-6 shadow-sm backdrop-blur-md inline-block p-4 rounded-2xl bg-white/60"><h2 className="text-2xl font-serif font-bold text-victorian mb-2">Prep Kitchen Engine</h2><p className="text-sm text-victorian/80 leading-relaxed">Map raw vendor materials to intermediate prepped units (e.g., Beans to Espresso Shots).</p></div>
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 mb-8 lg:mb-0">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">{editingPrepId ? 'Edit Conversion Rule' : 'New Basic Conversion'}</h3>
+                                    <div className="space-y-6">
+                                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Prepped Item Name</label><input type="text" placeholder="e.g. Filtered Espresso Shot" value={prepName} onChange={e=>setPrepName(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-antique/50" /></div>
+                                        <div className="flex space-x-3 items-center bg-paper/50 p-4 rounded-xl border border-white/60 shadow-sm"><span className="text-[10px] font-bold text-victorian uppercase tracking-widest w-16">Yields</span><input type="number" placeholder="Qty" value={prepYieldQty} onChange={e=>setPrepYieldQty(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm text-center font-bold bg-white" /><select value={prepYieldUnit} onChange={e=>setPrepYieldUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                                        <div className="flex space-x-3 items-center p-2"><span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest w-16 text-center">From</span><input type="number" placeholder="Qty" value={prepRawQty} onChange={e=>setPrepRawQty(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm text-center font-bold bg-white shadow-inner" /><select value={prepRawUnit} onChange={e=>setPrepRawUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Source Raw Material</label><select value={prepRawItem} onChange={e=>setPrepRawItem(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium text-gray-700 shadow-sm"><option value="">-- Choose from Catalog --</option>{allRawNames.map(item => <option key={item} value={item}>{item}</option>)}</select></div>
+                                        <div className="flex space-x-3 mt-4 pt-4 border-t border-victorian/10">{editingPrepId && (<button onClick={()=> {setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem(''); setEditingPrepId(null);}} className="w-1/2 bg-white text-gray-600 border border-gray-200 font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-sm hover:bg-gray-50 transition-colors">Cancel</button>)}<button onClick={handleSavePrepItem} className={`${editingPrepId ? 'w-1/2' : 'w-full'} bg-victorian text-antique font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-victorianLight transition-all hover:-translate-y-0.5`}>{editingPrepId ? 'Update Rule' : 'Save Engine Rule'}</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-1">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Engine Rules ({prepItems.length})</h3>
+                                {prepItems.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No conversion rules set up yet.</p> : 
+                                    <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-2xl shadow-elegant overflow-hidden mb-12">
+                                        {prepItems.map(p => (
+                                            <div key={p.id} className="flex justify-between items-center p-5 border-b border-white/40 last:border-0 hover:bg-white/90 transition-colors">
+                                                <div className="flex flex-col"><span className="text-sm font-bold text-victorian mb-1.5">{p.name} <span className="text-antique font-serif ml-1">({p.yieldQty} {p.yieldUnit})</span></span><span className="text-xs text-gray-600 bg-white/50 inline-block px-2 py-0.5 rounded">Requires: <span className="font-semibold text-gray-800">{p.rawQty} {p.rawUnit}</span> of {p.rawItem}</span></div>
+                                                <div className="flex space-x-2 ml-2"><button onClick={() => {setPrepName(p.name); setPrepYieldQty(p.yieldQty); setPrepYieldUnit(p.yieldUnit); setPrepRawQty(p.rawQty); setPrepRawUnit(p.rawUnit); setPrepRawItem(p.rawItem); setEditingPrepId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-gray-400 hover:text-victorian p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => confirmAction("Delete conversion rule?", () => db.collection('settings').doc('main').update({ prepItems: prepItems.filter(x => x.id !== p.id) }))} className="text-gray-400 hover:text-danger p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    )}
+
+                    {ownerTab === 'recipes' && (
+                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
+                            <div className="lg:col-span-1">
+                                {!isBuildingRecipe && (<div className="hidden lg:block mb-6 shadow-sm backdrop-blur-md inline-block p-4 rounded-2xl bg-white/60"><h2 className="text-2xl font-serif font-bold text-victorian">Kitchen Recipe Book</h2></div>)}
+                                <button onClick={() => { setEditingRecipeId(null); setRecipeName(''); setRecipeCategory(RECIPE_CATEGORIES[0]); setRecipeYieldQty(''); setRecipeInstructions(''); setRecipeCart([]); setIsBuildingRecipe(true); }} className={`w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-4 rounded-2xl shadow-elegant hover:bg-victorian transition-all hover:-translate-y-0.5 mb-8 uppercase tracking-widest text-sm flex items-center justify-center gap-2 ${isBuildingRecipe ? 'hidden' : ''}`}><span className="text-xl font-light leading-none">+</span> Author New Recipe</button>
+                                <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-4 border border-white/50 bg-white/70 backdrop-blur-xl rounded-xl text-sm shadow-sm" placeholder="Search the ledger..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/></div>
+                                {!recipeSearchFilter && (
+                                    <div className="flex overflow-x-auto space-x-2 mb-8 pb-2 hide-scrollbar">
+                                        {['All', ...RECIPE_CATEGORIES].map(cat => ( <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold scale-[1.02]' : 'bg-white/70 backdrop-blur-md text-victorian hover:bg-white font-medium'}`}>{cat}</button> ))}
+                                    </div>
+                                )}
+                                {displayedRecipes.length === 0 ? <p className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm">No recipes found.</p> : 
+                                    displayedRecipes.map(recipe => {
+                                        let totalRecipeCost = 0; const rawBreakdownEntries = Object.entries(getRawBreakdown(recipe.ingredients)).map(([name, data]) => { const cost = convertToCost(data.qty, data.unit, prices[name]); totalRecipeCost += cost; return { name, qty: data.qty, unit: data.unit, cost }; });
+                                        return (
+                                            <div key={recipe.id} className={`bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border ${editingRecipeId === recipe.id ? 'border-antique ring-2 ring-antique/30' : 'border-white/50'} p-6 mb-6 relative transition-all hover:shadow-xl`}>
+                                                <div className="absolute top-5 right-5 flex space-x-2"><button onClick={() => handleEditRecipe(recipe)} className="text-gray-400 hover:text-victorian p-2 bg-white/60 rounded-lg shadow-sm transition-colors" title="Edit"><Icons.Edit/></button><button onClick={() => deleteRecipe(recipe.id)} className="text-gray-400 hover:text-danger p-2 bg-white/60 rounded-lg shadow-sm transition-colors" title="Delete"><Icons.Trash/></button></div>
+                                                <div className="flex flex-col mb-5 pr-20 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-xl lg:text-2xl leading-tight">{recipe.name}</h3><div className="flex flex-wrap gap-2 mt-2.5"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{recipe.category || 'Beverages'}</span>{recipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2.5 py-1 rounded-lg shadow-sm">Yields: {recipe.yieldQty} {recipe.yieldUnit}</span>}</div></div>
+                                                <div className="flex flex-col space-y-4 mb-6">
+                                                    <div className="bg-paper/60 p-4 rounded-xl border border-white/60"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Barista Build (Prepped)</p><ul className="text-sm space-y-2.5">{recipe.ingredients.map((ing, i) => (<li key={i} className="flex justify-between items-end border-b border-white/50 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom ? <span className="text-[10px] text-victorian/40 font-normal ml-1 italic">(Custom)</span> : ''}</span><span className="font-bold text-victorian bg-white/50 px-2 rounded">{ing.qty} {ing.unit}</span></li>))}</ul></div>
+                                                    <div className="bg-white/95 p-5 rounded-xl border border-antique/30 relative overflow-hidden shadow-sm"><div className="absolute top-0 left-0 w-1.5 h-full bg-antique"></div><div className="flex justify-between items-end mb-4 border-b border-gray-100 pb-2.5 pl-2"><p className="text-[10px] font-bold text-antique uppercase tracking-[0.2em]">Costing Engine (Raw)</p><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Est. Cost</p></div><ul className="text-sm text-gray-800 space-y-3 pl-2 mb-4">{rawBreakdownEntries.map((entry, i) => (<li key={i} className="flex justify-between items-center border-b border-gray-50 pb-2 last:border-0"><div className="flex flex-col"><span className="font-medium text-gray-700">{entry.name}</span><span className="text-[10px] text-gray-500 font-bold mt-0.5 bg-gray-50 inline-block px-1.5 rounded w-max">{entry.qty && !isNaN(entry.qty) ? parseFloat(entry.qty.toFixed(2)) : 0} {entry.unit || 'units'}</span></div><span className="font-bold text-victorian">₹{entry.cost.toFixed(2)}</span></li>))}</ul><div className="pl-3 pt-3 border-t border-antique/20 flex justify-between items-center bg-antiqueLight/10 rounded-lg p-3 mt-2"><span className="text-xs font-bold text-victorian uppercase tracking-widest">Total Food Cost</span><span className="text-xl font-bold text-victorian drop-shadow-sm">₹{totalRecipeCost.toFixed(2)}</span></div></div>
+                                                </div>
+                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p><div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique/50 pl-4 py-2 bg-white/40 rounded-r-lg">{recipe.instructions || "Standard preparation."}</div>
+                                            </div>
+                                        );
+                                    })
+                                }
+                            </div>
+
+                            {isBuildingRecipe && (
+                                <div className="lg:col-span-1 lg:sticky lg:top-28 lg:h-[calc(100vh-8rem)]">
+                                    <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border-t-4 border-antique mb-10 border-x border-b border-white/50 lg:h-full lg:overflow-y-auto hide-scrollbar">
+                                        <div className="flex justify-between items-center mb-6 border-b border-victorian/10 pb-4 sticky top-0 bg-white/90 backdrop-blur-xl pt-2 z-10 rounded-b-xl px-2"><h2 className="text-2xl font-serif font-bold text-victorian">{editingRecipeId ? 'Edit Recipe' : 'Recipe Builder'}</h2><button onClick={() => { setIsBuildingRecipe(false); setEditingRecipeId(null); }} className="text-gray-500 hover:text-danger text-[10px] font-bold uppercase tracking-widest bg-gray-100 hover:bg-danger/10 px-3 py-1.5 rounded-lg transition-colors">Cancel</button></div>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Recipe Name</label><input type="text" className="w-full p-3.5 border border-gray-200 rounded-xl mb-5 text-sm bg-white shadow-inner focus:ring-2 focus:ring-antique/50" placeholder="e.g. Classic Iced Latte" value={recipeName} onChange={e => setRecipeName(e.target.value)} />
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Category</label>
+                                        <select value={recipeCategory} onChange={e => setRecipeCategory(e.target.value)} className="w-full p-3.5 border border-gray-200 rounded-xl mb-6 text-sm bg-white font-bold text-victorian shadow-sm focus:ring-2 focus:ring-antique/50">
+                                            {RECIPE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                                        </select>
+                                        {recipeCategory === 'Batch Prep' && (
+                                            <div className="mb-6 bg-paper/60 p-5 rounded-xl border border-antique/20 shadow-sm">
+                                                <label className="block text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Total Yield of this Batch</label>
+                                                <div className="flex space-x-3"><input type="number" min="0" step="any" placeholder="Qty (e.g. 5000)" value={recipeYieldQty} onChange={e=>setRecipeYieldQty(e.target.value)} className="w-1/2 p-3.5 border border-gray-200 rounded-xl text-center font-bold text-sm bg-white shadow-inner" /><select value={recipeYieldUnit} onChange={e=>setRecipeYieldUnit(e.target.value)} className="w-1/2 p-3.5 border border-gray-200 rounded-xl bg-white font-medium text-sm text-gray-700 shadow-sm">{units.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                                                <p className="text-[10px] text-gray-500 mt-3 font-medium flex items-center gap-1.5"><Icons.Check/> Saved batches become reusable ingredients.</p>
+                                            </div>
+                                        )}
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Instructions</label><textarea className="w-full p-3.5 border border-gray-200 rounded-xl mb-8 text-sm h-32 leading-relaxed bg-white shadow-inner focus:ring-2 focus:ring-antique/50" placeholder="1. Pull double espresso shot.&#10;2. Add ice... " value={recipeInstructions} onChange={e => setRecipeInstructions(e.target.value)}></textarea>
+                                        <div className="flex justify-between items-end mb-4 border-b border-victorian/10 pb-3 px-1"><h3 className="font-bold text-victorian text-xs uppercase tracking-widest">Build Composition</h3><button onClick={()=>{setRecModalItem(''); setRecModalQty(''); setRecModalUnit('ml'); setIsCustomRecItem(true); setShowRecAdd(true);}} className="text-[10px] bg-white border border-gray-200 text-gray-600 font-bold px-3 py-2 rounded-lg hover:bg-paper transition-all uppercase tracking-widest shadow-sm hover:shadow">+ Custom/Water</button></div>
+                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-antique/50" placeholder="Search catalog..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)}/></div>
+                                        {!recSearch && (
+                                            <div className="flex overflow-x-auto space-x-2 mb-5 pb-2 hide-scrollbar">
+                                                <button onClick={() => setRecCat('Batch Preps')} className={`whitespace-nowrap px-4 py-2 text-[10px] uppercase tracking-wider rounded-lg transition-all shadow-sm ${recCat === 'Batch Preps' ? 'bg-victorian text-antique font-bold scale-[1.02]' : 'bg-white text-victorian border border-gray-100 hover:bg-gray-50'}`}>Batch Preps</button>
+                                                <button onClick={() => setRecCat('Basic Preps')} className={`whitespace-nowrap px-4 py-2 text-[10px] uppercase tracking-wider rounded-lg transition-all shadow-sm ${recCat === 'Basic Preps' ? 'bg-victorianLight text-antique font-bold scale-[1.02]' : 'bg-white text-victorianLight border border-gray-100 hover:bg-gray-50'}`}>Engine Rules</button>
+                                                {Object.keys(inventory).map(cat => <button key={cat} onClick={() => setRecCat(cat)} className={`whitespace-nowrap px-4 py-2 text-[10px] uppercase tracking-wider rounded-lg transition-all shadow-sm ${recCat === cat ? 'bg-gray-800 text-white font-bold scale-[1.02]' : 'bg-white text-gray-600 border border-gray-100 font-medium hover:bg-gray-50'}`}>{cat.split(' ')[0]}</button>)}
+                                            </div>
+                                        )}
+                                        <div className="bg-paper/50 border border-white/60 p-2 mb-8 h-56 overflow-y-auto rounded-xl shadow-sm">
+                                            { (recSearch ? allRecipeIngredients.filter(item => item.toLowerCase().includes(recSearch.toLowerCase())) : (recCat === 'Batch Preps' ? allBatchPreps : recCat === 'Basic Preps' ? allBasicPreps : (inventory[recCat] || []))).map(item => (
+                                                <div key={item} className="flex justify-between items-center py-2.5 px-4 border-b border-white/50 last:border-0 hover:bg-white/80 rounded-lg transition-colors"><span className="text-xs font-medium text-gray-800">{item}</span><button onClick={() => { if (recipeCart.find(i => i.name === item)) return showToast("Already added.", "error"); setRecModalItem(item); setRecModalQty(''); setRecModalUnit('gms'); setIsCustomRecItem(false); setShowRecAdd(true); }} className="text-antique bg-antiqueLight/20 w-7 h-7 rounded-full flex items-center justify-center text-xl font-light hover:bg-antique hover:text-white transition-colors leading-none shadow-sm">+</button></div>
+                                            ))}
+                                            {((recSearch ? allRecipeIngredients.filter(item => item.toLowerCase().includes(recSearch.toLowerCase())) : (recCat === 'Batch Preps' ? allBatchPreps : recCat === 'Basic Preps' ? allBasicPreps : (inventory[recCat] || []))).length === 0) && (<div className="text-center py-8 text-xs text-gray-400 italic">No items found in this view.</div>)}
+                                        </div>
+                                        {recipeCart.length > 0 && (
+                                            <div className="bg-victorian/95 backdrop-blur-xl text-paper rounded-2xl p-6 shadow-elegant mb-8 border-t-4 border-antique">
+                                                <h3 className="font-serif font-bold text-lg mb-4 text-antique">Recipe Staging</h3>
+                                                <div className="space-y-4">
+                                                    {recipeCart.map((item, idx) => (
+                                                        <div key={idx} className="flex justify-between items-center border-b border-white/10 pb-3 last:border-0 last:pb-0">
+                                                            <div className="flex flex-col"><span className="text-sm font-medium">{item.name}</span>{item.isCustom && <span className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5 bg-white/5 inline-block px-1.5 rounded w-max">Non-Inventory</span>}</div>
+                                                            <div className="flex items-center space-x-4"><span className="text-sm font-bold text-antique bg-black/20 px-2 py-1 rounded">{item.qty} {item.unit}</span><button onClick={() => setRecipeCart(recipeCart.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-danger p-1.5 transition-colors bg-white/5 rounded-lg hover:bg-white/10"><Icons.Trash/></button></div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <button onClick={handleSaveRecipe} className="w-full bg-antique text-victorian font-bold py-4 rounded-xl shadow-lg hover:bg-antiqueLight transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs sticky bottom-0 z-10 flex justify-center items-center gap-2"><Icons.Check/> {editingRecipeId ? 'Commit Changes' : 'Publish to Ledger'}</button>
+                                        
+                                        {showRecAdd && (
+                                            <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+                                                <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30">
+                                                    {isCustomRecItem ? (<div className="mb-6"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Custom Name</label><input type="text" autoFocus value={recModalItem} onChange={e=>setRecModalItem(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 font-bold text-sm bg-white shadow-inner" placeholder="e.g. Filtered Water" /></div>) : (<p className="text-sm text-gray-800 mb-6 truncate font-medium border-b border-gray-200 pb-3">{recModalItem}</p>)}
+                                                    <div className="flex space-x-4 mb-8">
+                                                        <div className="w-1/2"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Recipe Qty</label><input type="number" min="0" step="any" autoFocus={!isCustomRecItem} value={recModalQty} onChange={e=>setRecModalQty(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-center font-bold text-lg bg-white shadow-inner" placeholder="0" /></div>
+                                                        <div className="w-1/2"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Unit</label><select value={recModalUnit} onChange={e=>setRecModalUnit(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-lg bg-white font-medium text-gray-700 shadow-sm">{units.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                                                    </div>
+                                                    <div className="flex space-x-3"><button onClick={() => setShowRecAdd(false)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors shadow-sm">Cancel</button><button onClick={()=>{if(isCustomRecItem && !recModalItem.trim()) return showToast("Name the ingredient.", "error"); if(!recModalQty || Number(recModalQty) <= 0) return showToast("Valid quantity needed.", "error"); setRecipeCart([...recipeCart, { name: recModalItem, qty: Number(recModalQty), unit: recModalUnit, isCustom: isCustomRecItem }]); setShowRecAdd(false);}} className="w-1/2 bg-victorian text-antique border border-antique/30 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-victorianLight transition-colors shadow-md">Add</button></div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {ownerTab === 'workbench' && selectedItems.length > 0 && (
+                        <div className="fixed bottom-0 left-0 right-0 bg-paper/90 backdrop-blur-xl border-t border-white shadow-[0_-8px_30px_rgba(19,42,27,0.15)] p-5 z-40 animate-slide-up lg:left-auto lg:w-[400px] lg:right-8 lg:bottom-8 lg:rounded-2xl lg:border lg:border-white/50 lg:shadow-2xl">
+                            <div className="max-w-md mx-auto flex flex-col space-y-4">
+                                <div className="flex justify-between items-center"><span className="font-bold text-victorian bg-antiqueLight/30 border border-antique/50 px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-widest shadow-sm">{selectedItems.length} Staged Items</span><button onClick={() => setSelectedItems([])} className="text-[10px] text-gray-400 font-bold hover:text-danger uppercase tracking-widest transition-colors bg-white hover:bg-danger/10 px-3 py-1.5 rounded-lg">Clear</button></div>
+                                <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-4 border border-victorian/20 rounded-xl text-sm bg-white font-bold text-victorian shadow-inner focus:ring-2 focus:ring-victorian"><option value="">-- Assign Vendor --</option>{suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}</select>
+                                <button onClick={handleGeneratePO} className="w-full bg-victorian text-antique font-bold py-4 rounded-xl shadow-lg hover:bg-victorianLight transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs flex justify-center items-center gap-2"><Icons.Send/> Dispatch Official PO</button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
