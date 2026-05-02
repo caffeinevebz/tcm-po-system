@@ -15,7 +15,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#132A1B">
@@ -26,9 +26,28 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: { paper: '#FAF8F5', victorian: '#132A1B', victorianLight: '#23452F', antique: '#D4AF37', antiqueLight: '#F2DF96', danger: '#8B2626', dangerLight: '#FCE8E8' },
-                    fontFamily: { serif: ['"Playfair Display"', 'serif'], sans: ['"Inter"', 'system-ui', 'sans-serif'] },
-                    boxShadow: { 'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 'float': '0 -4px 24px -4px rgba(19, 42, 27, 0.15)', 'glass': 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)' }
+                    colors: { 
+                        paper: '#FAF8F5', 
+                        victorian: '#132A1B', 
+                        victorianLight: '#23452F', 
+                        antique: '#D4AF37', 
+                        antiqueLight: '#F2DF96', 
+                        danger: '#8B2626', 
+                        dangerLight: '#FCE8E8',
+                        brandBrown: '#8b5e3c',
+                        brandLightBrown: '#c08a5b'
+                    },
+                    fontFamily: { 
+                        serif: ['"Playfair Display"', 'serif'], 
+                        sans: ['"Inter"', 'system-ui', 'sans-serif'],
+                        poppins: ['"Poppins"', 'sans-serif']
+                    },
+                    boxShadow: { 
+                        'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 
+                        'float': '0 -4px 24px -4px rgba(19, 42, 27, 0.15)', 
+                        'glass': 'inset 0 0 0 1px rgba(255, 255, 255, 0.2)',
+                        'login': '0 15px 40px rgba(0,0,0,0.1)'
+                    }
                 }
             }
         }
@@ -304,40 +323,55 @@
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="icon-512.png?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
 
-            // --- REDESIGNED LOGIN SCREEN ---
+            // --- REDESIGNED LOGIN SCREEN (IMPLEMENTING YOUR CUSTOM DESIGN) ---
             if (!role) {
                 return (
-                    <div className="min-h-screen bg-theme-orders flex flex-col items-center justify-center p-4 relative">
-                        <div className="absolute inset-0 bg-victorian/80 backdrop-blur-md z-0"></div>
-                        <div className="bg-paper p-8 rounded-3xl shadow-2xl z-10 w-full max-w-sm border border-antique/30 text-center animate-slide-up relative overflow-hidden">
-                            {/* Decorative top border */}
-                            <div className="absolute top-0 left-0 w-full h-2 bg-antique"></div>
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-gradient-to-br from-[#f5efe6] to-[#e8dfd1]">
+                        {/* Decorative background leaves overlay */}
+                        <div className="absolute inset-0 bg-[url('leaf-pattern.png')] bg-center bg-cover opacity-[0.08] pointer-events-none"></div>
+
+                        <div className="relative z-10 flex justify-center items-center w-full">
                             
-                            <img src="Brewster-Pen.jpg" alt="Brewster" className="h-36 w-36 object-contain mx-auto mb-5 drop-shadow-md relative z-10 mix-blend-multiply" />
+                            {/* Left Illustration */}
+                            <img src="left_clipboard.png" className="absolute left-[-140px] bottom-[-20px] w-[120px] opacity-90 hidden md:block pointer-events-none" alt="" />
                             
-                            <div className="flex flex-col items-center justify-center mb-3 relative z-10">
-                                <h1 className="font-serif text-[42px] text-victorian tracking-wide leading-none mb-1" style={{ fontWeight: 600 }}>TCM</h1>
-                                <h2 className="font-sans font-bold text-xl text-antique tracking-[0.25em]">BREWOPS</h2>
-                            </div>
-                            
-                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-8">Inventory & Recipe Management</p>
-                            
-                            <form onSubmit={(e) => {
-                                e.preventDefault();
-                                const pin = e.target.pin.value;
-                                if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
-                                else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
-                                else showToast('Invalid PIN', 'error');
-                            }}>
-                                <div className="mb-6 text-left">
-                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1 text-center">Secure Access Code</label>
-                                    <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full text-center text-3xl tracking-[0.5em] p-4 border border-gray-300 rounded-2xl bg-white shadow-inner focus:ring-2 focus:ring-antique/50 font-mono outline-none transition-all" />
+                            {/* Right Illustration */}
+                            <img src="right_coffee.png" className="absolute right-[-140px] bottom-[-20px] w-[120px] opacity-90 hidden md:block pointer-events-none" alt="" />
+
+                            <div className="bg-white/75 backdrop-blur-[10px] shadow-login rounded-[20px] w-full max-w-[360px] p-[30px] text-center mx-4 relative animate-slide-up">
+                                
+                                {/* Logo */}
+                                <img src="Brewster-Pen.jpg" className="w-[90px] mx-auto mb-[10px] mix-blend-multiply object-cover rounded-full" alt="TCM BrewOps" />
+
+                                <div className="font-serif text-[28px] tracking-[2px] text-victorian leading-none">TCM</div>
+                                <div className="font-poppins text-brandBrown font-medium tracking-[2px] mt-[5px]">BREWOPS</div>
+
+                                <div className="text-[13px] text-gray-600 my-[10px] mb-[20px] font-poppins">
+                                    Inventory & Recipe Management
                                 </div>
-                                <button type="submit" className="w-full bg-antique text-victorian font-bold py-4 rounded-2xl shadow-lg hover:bg-antiqueLight transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2">
-                                    Login
-                                </button>
-                            </form>
-                            <div className="mt-6 text-[10px] text-gray-400 font-medium">Authorized Personnel Only</div>
+
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const pin = e.target.pin.value;
+                                    if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
+                                    else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
+                                    else showToast('Invalid PIN', 'error');
+                                }}>
+                                    <div className="mb-[15px]">
+                                        <input 
+                                            type="password" 
+                                            name="pin" 
+                                            autoFocus 
+                                            placeholder="••••••" 
+                                            className="w-full p-3 rounded-[10px] border border-gray-300 outline-none focus:border-brandBrown focus:shadow-[0_0_5px_rgba(139,94,60,0.3)] transition-all text-center text-2xl tracking-[0.5em] font-mono bg-white/80" 
+                                        />
+                                    </div>
+
+                                    <button type="submit" className="w-full p-3 border-none rounded-[10px] bg-gradient-to-br from-brandBrown to-brandLightBrown text-white text-[15px] cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">
+                                        Login
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 );
