@@ -65,8 +65,14 @@
         
         .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.65), rgba(250, 248, 245, 0.85)), url('./DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
         
-        /* Vintage Leaf Background Texture */
-        .bg-leaf-pattern { background-image: url('leaf-pattern.jpg'); background-size: cover; background-position: center; }
+        /* New Themed Background for Login (Green and Gold + Leaf Texture) */
+        .bg-leaf-pattern { 
+            background-image: linear-gradient(to bottom, rgba(74, 93, 35, 0.9), rgba(212, 175, 55, 0.4)), url('leaf-pattern.jpg'); 
+            background-size: cover; 
+            background-repeat: no-repeat; 
+            background-attachment: fixed;
+            background-position: center;
+        }
         
         .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
         .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
@@ -106,7 +112,7 @@
 
         // --- ICONS ---
         const Icons = {
-            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+            Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
             Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
             Send: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>,
             Camera: () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>,
@@ -331,61 +337,67 @@
             };
 
             const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
-            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => !indicesToRemove.includes(idx)); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
+            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="TCM BrewOps icon.jpg?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
 
-            // --- REDESIGNED LOGIN SCREEN WITH ASSETS AND GREEN & GOLD THEME ---
+            // --- REDESIGNED LOGIN SCREEN (INTEGRATING YOUR UPLOADED IMAGES & VINTAGE THEME) ---
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-victorian">
-                        {/* Decorative background leaves texture using leaf-pattern.jpg with blending */}
-                        <div className="absolute inset-0 bg-[url('leaf-pattern.jpg')] bg-center bg-cover opacity-[0.03] pointer-events-none mix-blend-screen z-0"></div>
+                    // 1. Background Theme: Green & Gold with Leaf Pattern
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-leaf-pattern">
+                        
+                        {/* Golden Gradient Overlay to soften pattern and add warmth */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-vintageGreen/60 via-antique/20 to-antique/50 pointer-events-none mix-blend-multiply"></div>
 
                         <div className="relative z-10 flex justify-center items-center w-full">
                             
-                            {/* Left Illustration: Clipboard (JPEG blending) */}
-                            <img src="left_clipboard.jpg" className="absolute left-[-110px] bottom-[20px] w-[210px] opacity-90 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply drop-shadow-xl" alt="Inventory" />
+                            {/* 2. Side Illustrations */}
+                            {/* Left Illustration: Clipboard */}
+                            <img src="left_clipboard.jpg" className="absolute left-[-110px] bottom-[30px] w-[210px] opacity-95 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply drop-shadow-xl" alt="Inventory Checklist" />
                             
-                            {/* Right Illustration: Coffee Sacks (PNG) */}
-                            <img src="right_coffee.png" className="absolute right-[-90px] bottom-[-30px] w-[190px] opacity-90 hidden md:block pointer-events-none transform rotate-6 drop-shadow-xl" alt="Stock" />
+                            {/* Right Illustration: Coffee Bags */}
+                            <img src="right_coffee.png" className="absolute right-[-90px] bottom-[-20px] w-[200px] opacity-95 hidden md:block pointer-events-none transform rotate-6 mix-blend-multiply drop-shadow-xl" alt="Coffee Sacks" />
 
-                            {/* FINSISHED ELEGANT LOGIN CARD (Gold border, Glassmorphic box) */}
-                            <div className="bg-paper/80 backdrop-blur-sm shadow-elegant rounded-3xl w-full max-w-[360px] p-[30px] text-center mx-4 relative animate-slide-up border-2 border-antique">
+                            {/* 3. Login Box: Frosted Glass & Vintage Frame */}
+                            <div className="bg-white/60 backdrop-blur-[15px] shadow-2xl rounded-3xl w-full max-w-[370px] p-[35px] text-center mx-4 relative animate-slide-up border-4 border-antiqueLight/40 overflow-hidden">
                                 
-                                {/* Brewster Logo */}
-                                <img src="Brewster-Pen.jpg" className="w-[100px] mx-auto mb-[5px] mix-blend-multiply object-cover rounded-full" alt="TCM BrewOps" />
+                                {/* Inner Decorative Vintage Border */}
+                                <div className="absolute inset-2 border-2 border-dashed border-antique/30 rounded-2xl pointer-events-none"></div>
+                                
+                                {/* 4. Logo Element: Brewster-Pen.jpg */}
+                                <img src="Brewster-Pen.jpg" className="w-[120px] mx-auto mb-1 mix-blend-multiply object-cover rounded-full" alt="Brewster" />
 
-                                {/* Name.jpg for App Name (Gold-on-Green visual) */}
-                                <img src="Name.jpg" className="w-full h-auto mt-2 mb-1" alt="TCM BREWOPS" />
+                                {/* 5. Name Element: Name.jpg */}
+                                <img src="Name.jpg" className="w-[190px] mx-auto mt-3 mb-3 mix-blend-multiply" alt="TCM BREWOPS" />
 
-                                <div className="text-[11px] text-gray-500 my-[10px] mb-[25px] font-poppins uppercase tracking-widest font-semibold">
+                                <div className="text-[12px] text-victorian/80 my-[10px] mb-[28px] font-poppins uppercase tracking-widest font-semibold bg-white/40 px-3 py-1.5 rounded-full inline-block">
                                     Inventory & Recipe Management
                                 </div>
 
                                 <form onSubmit={(e) => {
                                     e.preventDefault();
                                     const pin = e.target.pin.value;
+                                    // Functional Logic: Preserve exact Secure PINs
                                     if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
                                     else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
                                     else showToast('Invalid PIN', 'error');
                                 }}>
-                                    <div className="mb-[15px]">
+                                    <div className="mb-[18px]">
                                         <input 
                                             type="password" 
                                             name="pin" 
                                             autoFocus 
                                             placeholder="••••••" 
-                                            className="w-full p-4 rounded-[10px] border border-gray-300 outline-none focus:border-antique focus:shadow-[0_0_5px_rgba(212,175,55,0.3)] transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80" 
+                                            className="w-full p-4 rounded-[12px] border-2 border-antique/30 outline-none focus:border-vintageGreen focus:shadow-[0_0_8px_rgba(74,93,35,0.4)] transition-all text-center text-3xl tracking-[0.6em] font-mono bg-white/90 shadow-inner" 
                                         />
                                     </div>
 
-                                    {/* restored button back to "Login" and set to gold theme */}
-                                    <button type="submit" className="w-full p-4 border-none rounded-[10px] bg-gradient-to-br from-antique to-antiqueLight text-white text-[14px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">
-                                        Login
+                                    <button type="submit" className="w-full p-4 border-none rounded-[12px] bg-gradient-to-br from-vintageGreen to-antique text-paper font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_10px_25px_rgba(19,42,27,0.25)] mt-2">
+                                        Access BrewOps
                                     </button>
                                 </form>
-                                <a href="#" className="mt-6 text-[10px] text-brandBrown hover:text-antique font-medium tracking-wide">Reset Password?</a>
+                                <div className="mt-7 text-[11px] text-victorian/60 font-medium tracking-wide">Internal Use Only</div>
                             </div>
                         </div>
                     </div>
@@ -658,12 +670,8 @@
                 <div className="animate-fade-in relative">
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
-                            
-                            {/* GOOGLE CLOUD DOCUMENT AI UI INTEGRATION */}
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
                                 <div className="absolute inset-0 bg-leaf-pattern opacity-[0.08] pointer-events-none z-0"></div>
-                                
-                                {/* Workbench Left Sidebar */}
                                 <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
                                     <div className="p-4">
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
@@ -674,43 +682,23 @@
                                             </div></li>
                                             <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
                                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
-                                                My processors
-                                            </div></li>
-                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
-                                                Processor gallery
-                                            </div></li>
-                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
                                                 Monitoring
                                             </div></li>
                                         </ul>
                                     </div>
                                     <img src="left_clipboard.jpg" alt="Clipboard" className="absolute bottom-[-20px] left-[-30px] w-40 opacity-90 mix-blend-multiply pointer-events-none" />
                                 </aside>
-
-                                {/* Workbench Main Area */}
                                 <div className="flex-1 flex flex-col relative overflow-hidden bg-white/60 z-10">
                                     <div className="h-14 border-b border-brandBrown/20 flex items-center justify-between px-6 bg-paper/50">
                                         <div className="flex items-center gap-2">
                                             <span className="text-brandBrown font-bold">←</span>
                                             <h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2>
                                         </div>
-                                        <div className="flex gap-3">
-                                            <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brandBrown border border-brandBrown/30 rounded-lg bg-white/50">
-                                                Activity
-                                            </div>
-                                        </div>
                                     </div>
-
                                     <div className="border-b border-brandBrown/20 px-6 flex gap-6 text-sm font-medium">
                                         <button className="py-3 border-b-2 border-brandBrown text-brandBrown font-bold">Processor details</button>
-                                        <button className="py-3 text-victorian/60">Train</button>
-                                        <button class="py-3 text-victorian/60">Monitoring</button>
                                     </div>
-
                                     <div className="p-8 overflow-y-auto hide-scrollbar flex-1 relative z-10 pb-20">
-                                        
                                         <div className="max-w-3xl mb-10">
                                             <h3 className="font-serif text-2xl text-victorian mb-4">Basic information</h3>
                                             <div className="bg-paper/80 border-2 border-brandBrown/30 rounded-2xl p-6 shadow-vintage relative overflow-hidden">
@@ -718,25 +706,20 @@
                                                 <div className="grid grid-cols-3 gap-y-4 text-sm relative z-10">
                                                     <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Name</div>
                                                     <div className="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">TCM-Invoice Scanner</div>
-                                                    
                                                     <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">ID</div>
                                                     <div className="col-span-2 text-brandBrown font-mono tracking-widest border-b border-brandBrown/10 pb-2">bb2c04df74b4f962</div>
-                                                    
                                                     <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2 flex items-center">Status</div>
                                                     <div className="col-span-2 flex items-center gap-2 border-b border-brandBrown/10 pb-2">
                                                         <input type="checkbox" defaultChecked className="vintage-checkbox pointer-events-none" />
                                                         <span className="text-vintageGreen font-bold tracking-wider uppercase text-xs">Enabled</span>
                                                     </div>
-                                                    
                                                     <div class="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Type</div>
                                                     <div class="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Invoice Parser</div>
-                                                    
                                                     <div class="text-victorian/70 font-semibold">Region</div>
                                                     <div class="col-span-2 text-victorian font-medium">asia-south1</div>
                                                 </div>
                                             </div>
                                         </div>
-
                                         <div className="max-w-3xl">
                                             <h3 className="font-serif text-2xl text-victorian mb-4">Prediction endpoint</h3>
                                             <div className="bg-paper/80 border border-brandBrown/30 rounded-2xl p-6 shadow-vintage">
@@ -745,32 +728,10 @@
                                                 </div>
                                             </div>
                                         </div>
-
                                     </div>
                                     <img src="right_coffee.png" alt="Coffee Bags" className="absolute bottom-[-10px] right-[-10px] w-48 opacity-80 mix-blend-multiply pointer-events-none z-0" />
                                 </div>
-                                
-                                {/* Workbench Right Sidebar */}
-                                <aside className="w-72 border-l-2 border-brandBrown/20 bg-paper/60 backdrop-blur-sm hide-scrollbar overflow-y-auto relative z-10 hidden xl:block">
-                                    <div className="p-6">
-                                        <h3 className="font-serif font-bold text-lg text-victorian mb-6 border-b border-brandBrown/20 pb-2">Admin Tutorials</h3>
-                                        <div className="space-y-6">
-                                            <div className="group">
-                                                <div className="flex items-start gap-3 mb-1">
-                                                    <span className="text-brandBrown mt-0.5">📚</span>
-                                                    <h4 className="font-semibold text-sm text-victorian">Brewster Console Docs</h4>
-                                                </div>
-                                                <div className="ml-7">
-                                                    <span className="inline-block bg-brandLightBrown/20 text-brandBrown text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2 border border-brandBrown/20">Tutorial</span>
-                                                    <p className="text-xs text-victorian/70 leading-relaxed">Extract text from a PDF ledger.</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </aside>
                             </div>
-
-                            {/* STANDARD DB SETTINGS CARDS BELOW WORKBENCH */}
                             <div className="lg:grid lg:grid-cols-2 lg:gap-8">
                                 <div className="lg:col-span-1 space-y-6">
                                     <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
@@ -818,7 +779,6 @@
                             </div>
                         </div>
                     )}
-
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-24 lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -868,12 +828,10 @@
                                                 <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-gray-400 mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
                                                 <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-victorian text-paper">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Trash/></button></div></div>
                                             </div>
-
                                             {expandedPOs[po.id] && editingDeliveredPO?.id !== po.id && (
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Original Request</p>
                                                     <ul className="text-xs space-y-2 mb-4 px-1">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-600 border-b border-white/50 pb-1 last:border-0"><span>{item.name}</span><span className="font-medium">{item.qty} {item.unit}</span></li>))}</ul>
-
                                                     {po.receivedItems && (
                                                         <div className="bg-paper/70 p-4 rounded-xl border border-white/60 shadow-sm mb-4">
                                                             <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Intake Receipt ({po.deliveryDate})</p>
@@ -896,7 +854,6 @@
                                                     <button onClick={(e) => { e.stopPropagation(); startEditingDeliveredPO(po); }} className="w-full bg-white border border-victorian/30 text-victorian uppercase tracking-widest text-[10px] font-bold py-3 rounded-xl hover:border-victorian transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"><Icons.Edit/> Edit & Update Prices</button>
                                                 </div>
                                             )}
-
                                             {expandedPOs[po.id] && editingDeliveredPO?.id === po.id && (
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
@@ -927,7 +884,6 @@
                             </div>
                         </div>
                     )}
-
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -958,7 +914,6 @@
                             </div>
                         </div>
                     )}
-
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -987,7 +942,6 @@
                                     })
                                 }
                             </div>
-
                             {isBuildingRecipe && (
                                 <div className="lg:col-span-1 lg:sticky lg:top-28 lg:h-[calc(100vh-8rem)]">
                                     <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border-t-4 border-antique mb-10 border-x border-b border-white/50 lg:h-full lg:overflow-y-auto hide-scrollbar">
@@ -1034,7 +988,6 @@
                                             </div>
                                         )}
                                         <button onClick={handleSaveRecipe} className="w-full bg-antique text-victorian font-bold py-4 rounded-xl shadow-lg hover:bg-antiqueLight transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs sticky bottom-0 z-10 flex justify-center items-center gap-2"><Icons.Check/> {editingRecipeId ? 'Commit Changes' : 'Publish to Ledger'}</button>
-                                        
                                         {showRecAdd && (
                                             <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
                                                 <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30">
@@ -1052,17 +1005,15 @@
                             )}
                         </div>
                     )}
-
-                    {ownerTab === 'workbench' && selectedItems.length > 0 && (
-                        <div className="fixed bottom-0 left-0 right-0 bg-paper/90 backdrop-blur-xl border-t border-white shadow-[0_-8px_30px_rgba(19,42,27,0.15)] p-5 z-40 animate-slide-up lg:left-auto lg:w-[400px] lg:right-8 lg:bottom-8 lg:rounded-2xl lg:border lg:border-white/50 lg:shadow-2xl">
-                            <div className="max-w-md mx-auto flex flex-col space-y-4">
-                                <div className="flex justify-between items-center"><span className="font-bold text-victorian bg-antiqueLight/30 border border-antique/50 px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-widest shadow-sm">{selectedItems.length} Staged Items</span><button onClick={() => setSelectedItems([])} className="text-[10px] text-gray-400 font-bold hover:text-danger uppercase tracking-widest transition-colors bg-white hover:bg-danger/10 px-3 py-1.5 rounded-lg">Clear</button></div>
-                                <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-4 border border-victorian/20 rounded-xl text-sm bg-white font-bold text-victorian shadow-inner focus:ring-2 focus:ring-victorian"><option value="">-- Assign Vendor --</option>{suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}</select>
-                                <button onClick={handleGeneratePO} className="w-full bg-victorian text-antique font-bold py-4 rounded-xl shadow-lg hover:bg-victorianLight transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs flex justify-center items-center gap-2"><Icons.Send/> Dispatch Official PO</button>
-                            </div>
+                    {ownerTab === 'workbench' && (
+                        <div className="animate-fade-in space-y-6">
+                            <button onClick={onCreateCombinedPO} className="bg-antiqueLight text-victorian font-bold py-4 rounded-xl shadow-lg hover:bg-antique transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs flex justify-center items-center gap-2 w-full"><Icons.Send/> Combined PO</button>
+                            <button onClick={addSupplier} className="bg-antiqueLight text-victorian font-bold py-4 rounded-xl shadow-lg hover:bg-antique transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs flex justify-center items-center gap-2 w-full"><Icons.FileText/> Add Supplier</button>
+                            <button onClick={savePhoneToCloud} className="bg-antiqueLight text-victorian font-bold py-4 rounded-xl shadow-lg hover:bg-antique transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs flex justify-center items-center gap-2 w-full"><Icons.FileText/> Save Phone</button>
                         </div>
                     )}
-                </div>
+                </DashboardLayout>
+                </>
             );
         }
 
