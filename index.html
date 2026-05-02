@@ -19,8 +19,8 @@
     
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#132A1B">
-    <link rel="icon" href="icon-192.png?v=2">
-    <link rel="apple-touch-icon" href="icon-192.png?v=2">
+    <link rel="icon" href="TCM BrewOps icon.jpg?v=2">
+    <link rel="apple-touch-icon" href="TCM BrewOps icon.jpg?v=2">
 
     <script>
         tailwind.config = {
@@ -64,11 +64,12 @@
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
         
         .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.65), rgba(250, 248, 245, 0.85)), url('./DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
-        .bg-login-pattern {
-            background-color: #f5efe6;
-            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 10 C 45 10, 50 25, 50 30 C 50 45, 35 50, 30 50 C 15 50, 10 35, 10 30 C 10 15, 25 10, 30 10 Z' fill='none' stroke='%232c1a0f' stroke-width='1.5' stroke-opacity='0.1'/%3E%3Cpath d='M30 10 L 30 50' stroke='%232c1a0f' stroke-width='1' stroke-opacity='0.1'/%3E%3C/svg%3E");
-        }
         
+        .bg-leaf-pattern { background-image: url('leaf-pattern.jpg'); background-size: cover; background-position: center; }
+        
+        .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
+        .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
+
         @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     </style>
@@ -113,8 +114,7 @@
             Close: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
             Activity: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>,
             Box: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>,
-            FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>,
-            Settings: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            FileText: () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
         };
 
         const compressImage = (file) => {
@@ -147,8 +147,7 @@
                 { id: 'orders', label: 'Manage Orders & POs' },
                 { id: 'recipes', label: 'Kitchen Recipe Book' },
                 { id: 'conversions', label: 'Prep Kitchen Engine' },
-                { id: 'databases', label: 'System Settings & DB' },
-                { id: 'engine', label: 'AI Scanner Engine' } // ADDED THE NEW ENGINE TAB
+                { id: 'workbench', label: "Brewster's Workbench & DB" }
             ];
             const menuItems = role === 'owner' ? ownerMenu : staffMenu;
 
@@ -189,8 +188,7 @@
                         </div>
                     </header>
 
-                    {/* WIDENED MAIN AREA to accommodate the engine layout */}
-                    <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">
+                    <main className="max-w-4xl mx-auto mt-6 px-4 lg:px-6">
                         {children}
                     </main>
                 </div>
@@ -279,7 +277,7 @@
                 const isResend = po.status === 'Delivered'; 
                 const prefix = isResend ? `*[RESENT FOR RECORDS]*\n` : ``;
 
-                const message = `${prefix}*Subject:* Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
+                const message = `${prefix}*Subject:* Purchase Order - TCM BrewOps\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
                 
                 let url = `https://wa.me/`;
                 if (po.supplierPhone) { 
@@ -334,44 +332,35 @@
             const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
             const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
 
-            if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="icon-512.png?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
+            if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="TCM BrewOps icon.jpg?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
 
+            // --- REDESIGNED LOGIN SCREEN WITH UPLOADED IMAGES ---
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-login-pattern">
-                        <div className="absolute inset-0 bg-gradient-to-br from-[#f5efe6]/50 to-[#e8dfd1]/80 pointer-events-none"></div>
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#f5efe6]">
+                        {/* Decorative background leaves overlay using the uploaded leaf-pattern.jpg */}
+                        <div className="absolute inset-0 bg-[url('leaf-pattern.jpg')] bg-center bg-cover opacity-[0.08] pointer-events-none mix-blend-multiply"></div>
+
                         <div className="relative z-10 flex justify-center items-center w-full">
                             
-                            <div className="absolute left-[-110px] bottom-[-30px] w-[160px] opacity-90 hidden md:block pointer-events-none transform -rotate-12 drop-shadow-xl">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" fill="none" stroke="#2c1a0f" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="15" y="20" width="70" height="90" rx="5" fill="#c08a5b" />
-                                    <rect x="22" y="25" width="56" height="80" fill="#FAF8F5" />
-                                    <path d="M40 10 h20 v10 h-20 z" fill="#8b5e3c" />
-                                    <rect x="30" y="40" width="10" height="10" rx="1" fill="#c08a5b"/> <line x1="48" y1="45" x2="70" y2="45" />
-                                    <path d="M30 65 Q 35 55 40 65 Q 35 75 30 65" fill="#4A5D23"/> <line x1="48" y1="65" x2="70" y2="65" />
-                                    <path d="M30 80 h10 v8 h-10 z" fill="#e8dfd1"/> <line x1="48" y1="85" x2="70" y2="85" />
-                                    <polyline points="46 42 50 48 60 36" stroke="#4A5D23" strokeWidth="4"/>
-                                    <polyline points="46 62 50 68 60 56" stroke="#4A5D23" strokeWidth="4"/>
-                                </svg>
-                            </div>
+                            {/* Left Illustration */}
+                            <img src="left_clipboard.jpg" className="absolute left-[-100px] bottom-[20px] w-[200px] opacity-90 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply" alt="Clipboard" />
                             
-                            <div className="absolute right-[-110px] bottom-[-20px] w-[140px] opacity-90 hidden md:block pointer-events-none transform rotate-6 drop-shadow-xl">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="#2c1a0f" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 50 Q 20 90 50 90 Q 80 90 80 50 Q 75 35 60 35 Q 50 40 40 35 Q 25 35 20 50 Z" fill="#c08a5b" />
-                                    <ellipse cx="40" cy="30" rx="8" ry="5" transform="rotate(30 40 30)" fill="#5c3a21" />
-                                    <ellipse cx="55" cy="28" rx="8" ry="5" transform="rotate(-20 55 28)" fill="#5c3a21" />
-                                    <ellipse cx="65" cy="34" rx="8" ry="5" transform="rotate(45 65 34)" fill="#5c3a21" />
-                                    <ellipse cx="48" cy="24" rx="8" ry="5" transform="rotate(10 48 24)" fill="#5c3a21" />
-                                    <path d="M30 55 Q 50 75 70 55" strokeWidth="2" opacity="0.4"/>
-                                    <path d="M35 65 Q 50 85 65 65" strokeWidth="2" opacity="0.4"/>
-                                </svg>
-                            </div>
+                            {/* Right Illustration */}
+                            <img src="right_coffee.png" className="absolute right-[-80px] bottom-[-20px] w-[180px] opacity-90 hidden md:block pointer-events-none transform rotate-6 mix-blend-multiply" alt="Coffee Sacks" />
 
-                            <div className="bg-white/75 backdrop-blur-[10px] shadow-login rounded-[20px] w-full max-w-[360px] p-[30px] text-center mx-4 relative animate-slide-up">
-                                <img src="Brewster-Pen.jpg" className="w-[100px] mx-auto mb-[5px] mix-blend-multiply object-cover rounded-full" alt="TCM BrewOps" />
-                                <div className="font-serif text-[32px] tracking-[2px] text-victorian leading-none">TCM</div>
-                                <div className="font-poppins text-brandBrown font-medium text-lg tracking-[0.2em] mt-[5px]">BREWOPS</div>
-                                <div className="text-[12px] text-gray-500 my-[10px] mb-[25px] font-poppins uppercase tracking-widest font-semibold">Inventory & Recipe Management</div>
+                            <div className="bg-white/75 backdrop-blur-[10px] shadow-login rounded-[20px] w-full max-w-[360px] p-[30px] text-center mx-4 relative animate-slide-up border border-brandBrown/10">
+                                
+                                {/* Logo */}
+                                <img src="Brewster-Pen.jpg" className="w-[110px] mx-auto mb-[5px] mix-blend-multiply object-cover rounded-full" alt="TCM BrewOps" />
+
+                                <div className="font-serif text-[36px] tracking-[2px] text-victorian leading-none mt-2">TCM</div>
+                                <div className="font-poppins text-brandBrown font-medium text-xl tracking-[0.25em] mt-[5px]">BREWOPS</div>
+
+                                <div className="text-[11px] text-gray-500 my-[10px] mb-[25px] font-poppins uppercase tracking-widest font-semibold">
+                                    Inventory & Recipe Management
+                                </div>
+
                                 <form onSubmit={(e) => {
                                     e.preventDefault();
                                     const pin = e.target.pin.value;
@@ -380,9 +369,18 @@
                                     else showToast('Invalid PIN', 'error');
                                 }}>
                                     <div className="mb-[15px]">
-                                        <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-[10px] border border-gray-300 outline-none focus:border-brandBrown focus:shadow-[0_0_5px_rgba(139,94,60,0.3)] transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80" />
+                                        <input 
+                                            type="password" 
+                                            name="pin" 
+                                            autoFocus 
+                                            placeholder="••••••" 
+                                            className="w-full p-4 rounded-[10px] border border-gray-300 outline-none focus:border-brandBrown focus:shadow-[0_0_5px_rgba(139,94,60,0.3)] transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80" 
+                                        />
                                     </div>
-                                    <button type="submit" className="w-full p-4 border-none rounded-[10px] bg-gradient-to-br from-brandBrown to-brandLightBrown text-white text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">Login</button>
+
+                                    <button type="submit" className="w-full p-4 border-none rounded-[10px] bg-gradient-to-br from-brandBrown to-brandLightBrown text-white text-[14px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.15)] font-poppins mt-2">
+                                        Login
+                                    </button>
                                 </form>
                                 <div className="mt-6 text-[10px] text-gray-400 font-medium">Internal Use Only</div>
                             </div>
@@ -425,15 +423,10 @@
             return (
                 <div className="animate-fade-in space-y-6">
                     <h2 className="text-2xl font-serif font-bold text-white drop-shadow-md mb-2">System Overview</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Recipes" value={recipes.length} icon={<Icons.FileText/>} /></div>
                         <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active BrewOps Orders" value={activePOs.length} icon={<Icons.Box/>} bgColor={activePOs.length > 0 ? "bg-antiqueLight/90 border-antique" : "bg-white/80"} subtitle={activePOs.length > 0 ? "Deliveries arriving soon" : "No pending deliveries"} /></div>
-                        <div onClick={()=>setOwnerTab('conversions')} className="cursor-pointer"><DashboardMetric title="Inventory Alerts (Low)" value={3} icon={<Icons.Activity/>} bgColor="bg-dangerLight border-danger/30" subtitle="Prep rules need raw materials" /></div>
-                        
-                        {/* THE NEW ENGINE DASHBOARD CARD */}
-                        <div onClick={()=>setOwnerTab('engine')} className="cursor-pointer">
-                            <DashboardMetric title="AI Scanner Engine" value="Active" icon={<Icons.Settings/>} bgColor="bg-vintageGreen/10 border-vintageGreen/30 text-vintageGreen" subtitle="Document AI Status: Online" />
-                        </div>
+                        <div onClick={()=>setOwnerTab('conversions')} className="cursor-pointer"><DashboardMetric title="Inventory Alerts (Low)" value={3} icon={<Icons.Activity/>} bgColor="bg-dangerLight border-danger/30" subtitle="Prep reglas need raw materials" /></div>
                     </div>
                 </div>
             );
@@ -455,115 +448,6 @@
             );
         };
 
-        // --- NEW: PROCESSOR ENGINE COMPONENT ---
-        const ProcessorEngineView = () => {
-            return (
-                <div className="animate-fade-in flex flex-col lg:flex-row gap-6 relative">
-                    {/* Main Content */}
-                    <div className="flex-1 bg-white/60 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 overflow-hidden flex flex-col">
-                        {/* Header Toolbar */}
-                        <div className="h-16 border-b border-brandBrown/20 flex items-center justify-between px-6 bg-paper/50">
-                            <div className="flex items-center gap-3">
-                                <span className="text-brandBrown font-bold text-xl"><Icons.Settings/></span>
-                                <h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2>
-                            </div>
-                            <div className="flex gap-3 hidden sm:flex">
-                                <button className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-danger border border-danger/30 rounded-xl hover:bg-danger/10 transition-colors">Disable processor</button>
-                                <button className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-brandBrown border border-brandBrown/30 rounded-xl hover:bg-brandBrown/10 transition-colors">Activity</button>
-                            </div>
-                        </div>
-
-                        {/* Tab Navigation */}
-                        <div className="border-b border-brandBrown/20 px-6 flex gap-6 text-sm font-medium overflow-x-auto hide-scrollbar">
-                            <button className="py-4 border-b-2 border-brandBrown text-brandBrown font-bold whitespace-nowrap">Processor details</button>
-                            <button className="py-4 text-victorian/60 hover:text-victorian whitespace-nowrap cursor-not-allowed">Train</button>
-                            <button className="py-4 text-victorian/60 hover:text-victorian whitespace-nowrap cursor-not-allowed">Evaluate & test</button>
-                            <button className="py-4 text-victorian/60 hover:text-victorian whitespace-nowrap cursor-not-allowed">Manage versions</button>
-                            <button className="py-4 text-victorian/60 hover:text-victorian whitespace-nowrap cursor-not-allowed">Monitoring</button>
-                        </div>
-
-                        {/* Dashboard Content */}
-                        <div className="p-6 overflow-y-auto hide-scrollbar flex-1 relative z-10">
-                            {/* Basic Information Card */}
-                            <div className="max-w-3xl mb-8">
-                                <h3 className="font-serif text-xl text-victorian mb-4">Basic information</h3>
-                                <div className="bg-paper/80 border-2 border-brandBrown/30 rounded-2xl p-6 shadow-vintage relative overflow-hidden">
-                                    <div className="absolute inset-2 border border-brandBrown/10 rounded-xl pointer-events-none"></div>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 text-sm relative z-10">
-                                        <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Name</div>
-                                        <div className="sm:col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">TCM-Invoice Scanner</div>
-                                        
-                                        <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">ID</div>
-                                        <div className="sm:col-span-2 text-brandBrown font-mono tracking-widest border-b border-brandBrown/10 pb-2 break-all">bb2c04df74b4f962</div>
-                                        
-                                        <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2 flex items-center">Status</div>
-                                        <div className="sm:col-span-2 flex items-center gap-2 border-b border-brandBrown/10 pb-2">
-                                            <div className="w-4 h-4 border-2 border-brandBrown rounded flex items-center justify-center bg-paper text-vintageGreen text-[10px] font-bold">✔</div>
-                                            <span className="text-vintageGreen font-bold tracking-wider uppercase text-xs">Enabled</span>
-                                        </div>
-                                        
-                                        <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Processor Type</div>
-                                        <div className="sm:col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Invoice Parser</div>
-                                        
-                                        <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Created</div>
-                                        <div className="sm:col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Apr 29, 2026, 10:58:20 PM</div>
-                                        
-                                        <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Encryption</div>
-                                        <div className="sm:col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Google-managed</div>
-                                        
-                                        <div className="text-victorian/70 font-semibold">Region</div>
-                                        <div className="sm:col-span-2 text-victorian font-medium">asia-south1</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Prediction Endpoint Card */}
-                            <div className="max-w-3xl mb-4">
-                                <h3 className="font-serif text-xl text-victorian mb-4">Prediction</h3>
-                                <div className="bg-paper/80 border border-brandBrown/30 rounded-2xl p-6 shadow-vintage">
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-4 text-sm">
-                                        <div className="text-victorian/70 font-semibold">Endpoint</div>
-                                        <div className="sm:col-span-2">
-                                            <div className="bg-white/80 border border-brandBrown/20 rounded-xl p-4 font-mono text-[10px] sm:text-xs text-brandBrown break-all shadow-inner-vintage">
-                                                https://asia-south1-documentai.googleapis.com/v1/projects/994764639663/locations/asia-south1/processors/bb2c04df74b4f962:process
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Sidebar (Tutorials) */}
-                    <div className="hidden lg:flex flex-col w-80 bg-white/60 backdrop-blur-xl border border-white/50 rounded-2xl shadow-elegant overflow-hidden h-max">
-                        <div className="p-6 border-b border-brandBrown/20 bg-paper/50"><h3 className="font-serif font-bold text-lg text-victorian">Recommended for you</h3></div>
-                        <div className="p-6 space-y-6">
-                            <div className="group cursor-pointer">
-                                <div className="flex items-start gap-3 mb-2">
-                                    <span className="text-brandBrown mt-0.5 text-lg">📚</span>
-                                    <h4 className="font-semibold text-sm text-victorian group-hover:text-brandBrown transition-colors">Get started with Document AI</h4>
-                                </div>
-                                <div className="ml-8">
-                                    <span className="inline-block bg-brandLightBrown/20 text-brandBrown text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md mb-2 border border-brandBrown/20">Tutorial</span>
-                                    <p className="text-xs text-victorian/70 leading-relaxed">Create a Document AI OCR processor and extract text from a PDF ledger.</p>
-                                </div>
-                            </div>
-                            <div className="group cursor-pointer">
-                                <div className="flex items-start gap-3 mb-2">
-                                    <span className="text-brandBrown mt-0.5 text-lg">📜</span>
-                                    <h4 className="font-semibold text-sm text-victorian group-hover:text-brandBrown transition-colors">Get started with Form Parser</h4>
-                                </div>
-                                <div className="ml-8">
-                                    <span className="inline-block bg-brandLightBrown/20 text-brandBrown text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-md mb-2 border border-brandBrown/20">Tutorial</span>
-                                    <p className="text-xs text-victorian/70 leading-relaxed">Create a Document AI form parser and extract key-value pairs from supplier sheets.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         // --- STAFF VIEW ---
         function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
             const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]); const [searchTerm, setSearchTerm] = useState('');
@@ -574,7 +458,7 @@
 
             const openAddModal = (item) => { if (cart.find(i => i.name === item)) return showToast("Already in cart", "error"); setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true); };
             const confirmAddItem = () => { if(!modalQty || Number(modalQty) <= 0) return showToast("Invalid quantity", "error"); setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]); setShowAddModal(false); };
-            const removeItem = (index) => setCart(filter((_, i) => i !== index));
+            const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
             const handleSubmit = () => { if (cart.length === 0) return showToast('Cart is empty', 'error'); onSubmit(cart); setCart([]); setSearchTerm(''); };
             const openReceiveScreen = (po) => { setReceivingPO(po); const initialQty = {}; const initialPrices = {}; po.items.forEach((item, idx) => { initialQty[idx] = item.qty; initialPrices[idx] = ''; }); setReceivedQuantities(initialQty); setReceivedPrices(initialPrices); setUnmatchedScans([]); };
 
@@ -767,11 +651,172 @@
 
             if (ownerTab === 'dashboard') return <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} setOwnerTab={setOwnerTab} />;
 
-            // --- RENDER ENGINE TAB ---
-            if (ownerTab === 'engine') return <ProcessorEngineView />;
-
             return (
                 <div className="animate-fade-in relative">
+                    {/* BREWSTER'S WORKBENCH (Replaces normal databases view) */}
+                    {ownerTab === 'workbench' && (
+                        <div className="animate-fade-in space-y-8">
+                            
+                            {/* GOOGLE CLOUD DOCUMENT AI UI INTEGRATION */}
+                            <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
+                                <div className="absolute inset-0 bg-leaf-pattern opacity-[0.08] pointer-events-none z-0"></div>
+                                
+                                {/* Workbench Left Sidebar */}
+                                <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
+                                    <div className="p-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
+                                        <ul className="space-y-1">
+                                            <li><div className="flex items-center gap-3 px-3 py-2 bg-brandLightBrown/20 text-brandBrown font-bold rounded-lg border border-brandBrown/20 transition-colors">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
+                                                Overview
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                My processors
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                Processor gallery
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                Monitoring
+                                            </div></li>
+                                        </ul>
+                                    </div>
+                                    <img src="left_clipboard.jpg" alt="Clipboard" className="absolute bottom-[-20px] left-[-30px] w-40 opacity-90 mix-blend-multiply pointer-events-none" />
+                                </aside>
+
+                                {/* Workbench Main Area */}
+                                <div className="flex-1 flex flex-col relative overflow-hidden bg-white/60 z-10">
+                                    <div className="h-14 border-b border-brandBrown/20 flex items-center justify-between px-6 bg-paper/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-brandBrown font-bold">←</span>
+                                            <h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-brandBrown border border-brandBrown/30 rounded-lg bg-white/50">
+                                                Activity
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="border-b border-brandBrown/20 px-6 flex gap-6 text-sm font-medium">
+                                        <button className="py-3 border-b-2 border-brandBrown text-brandBrown font-bold">Processor details</button>
+                                        <button className="py-3 text-victorian/60">Train</button>
+                                        <button class="py-3 text-victorian/60">Monitoring</button>
+                                    </div>
+
+                                    <div className="p-8 overflow-y-auto hide-scrollbar flex-1 relative z-10 pb-20">
+                                        
+                                        <div className="max-w-3xl mb-10">
+                                            <h3 className="font-serif text-2xl text-victorian mb-4">Basic information</h3>
+                                            <div className="bg-paper/80 border-2 border-brandBrown/30 rounded-2xl p-6 shadow-vintage relative overflow-hidden">
+                                                <div className="absolute inset-2 border border-brandBrown/10 rounded-xl pointer-events-none"></div>
+                                                <div className="grid grid-cols-3 gap-y-4 text-sm relative z-10">
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Name</div>
+                                                    <div className="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">TCM-Invoice Scanner</div>
+                                                    
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">ID</div>
+                                                    <div className="col-span-2 text-brandBrown font-mono tracking-widest border-b border-brandBrown/10 pb-2">bb2c04df74b4f962</div>
+                                                    
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2 flex items-center">Status</div>
+                                                    <div className="col-span-2 flex items-center gap-2 border-b border-brandBrown/10 pb-2">
+                                                        <input type="checkbox" defaultChecked className="vintage-checkbox pointer-events-none" />
+                                                        <span className="text-vintageGreen font-bold tracking-wider uppercase text-xs">Enabled</span>
+                                                    </div>
+                                                    
+                                                    <div class="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Type</div>
+                                                    <div class="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Invoice Parser</div>
+                                                    
+                                                    <div class="text-victorian/70 font-semibold">Region</div>
+                                                    <div class="col-span-2 text-victorian font-medium">asia-south1</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="max-w-3xl">
+                                            <h3 className="font-serif text-2xl text-victorian mb-4">Prediction endpoint</h3>
+                                            <div className="bg-paper/80 border border-brandBrown/30 rounded-2xl p-6 shadow-vintage">
+                                                <div className="bg-white/80 border border-brandBrown/20 rounded-lg p-3 font-mono text-xs text-brandBrown break-all shadow-inner-vintage">
+                                                    https://asia-south1-documentai.googleapis.com/v1/projects/tcm-orders/locations/asia-south1/processors/bb2c04df74b4f962:process
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <img src="right_coffee.png" alt="Coffee Bags" className="absolute bottom-[-10px] right-[-10px] w-48 opacity-80 mix-blend-multiply pointer-events-none z-0" />
+                                </div>
+                                
+                                {/* Workbench Right Sidebar */}
+                                <aside className="w-72 border-l-2 border-brandBrown/20 bg-paper/60 backdrop-blur-sm hide-scrollbar overflow-y-auto relative z-10 hidden xl:block">
+                                    <div className="p-6">
+                                        <h3 className="font-serif font-bold text-lg text-victorian mb-6 border-b border-brandBrown/20 pb-2">Admin Tutorials</h3>
+                                        <div className="space-y-6">
+                                            <div className="group">
+                                                <div className="flex items-start gap-3 mb-1">
+                                                    <span className="text-brandBrown mt-0.5">📚</span>
+                                                    <h4 className="font-semibold text-sm text-victorian">Brewster Console Docs</h4>
+                                                </div>
+                                                <div className="ml-7">
+                                                    <span className="inline-block bg-brandLightBrown/20 text-brandBrown text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-2 border border-brandBrown/20">Tutorial</span>
+                                                    <p className="text-xs text-victorian/70 leading-relaxed">Extract text from a PDF ledger.</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </aside>
+                            </div>
+
+                            {/* STANDARD DB SETTINGS CARDS BELOW WORKBENCH */}
+                            <div className="lg:grid lg:grid-cols-2 lg:gap-8">
+                                <div className="lg:col-span-1 space-y-6">
+                                    <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
+                                        <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">System Settings</h3>
+                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Owner Alerts (WhatsApp)</label>
+                                        <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
+                                    </div>
+                                    <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
+                                        <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">Vendor Directory</h3>
+                                        <div className="flex justify-between items-center mb-4"><span className="text-sm font-medium text-gray-800 bg-white/50 px-3 py-1 rounded-lg">{suppliers.length} Active Vendors</span><button onClick={addSupplier} className="bg-white border border-brandBrown/50 text-brandBrown text-[10px] font-bold py-2 px-4 rounded-xl hover:border-brandBrown hover:text-victorian transition-all shadow-sm uppercase tracking-wider">+ Add</button></div>
+                                        <div className="bg-paper/50 border border-brandBrown/20 rounded-xl max-h-64 overflow-y-auto shadow-sm">
+                                            {suppliers.length === 0 ? <p className="text-center text-xs py-6 text-gray-500 italic">No vendors found.</p> : 
+                                                suppliers.map(vendor => (
+                                                    <div key={vendor.name} className="flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 hover:bg-white/80 transition-colors">
+                                                        <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
+                                                        <div className="flex space-x-2 shrink-0"><button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                                    </div>
+                                                ))
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="lg:col-span-1 space-y-6">
+                                    <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20 h-full">
+                                        <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3 flex justify-between items-end"><span>🧮 Master Price Book</span></h3>
+                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/></div>
+                                        <div className="bg-paper/50 border border-brandBrown/20 rounded-xl max-h-[300px] overflow-y-auto shadow-sm">
+                                            {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
+                                                const isEditing = editingPriceItem === item; const itemPrice = prices[item];
+                                                return (
+                                                    <div key={item} className={`flex flex-col p-4 border-b border-brandBrown/10 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-md rounded-lg mx-1 my-1' : 'hover:bg-white/80'}`}>
+                                                        <div className="flex justify-between items-center mb-1">
+                                                            <span className="text-sm font-medium text-gray-800 pr-2 truncate">{item}</span>
+                                                            {!isEditing && (<div className="flex items-center bg-white/50 px-2 py-1 rounded-lg"><span className="text-xs font-bold text-antique mr-3">{itemPrice && itemPrice.price ? `₹${itemPrice.price} / ${itemPrice.unit}` : <span className="text-gray-400 italic font-normal">Unpriced</span>}</span><button onClick={() => { setEditingPriceItem(item); setTempPriceVal(itemPrice?.price || ''); setTempPriceUnit(itemPrice?.unit || 'Kg'); }} className="text-gray-400 hover:text-victorian transition-colors"><Icons.Edit/></button></div>)}
+                                                        </div>
+                                                        {isEditing && (
+                                                            <div className="flex items-center space-x-2 mt-3 bg-paper/50 p-2 rounded-lg border border-antique/20"><span className="text-sm font-bold text-gray-500">₹</span><input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-24 p-2 border border-brandBrown/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-brandBrown" placeholder="Price" /><span className="text-xs text-gray-500">per</span><select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-brandBrown/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-brandBrown">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select><div className="flex-1 flex justify-end space-x-2"><button onClick={() => setEditingPriceItem(null)} className="px-3 py-2 text-[10px] uppercase font-bold text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button><button onClick={() => {const newPrices = { ...prices }; newPrices[item] = { price: Number(tempPriceVal) || 0, unit: tempPriceUnit }; db.collection('settings').doc('main').update({ prices: newPrices }); setEditingPriceItem(null); showToast("Price saved", "success");}} className="px-4 py-2 text-[10px] uppercase tracking-widest font-bold bg-brandBrown text-white rounded-lg transition-all shadow-sm hover:shadow">Save</button></div></div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-24 lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -854,7 +899,7 @@
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
                                                         <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
-                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor Running...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan</>}</label></div>
                                                         <div className="space-y-3 mb-5">
                                                             <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
                                                             {(po.receivedItems || po.items).map((item, idx) => (
@@ -908,69 +953,6 @@
                                         ))}
                                     </div>
                                 }
-                            </div>
-                        </div>
-                    )}
-
-                    {ownerTab === 'databases' && (
-                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
-                            <div className="lg:col-span-1 space-y-6">
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">System Settings</h3>
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Owner Alerts (WhatsApp)</label>
-                                    <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-antique/50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
-                                    <p className="text-[10px] text-victorian/70 mt-5 uppercase tracking-widest font-bold bg-antiqueLight/20 border border-antique/30 inline-block px-3 py-1.5 rounded-lg flex items-center gap-2"><Icons.Check/> Secure Document AI Active</p>
-                                </div>
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">Vendor Directory</h3>
-                                    <div className="flex justify-between items-center mb-4"><span className="text-sm font-medium text-gray-800 bg-white/50 px-3 py-1 rounded-lg">{suppliers.length} Active Vendors</span><button onClick={addSupplier} className="bg-white border border-antique/50 text-antique text-[10px] font-bold py-2 px-4 rounded-xl hover:border-antique hover:text-victorian transition-all shadow-sm uppercase tracking-wider">+ Add</button></div>
-                                    <div className="bg-paper/50 border border-white/60 rounded-xl max-h-64 overflow-y-auto shadow-sm">
-                                        {suppliers.length === 0 ? <p className="text-center text-xs py-6 text-gray-500 italic">No vendors found.</p> : 
-                                            suppliers.map(vendor => (
-                                                <div key={vendor.name} className="flex justify-between items-center p-4 border-b border-white/40 last:border-0 hover:bg-white/80 transition-colors">
-                                                    <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
-                                                    <div className="flex space-x-2 shrink-0"><button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="lg:col-span-1 space-y-6">
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3 flex justify-between items-end"><span>🧮 Master Price Book</span></h3>
-                                    <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/></div>
-                                    <div className="bg-paper/50 border border-white/60 rounded-xl max-h-[300px] overflow-y-auto shadow-sm">
-                                        {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
-                                            const isEditing = editingPriceItem === item; const itemPrice = prices[item];
-                                            return (
-                                                <div key={item} className={`flex flex-col p-4 border-b border-white/40 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-md rounded-lg mx-1 my-1' : 'hover:bg-white/80'}`}>
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-sm font-medium text-gray-800 pr-2 truncate">{item}</span>
-                                                        {!isEditing && (<div className="flex items-center bg-white/50 px-2 py-1 rounded-lg"><span className="text-xs font-bold text-antique mr-3">{itemPrice && itemPrice.price ? `₹${itemPrice.price} / ${itemPrice.unit}` : <span className="text-gray-400 italic font-normal">Unpriced</span>}</span><button onClick={() => { setEditingPriceItem(item); setTempPriceVal(itemPrice?.price || ''); setTempPriceUnit(itemPrice?.unit || 'Kg'); }} className="text-gray-400 hover:text-victorian transition-colors"><Icons.Edit/></button></div>)}
-                                                    </div>
-                                                    {isEditing && (
-                                                        <div className="flex items-center space-x-2 mt-3 bg-paper/50 p-2 rounded-lg border border-antique/20"><span className="text-sm font-bold text-gray-500">₹</span><input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-24 p-2 border border-antique/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-antique" placeholder="Price" /><span className="text-xs text-gray-500">per</span><select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-antique/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-antique">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select><div className="flex-1 flex justify-end space-x-2"><button onClick={() => setEditingPriceItem(null)} className="px-3 py-2 text-[10px] uppercase font-bold text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button><button onClick={() => {const newPrices = { ...prices }; newPrices[item] = { price: Number(tempPriceVal) || 0, unit: tempPriceUnit }; db.collection('settings').doc('main').update({ prices: newPrices }); setEditingPriceItem(null); showToast("Price saved", "success");}} className="px-4 py-2 text-[10px] uppercase tracking-widest font-bold bg-victorian text-antique rounded-lg transition-all shadow-sm hover:shadow">Save</button></div></div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-4 text-center">Prices automatically update from delivery intake.</p>
-                                </div>
-
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 h-full">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">Master Catalog</h3>
-                                    <div className="flex justify-between items-center mb-5"><select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-2/3 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">{Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select><button onClick={handleAddInventoryItem} className="bg-victorian text-antique text-[10px] font-bold py-3 px-4 rounded-xl hover:bg-victorianLight transition-all uppercase tracking-wider shadow-sm hover:shadow-md">+ Add Item</button></div>
-                                    <div className="bg-paper/50 border border-white/60 rounded-xl max-h-[500px] overflow-y-auto shadow-sm">
-                                        {inventory[dbCategory] && inventory[dbCategory].map(item => (
-                                            <div key={item} className="flex justify-between items-center p-4 border-b border-white/40 last:border-0 hover:bg-white/80 transition-colors">
-                                                <span className="text-sm font-medium text-gray-800 truncate pr-2 w-3/4">{item}</span>
-                                                <div className="flex space-x-2"><button onClick={() => handleEditInventoryItem(item)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => handleDeleteInventoryItem(item)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     )}
