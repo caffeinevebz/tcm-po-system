@@ -304,19 +304,23 @@
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="icon-512.png?v=2" alt="TCM" className="h-32 w-32 object-cover rounded-2xl shadow-elegant animate-pulse" /> </div> );
 
-            // --- LOGIN SCREEN ---
+            // --- REDESIGNED LOGIN SCREEN ---
             if (!role) {
                 return (
                     <div className="min-h-screen bg-theme-orders flex flex-col items-center justify-center p-4 relative">
                         <div className="absolute inset-0 bg-victorian/80 backdrop-blur-md z-0"></div>
-                        <div className="bg-white/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl z-10 w-full max-w-sm border border-antique/30 text-center animate-slide-up">
-                            <img src="icon-512.png?v=2" alt="TCM" className="h-28 w-28 object-cover rounded-3xl mx-auto mb-6 shadow-md" />
-                            <div className="flex items-center justify-center gap-2 mb-6">
-                                <Icons.FileText />
-                                <h1 className="font-serif font-bold text-3xl text-victorian mb-1">TCM BrewOps</h1>
-                                <Icons.Box />
+                        <div className="bg-paper p-8 rounded-3xl shadow-2xl z-10 w-full max-w-sm border border-antique/30 text-center animate-slide-up relative overflow-hidden">
+                            {/* Decorative top border */}
+                            <div className="absolute top-0 left-0 w-full h-2 bg-antique"></div>
+                            
+                            <img src="Brewster-Pen.jpg" alt="Brewster" className="h-36 w-36 object-contain mx-auto mb-5 drop-shadow-md relative z-10 mix-blend-multiply" />
+                            
+                            <div className="flex flex-col items-center justify-center mb-3 relative z-10">
+                                <h1 className="font-serif text-[42px] text-victorian tracking-wide leading-none mb-1" style={{ fontWeight: 600 }}>TCM</h1>
+                                <h2 className="font-sans font-bold text-xl text-antique tracking-[0.25em]">BREWOPS</h2>
                             </div>
-                            <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mb-8">System Access Portal</p>
+                            
+                            <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold mb-8">Inventory & Recipe Management</p>
                             
                             <form onSubmit={(e) => {
                                 e.preventDefault();
@@ -325,10 +329,15 @@
                                 else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
                                 else showToast('Invalid PIN', 'error');
                             }}>
-                                <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full text-center text-3xl tracking-[1em] p-4 border border-gray-300 rounded-xl mb-6 bg-white shadow-inner focus:ring-2 focus:ring-antique/50 font-mono" />
-                                <button type="submit" className="w-full bg-victorian text-antique font-bold py-4 rounded-xl shadow-lg hover:bg-victorianLight transition-all uppercase tracking-widest text-sm">Access Portal</button>
+                                <div className="mb-6 text-left">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1 text-center">Secure Access Code</label>
+                                    <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full text-center text-3xl tracking-[0.5em] p-4 border border-gray-300 rounded-2xl bg-white shadow-inner focus:ring-2 focus:ring-antique/50 font-mono outline-none transition-all" />
+                                </div>
+                                <button type="submit" className="w-full bg-antique text-victorian font-bold py-4 rounded-2xl shadow-lg hover:bg-antiqueLight transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2">
+                                    Login
+                                </button>
                             </form>
-                            <div className="mt-6 text-[10px] text-gray-400 font-medium">Internal Use Only</div>
+                            <div className="mt-6 text-[10px] text-gray-400 font-medium">Authorized Personnel Only</div>
                         </div>
                     </div>
                 );
@@ -367,7 +376,7 @@
             const activePOs = pos.filter(po => po.status === 'Approved');
             return (
                 <div className="animate-fade-in space-y-6">
-                    <h2 className="text-2xl font-serif font-bold text-white drop-shadow-md mb-2">System Overview back.</h2>
+                    <h2 className="text-2xl font-serif font-bold text-white drop-shadow-md mb-2">System Overview</h2>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Recipes" value={recipes.length} icon={<Icons.FileText/>} /></div>
                         <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active BrewOps Orders" value={activePOs.length} icon={<Icons.Box/>} bgColor={activePOs.length > 0 ? "bg-antiqueLight/90 border-antique" : "bg-white/80"} subtitle={activePOs.length > 0 ? "Deliveries arriving soon" : "No pending deliveries"} /></div>
@@ -680,7 +689,7 @@
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
                                                         <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
-                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor Running...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan</>}</label></div>
                                                         <div className="space-y-3 mb-5">
                                                             <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
                                                             {(po.receivedItems || po.items).map((item, idx) => (
