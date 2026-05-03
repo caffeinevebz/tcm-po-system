@@ -55,6 +55,14 @@
         
         .bg-theme-orders { background-color: #FAF8F5; }
         .bg-leaf-pattern { background-image: linear-gradient(to bottom, rgba(74, 93, 35, 0.8), rgba(212, 175, 55, 0.3)), url('leaf-pattern.jpg'); background-size: cover; background-position: center; }
+        
+        /* NEW: Styles for the updated login aesthetic */
+        .bg-login-tab { 
+            background-image: url('Login Tab.jpg'); 
+            background-size: cover; background-position: center; 
+        }
+        ::placeholder { color: #D4AF37 !important; opacity: 0.7; } /* Antiqued gold placeholder */
+
         .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
         .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
 
@@ -199,7 +207,7 @@
             
             const [toast, setToast] = useState(null); const [confirmDialog, setConfirmDialog] = useState(null);
 
-            const showToast = (message, type = 'info') => { setToast({ message, type }); setTimeout(() => setToast(null), 3500); };
+            const showToast = (message, type = 'info') => { setToast({ message, type }); setTimeout(() => toast(null), 3500); };
             const confirmAction = (message, onConfirm) => { setConfirmDialog({ message, onConfirm: () => { onConfirm(); setConfirmDialog(null); } }); };
 
             useEffect(() => {
@@ -228,7 +236,6 @@
 
             const updateAlias = (rawInvoiceName, dbItemName) => { const newAliases = { ...aliases, [rawInvoiceName]: dbItemName }; setAliases(newAliases); db.collection('settings').doc('main').update({ aliases: newAliases }); };
             
-            // UPDATED COSTING ENGINE: Now Calculates Landed Cost (Base + GST)
             const convertToCost = (qty, fromUnit, priceObj) => {
                 if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return { base: 0, landed: 0 };
                 let factor = 1; const pUnit = priceObj.unit;
@@ -313,21 +320,21 @@
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <img src="Brewster-Pen.jpg" alt="Loading" className="h-32 w-32 object-cover rounded-full shadow-elegant animate-pulse mix-blend-multiply" /> </div> );
 
+            // --- REDESIGNED LOGIN SCREEN: Uses new asset and layout ---
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-leaf-pattern">
-                        <div className="absolute inset-0 bg-gradient-to-br from-vintageGreen/60 via-antique/20 to-antique/50 pointer-events-none mix-blend-multiply"></div>
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-victorian">
+                        <div className="absolute inset-0 bg-leaf-pattern opacity-[0.2] pointer-events-none mix-blend-multiply"></div>
                         <div className="relative z-10 flex justify-center items-center w-full">
                             <img src="left_clipboard.jpg" className="absolute left-[-110px] bottom-[30px] w-[210px] opacity-95 hidden md:block pointer-events-none transform -rotate-12 mix-blend-multiply drop-shadow-xl" alt="Inventory" />
                             <img src="right_coffee.png" className="absolute right-[-90px] bottom-[-20px] w-[200px] opacity-95 hidden md:block pointer-events-none transform rotate-6 mix-blend-multiply drop-shadow-xl" alt="Coffee" />
 
-                            <div className="bg-white/60 backdrop-blur-[15px] shadow-2xl rounded-3xl w-full max-w-[370px] p-[35px] text-center mx-4 relative animate-slide-up border-4 border-antiqueLight/40 overflow-hidden">
-                                <div className="absolute inset-2 border-2 border-dashed border-antique/30 rounded-2xl pointer-events-none"></div>
-                                <img src="Brewster-Pen.jpg" className="w-[120px] mx-auto mb-1 mix-blend-multiply object-cover rounded-full relative z-10" alt="Brewster" />
-                                <img src="Name.jpg" className="w-[190px] mx-auto mt-3 mb-3 mix-blend-multiply relative z-10" alt="TCM BREWOPS" />
+                            {/* UPDATED: Container uses new asset and increases height */}
+                            <div className="bg-login-tab shadow-2xl rounded-3xl w-full max-w-[380px] pt-[260px] pb-[50px] px-[35px] text-center mx-4 relative animate-slide-up border-4 border-antique/30 overflow-hidden">
+                                <div className="absolute inset-2 border-2 border-dashed border-antique/20 rounded-2xl pointer-events-none"></div>
                                 
-                                <div className="text-[12px] text-victorian/80 my-[10px] mb-[28px] font-poppins uppercase tracking-widest font-semibold bg-white/40 px-3 py-1.5 rounded-full inline-block relative z-10">
-                                    Inventory & Recipe Management
+                                <div className="text-[12px] text-paper/90 mt-5 mb-[28px] font-poppins uppercase tracking-widest font-semibold bg-white/10 px-4 py-2 rounded-full inline-block relative z-10 backdrop-blur-sm border border-antique/20">
+                                    Inventory & Recipe Ledger
                                 </div>
 
                                 <form className="relative z-10" onSubmit={(e) => {
@@ -336,14 +343,15 @@
                                     else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
                                     else showToast('Invalid PIN', 'error');
                                 }}>
-                                    <div className="mb-[18px]">
-                                        <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-[12px] border-2 border-antique/30 outline-none focus:border-vintageGreen focus:shadow-[0_0_8px_rgba(74,93,35,0.4)] transition-all text-center text-3xl tracking-[0.6em] font-mono bg-white/90 shadow-inner" />
+                                    {/* UPDATED: Pin input styled for dark BG with padding */}
+                                    <div className="mb-[22px]">
+                                        <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-[12px] border-2 border-antique/50 outline-none focus:border-antique focus:shadow-[0_0_8px_rgba(212,175,55,0.6)] transition-all text-center text-3xl tracking-[0.6em] font-mono bg-black/20 text-white placeholder:text-antique/60 shadow-inner" />
                                     </div>
-                                    <button type="submit" className="w-full p-4 border-none rounded-[12px] bg-gradient-to-br from-vintageGreen to-antique text-paper font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_10px_25px_rgba(19,42,27,0.25)] mt-2">
-                                        Login
+                                    <button type="submit" className="w-full p-4 border border-antique/50 rounded-[12px] bg-gradient-to-br from-vintageGreen to-antique text-paper font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_10px_25px_rgba(19,42,27,0.25)]">
+                                        Open Ledger
                                     </button>
                                 </form>
-                                <div className="mt-7 text-[11px] text-victorian/60 font-medium tracking-wide relative z-10">Authorized Personnel Only</div>
+                                <div className="mt-8 text-[11px] text-paper/60 font-medium tracking-wide relative z-10">Authorized Access Only</div>
                             </div>
                         </div>
                     </div>
@@ -353,7 +361,7 @@
             return (
                 <>
                     {toast && ( <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[100] animate-slide-up"> <div className={`px-6 py-3 rounded-full shadow-2xl backdrop-blur-md border border-white/20 font-medium text-sm text-white flex items-center space-x-2 ${toast.type === 'error' ? 'bg-danger/90' : toast.type === 'success' ? 'bg-victorian/90' : 'bg-gray-800/90'}`}> {toast.type === 'success' && <Icons.Check />} <span>{toast.message}</span> </div> </div> )}
-                    {confirmDialog && ( <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in"> <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30 text-center"> <h3 className="font-serif font-bold text-xl text-victorian mb-2">Are you sure?</h3> <p className="text-sm text-gray-600 mb-6">{confirmDialog.message}</p> <div className="flex space-x-3"> <button onClick={() => setConfirmDialog(null)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button> <button onClick={confirmDialog.onConfirm} className="w-1/2 bg-danger text-white font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-danger/90 transition-colors shadow-md">Confirm</button> </div> </div> </div> )}
+                    {confirmDialog && ( <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in"> <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-sm border border-antique/30 text-center"> <h3 className="font-serif font-bold text-xl text-victorian mb-2">Are you sure?</h3> <p className="text-sm text-gray-600 mb-6">{confirmDialog.message}</p> <div className="flex space-x-3"> <button onClick={() => setConfirmDialog(null)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button> <button onClick={confirmDialog.onConfirm} className="w-1/2 bg-danger text-white font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-danger/90 transition-colors shadow-md">Confirm</button> </div> </div> </div> )}
 
                     <DashboardLayout role={role} activeTab={role === 'owner' ? ownerTab : staffTab} setActiveTab={role === 'owner' ? setOwnerTab : setStaffTab} onLogout={() => setRole(null)}>
                         {role === 'staff' ? 
@@ -524,7 +532,6 @@
             );
         }
 
-        // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
             const activePOs = pos.filter(po => po.status === 'Approved'); const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
@@ -534,8 +541,6 @@
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false); const [editingRecipeId, setEditingRecipeId] = useState(null); const [recipeName, setRecipeName] = useState(''); const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]); const [recipeYieldQty, setRecipeYieldQty] = useState(''); const [recipeYieldUnit, setRecipeYieldUnit] = useState('ml'); const [recipeInstructions, setRecipeInstructions] = useState(''); const [recipeCart, setRecipeCart] = useState([]);
             const [recSearch, setRecSearch] = useState(''); const [recCat, setRecCat] = useState('Batch Preps'); const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
             const [showRecAdd, setShowRecAdd] = useState(false); const [recModalItem, setRecModalItem] = useState(''); const [recModalQty, setRecModalQty] = useState(''); const [recModalUnit, setRecModalUnit] = useState('gms'); const [isCustomRecItem, setIsCustomRecItem] = useState(false);
-            
-            // UPDATED: Added tempGstVal state for GST tracking
             const [editingPriceItem, setEditingPriceItem] = useState(null); const [tempPriceVal, setTempPriceVal] = useState(''); const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); const [tempGstVal, setTempGstVal] = useState(''); const [priceSearchFilter, setPriceSearchFilter] = useState('');
 
             const savePhoneToCloud = () => { db.collection('settings').doc('main').update({ ownerPhone: localPhone }); showToast("Settings saved", "success"); };
@@ -610,6 +615,8 @@
             const allRawNames = Object.values(inventory).flat(); const allBasicPreps = prepItems.map(p => p.name); const allBatchPreps = recipes.filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...allBatchPreps, ...allBasicPreps, ...allRawNames]; 
             const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
 
+            if (ownerTab === 'dashboard') return <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} setOwnerTab={setOwnerTab} />;
+
             return (
                 <div className="animate-fade-in relative">
                     
@@ -623,7 +630,8 @@
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
                                         <ul className="space-y-1">
                                             <li><div className="flex items-center gap-3 px-3 py-2 bg-brandLightBrown/20 text-brandBrown font-bold rounded-lg border border-brandBrown/20 transition-colors">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5(node:36276) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
                                                 Overview
                                             </div></li>
                                             <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
@@ -714,110 +722,115 @@
                         </div>
                     )}
 
-                    {ownerTab === 'databases' && (
-                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
-                            <div className="lg:col-span-1 space-y-6">
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">System Settings</h3>
-                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Owner Alerts (WhatsApp)</label>
-                                    <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
-                                </div>
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">Vendor Directory</h3>
-                                    <div className="flex justify-between items-center mb-4"><span className="text-sm font-medium text-gray-800 bg-white/50 px-3 py-1 rounded-lg">{suppliers.length} Active Vendors</span><button onClick={addSupplier} className="bg-white border border-brandBrown/50 text-brandBrown text-[10px] font-bold py-2 px-4 rounded-xl hover:border-brandBrown hover:text-victorian transition-all shadow-sm uppercase tracking-wider">+ Add</button></div>
-                                    <div className="bg-paper/50 border border-brandBrown/20 rounded-xl max-h-64 overflow-y-auto shadow-sm">
-                                        {suppliers.length === 0 ? <p className="text-center text-xs py-6 text-gray-500 italic">No vendors found.</p> : 
-                                            suppliers.map(vendor => (
-                                                <div key={vendor.name} className="flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 hover:bg-white/80 transition-colors">
-                                                    <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
-                                                    <div className="flex space-x-2 shrink-0"><button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
-                                                </div>
-                                            ))
-                                        }
-                                    </div>
-                                </div>
+                    {ownerTab === 'orders' && (
+                        <div className="animate-fade-in mb-24 lg:grid lg:grid-cols-2 lg:gap-8">
+                            <div className="lg:col-span-1">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Pending Staff Requests</h3>
+                                {requests.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm mb-10">All caught up. No pending requests.</div> : 
+                                    requests.map(req => (
+                                        <div key={req.id} className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 mb-8 overflow-hidden">
+                                            <div className="bg-paper/70 px-5 py-4 flex justify-between items-center border-b border-victorian/10"><span className="font-serif font-bold text-victorian text-lg">{req.id}</span><span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-white/50 px-2 py-1 rounded-md">{req.date}</span></div>
+                                            <div className="p-2">
+                                                {req.items.map((item, idx) => {
+                                                    const isChecked = selectedItems.some(i => i.reqId === req.id && i.itemIndex === idx);
+                                                    return (
+                                                        <div key={idx} className={`flex items-center justify-between border-b border-victorian/5 py-3 px-4 last:border-0 transition-colors rounded-xl ${isChecked ? 'bg-victorian/5' : 'hover:bg-white/50'}`}>
+                                                            <label className="flex items-center space-x-4 cursor-pointer w-[85%]">
+                                                                <input type="checkbox" checked={isChecked} onChange={() => handleCheck(req.id, idx, item)} className="w-5 h-5 text-victorian rounded border-gray-300 focus:ring-victorian" />
+                                                                <div className="flex flex-col"><span className="text-sm font-semibold text-victorian/90 leading-tight">{item.name}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty} {item.unit}</span></div>
+                                                            </label>
+                                                            <button onClick={() => onRemoveRequestItem(req.id, idx)} className="text-gray-400 hover:text-danger p-2 rounded-lg transition-colors bg-white/50 shadow-sm"><Icons.Trash/></button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))
+                                }
                             </div>
-                            <div className="lg:col-span-1 space-y-6">
-                                {/* UPDATED: MASTER PRICE BOOK WITH GST INPUT */}
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20 h-full">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3 flex justify-between items-end"><span>🧮 Master Price Book</span></h3>
-                                    <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/></div>
-                                    <div className="bg-paper/50 border border-brandBrown/20 rounded-xl max-h-[500px] overflow-y-auto shadow-sm">
-                                        {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
-                                            const isEditing = editingPriceItem === item; const itemPrice = prices[item];
-                                            return (
-                                                <div key={item} className={`flex flex-col p-4 border-b border-brandBrown/10 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-md rounded-lg mx-1 my-1' : 'hover:bg-white/80'}`}>
-                                                    <div className="flex justify-between items-center mb-1">
-                                                        <span className="text-sm font-medium text-gray-800 pr-2 truncate">{item}</span>
-                                                        {!isEditing && (
-                                                            <div className="flex items-center bg-white/50 px-2 py-1 rounded-lg">
-                                                                <span className="text-xs font-bold text-antique mr-2">{itemPrice && itemPrice.price ? `₹${itemPrice.price} / ${itemPrice.unit}` : <span className="text-gray-400 italic font-normal">Unpriced</span>}</span>
-                                                                {itemPrice?.gst > 0 && <span className="text-[9px] text-gray-500 font-bold bg-gray-200 px-1.5 py-0.5 rounded mr-3">+{itemPrice.gst}% GST</span>}
-                                                                <button onClick={() => { setEditingPriceItem(item); setTempPriceVal(itemPrice?.price || ''); setTempPriceUnit(itemPrice?.unit || 'Kg'); setTempGstVal(itemPrice?.gst || ''); }} className="text-gray-400 hover:text-victorian transition-colors ml-1"><Icons.Edit/></button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    {isEditing && (
-                                                        <div className="flex flex-col space-y-2 mt-3 bg-paper/50 p-3 rounded-lg border border-antique/20">
-                                                            <div className="flex items-center space-x-2">
-                                                                <span className="text-sm font-bold text-gray-500">₹ Base</span>
-                                                                <input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-20 p-2 border border-brandBrown/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-brandBrown" placeholder="Price" />
-                                                                <span className="text-xs text-gray-500">per</span>
-                                                                <select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-brandBrown/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-brandBrown">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select>
-                                                            </div>
-                                                            <div className="flex items-center space-x-2 pt-2 border-t border-brandBrown/10">
-                                                                <span className="text-xs font-bold text-gray-500">+ GST</span>
-                                                                <input type="number" min="0" max="100" step="any" value={tempGstVal} onChange={e=>setTempGstVal(e.target.value)} className="w-16 p-2 border border-brandBrown/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-brandBrown" placeholder="%" />
-                                                                <span className="text-xs text-gray-500">%</span>
-                                                                <div className="flex-1 flex justify-end space-x-2">
-                                                                    <button onClick={() => setEditingPriceItem(null)} className="px-3 py-2 text-[10px] uppercase font-bold text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button>
-                                                                    <button onClick={() => {const newPrices = { ...prices }; newPrices[item] = { price: Number(tempPriceVal) || 0, unit: tempPriceUnit, gst: Number(tempGstVal) || 0 }; db.collection('settings').doc('main').update({ prices: newPrices }); setEditingPriceItem(null); showToast("Price & GST saved", "success");}} className="px-4 py-2 text-[10px] uppercase tracking-widest font-bold bg-brandBrown text-white rounded-lg transition-all shadow-sm hover:shadow">Save</button>
-                                                                </div>
-                                                            </div>
+                            <div className="lg:col-span-1">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Shipments</h3>
+                                {activePOs.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm mb-10">No active orders en route.</div> : 
+                                    activePOs.map(po => (
+                                        <div key={po.id} className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant mb-5 border-l-4 border-l-antique transition-all hover:shadow-xl">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-antique mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
+                                                <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-antiqueLight text-victorian">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors" title="Resend PO"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors" title="Delete PO"><Icons.Trash/></button></div></div>
+                                            </div>
+                                            {expandedPOs[po.id] && (
+                                                <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 bg-white/50 inline-block px-2 py-1 rounded">Requested Items</p><ul className="text-sm space-y-2.5">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-700 border-b border-white/50 pb-1.5 last:border-0"><span className="font-medium">{item.name}</span><span className="font-bold text-victorian bg-white/50 px-2 rounded">{item.qty} {item.unit}</span></li>))}</ul></div>
+                                            )}
+                                        </div>
+                                    ))
+                                }
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mt-10 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Delivered History</h3>
+                                {deliveredPOs.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm">No historical deliveries.</div> : 
+                                    deliveredPOs.map(po => (
+                                        <div key={po.id} className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant mb-5 border-l-4 border-l-victorian transition-all hover:shadow-xl opacity-90 hover:opacity-100">
+                                            <div className="flex justify-between items-start">
+                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-gray-400 mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
+                                                <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-victorian text-paper">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Trash/></button></div></div>
+                                            </div>
+
+                                            {expandedPOs[po.id] && editingDeliveredPO?.id !== po.id && (
+                                                <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
+                                                    <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Original Request</p>
+                                                    <ul className="text-xs space-y-2 mb-4 px-1">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-600 border-b border-white/50 pb-1 last:border-0"><span>{item.name}</span><span className="font-medium">{item.qty} {item.unit}</span></li>))}</ul>
+
+                                                    {po.receivedItems && (
+                                                        <div className="bg-paper/70 p-4 rounded-xl border border-white/60 shadow-sm mb-4">
+                                                            <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Intake Receipt ({po.deliveryDate})</p>
+                                                            <ul className="text-xs space-y-2.5">
+                                                                {po.receivedItems.map((item, idx) => {
+                                                                    const hasVar = item.qty !== item.receivedQty; const unitCost = item.receivedQty > 0 && item.totalPrice ? (item.totalPrice / item.receivedQty).toFixed(2) : 0;
+                                                                    return (
+                                                                        <li key={idx} className={`flex justify-between items-center py-1.5 border-b border-white/50 last:border-0 ${hasVar ? 'text-danger' : 'text-gray-700'}`}>
+                                                                            <span className="truncate pr-2 font-medium">{item.name}</span>
+                                                                            <div className="flex flex-col items-end text-right">
+                                                                                <span className="whitespace-nowrap font-bold bg-white/50 px-2 py-0.5 rounded">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span>
+                                                                                {item.totalPrice > 0 && <span className="text-[9px] text-victorian/80 mt-1 uppercase tracking-widest font-bold">₹{item.totalPrice} (₹{unitCost}/{item.unit})</span>}
+                                                                            </div>
+                                                                        </li>
+                                                                    );
+                                                                })}
+                                                            </ul>
                                                         </div>
                                                     )}
+                                                    <button onClick={(e) => { e.stopPropagation(); startEditingDeliveredPO(po); }} className="w-full bg-white border border-victorian/30 text-victorian uppercase tracking-widest text-[10px] font-bold py-3 rounded-xl hover:border-victorian transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"><Icons.Edit/> Edit & Update Base Prices</button>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-4 text-center">Landed Cost automatically calculated in Recipe Engine.</p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                                            )}
 
-                    {ownerTab === 'conversions' && (
-                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
-                            <div className="lg:col-span-1">
-                                <div className="mb-6 shadow-sm backdrop-blur-md inline-block p-4 rounded-2xl bg-white/60"><h2 className="text-2xl font-serif font-bold text-victorian mb-2">Prep Kitchen Engine</h2><p className="text-sm text-victorian/80 leading-relaxed">Map raw vendor materials to intermediate prepped units (e.g., Beans to Espresso Shots).</p></div>
-                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 mb-8 lg:mb-0">
-                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">{editingPrepId ? 'Edit Conversion Rule' : 'New Basic Conversion'}</h3>
-                                    <div className="space-y-6">
-                                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Prepped Item Name</label><input type="text" placeholder="e.g. Filtered Espresso Shot" value={prepName} onChange={e=>setPrepName(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-antique/50" /></div>
-                                        <div className="flex space-x-3 items-center bg-paper/50 p-4 rounded-xl border border-white/60 shadow-sm"><span className="text-[10px] font-bold text-victorian uppercase tracking-widest w-16">Yields</span><input type="number" placeholder="Qty" value={prepYieldQty} onChange={e=>setPrepYieldQty(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm text-center font-bold bg-white" /><select value={prepYieldUnit} onChange={e=>setPrepYieldUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
-                                        <div className="flex space-x-3 items-center p-2"><span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest w-16 text-center">From</span><input type="number" placeholder="Qty" value={prepRawQty} onChange={e=>setPrepRawQty(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm text-center font-bold bg-white shadow-inner" /><select value={prepRawUnit} onChange={e=>setPrepRawUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
-                                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Source Raw Material</label><select value={prepRawItem} onChange={e=>setPrepRawItem(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium text-gray-700 shadow-sm"><option value="">-- Choose from Catalog --</option>{allRawNames.map(item => <option key={item} value={item}>{item}</option>)}</select></div>
-                                        <div className="flex space-x-3 mt-4 pt-4 border-t border-victorian/10">{editingPrepId && (<button onClick={()=> {setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem(''); setEditingPrepId(null);}} className="w-1/2 bg-white text-gray-600 border border-gray-200 font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-sm hover:bg-gray-50 transition-colors">Cancel</button>)}<button onClick={handleSavePrepItem} className={`${editingPrepId ? 'w-1/2' : 'w-full'} bg-victorian text-antique font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-victorianLight transition-all hover:-translate-y-0.5`}>{editingPrepId ? 'Update Rule' : 'Save Engine Rule'}</button></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="lg:col-span-1">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Engine Rules ({prepItems.length})</h3>
-                                {prepItems.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No conversion rules set up yet.</p> : 
-                                    <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-2xl shadow-elegant overflow-hidden mb-12">
-                                        {prepItems.map(p => (
-                                            <div key={p.id} className="flex justify-between items-center p-5 border-b border-white/40 last:border-0 hover:bg-white/90 transition-colors">
-                                                <div className="flex flex-col"><span className="text-sm font-bold text-victorian mb-1.5">{p.name} <span className="text-antique font-serif ml-1">({p.yieldQty} {p.yieldUnit})</span></span><span className="text-xs text-gray-600 bg-white/50 inline-block px-2 py-0.5 rounded">Requires: <span className="font-semibold text-gray-800">{p.rawQty} {p.rawUnit}</span> of {p.rawItem}</span></div>
-                                                <div className="flex space-x-2 ml-2"><button onClick={() => {setPrepName(p.name); setPrepYieldQty(p.yieldQty); setPrepYieldUnit(p.yieldUnit); setPrepRawQty(p.rawQty); setPrepRawUnit(p.rawUnit); setPrepRawItem(p.rawItem); setEditingPrepId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-gray-400 hover:text-victorian p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => confirmAction("Delete conversion rule?", () => db.collection('settings').doc('main').update({ prepItems: prepItems.filter(x => x.id !== p.id) }))} className="text-gray-400 hover:text-danger p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
-                                            </div>
-                                        ))}
-                                    </div>
+                                            {expandedPOs[po.id] && editingDeliveredPO?.id === po.id && (
+                                                <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
+                                                    <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
+                                                        <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Base Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan</>}</label></div>
+                                                        <div className="space-y-3 mb-5">
+                                                            <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
+                                                            {(po.receivedItems || po.items).map((item, idx) => (
+                                                                <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0">
+                                                                    <div className="flex justify-between items-center space-x-2">
+                                                                        <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name} <span className="text-[8px] text-gray-400 block mt-0.5">({item.unit})</span></span>
+                                                                        <input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique/50" value={editQuantities[idx]} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
+                                                                        <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
+                                                                    </div>
+                                                                    {unmatchedScans.length > 0 && (!editQuantities[idx] && !editPrices[idx]) && (
+                                                                        <div className="mt-2 w-full"><select className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => handleOwnerManualMap(idx, item.name, e.target.value)}><option value="">🔗 Map missing item...</option>{unmatchedScans.map(u => (<option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>))}</select></div>
+                                                                    )}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <button onClick={saveDeliveredPOEdit} className="w-full bg-victorian text-antique uppercase tracking-widest text-[10px] font-bold py-3.5 rounded-xl hover:bg-victorianLight transition-all hover:shadow-md hover:-translate-y-0.5">Save & Update Master Base Prices</button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
                                 }
                             </div>
                         </div>
                     )}
 
-                    {/* UPDATED RECIPE VIEW: Displays Landed Costs with GST */}
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -932,6 +945,92 @@
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    )}
+
+                    {ownerTab === 'databases' && (
+                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
+                            <div className="lg:col-span-1 space-y-6">
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">System Settings</h3>
+                                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Owner Alerts (WhatsApp)</label>
+                                    <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-antique/50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
+                                    <p className="text-[10px] text-victorian/70 mt-5 uppercase tracking-widest font-bold bg-antiqueLight/20 border border-antique/30 inline-block px-3 py-1.5 rounded-lg flex items-center gap-2"><Icons.Check/> Secure Document AI Active</p>
+                                </div>
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">Vendor Directory</h3>
+                                    <div className="flex justify-between items-center mb-4"><span className="text-sm font-medium text-gray-800 bg-white/50 px-3 py-1 rounded-lg">{suppliers.length} Active Vendors</span><button onClick={addSupplier} className="bg-white border border-antique/50 text-antique text-[10px] font-bold py-2 px-4 rounded-xl hover:border-antique hover:text-victorian transition-all shadow-sm uppercase tracking-wider">+ Add</button></div>
+                                    <div className="bg-paper/50 border border-white/60 rounded-xl max-h-64 overflow-y-auto shadow-sm">
+                                        {suppliers.length === 0 ? <p className="text-center text-xs py-6 text-gray-500 italic">No vendors found.</p> : 
+                                            suppliers.map(vendor => (
+                                                <div key={vendor.name} className="flex justify-between items-center p-4 border-b border-white/40 last:border-0 hover:bg-white/80 transition-colors">
+                                                    <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
+                                                    <div className="flex space-x-2 shrink-0"><button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                                </div>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-1 space-y-6">
+                                {/* UPDATED: MASTER PRICE BOOK WITH GST INPUT */}
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 h-full">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3 flex justify-between items-end"><span>🧮 Master Price Book</span></h3>
+                                    <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/></div>
+                                    <div className="bg-paper/50 border border-white/60 rounded-xl max-h-[500px] overflow-y-auto shadow-sm">
+                                        {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
+                                            const isEditing = editingPriceItem === item; const itemPrice = prices[item];
+                                            return (
+                                                <div key={item} className={`flex flex-col p-4 border-b border-white/40 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-md rounded-lg mx-1 my-1' : 'hover:bg-white/80'}`}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-sm font-medium text-gray-800 pr-2 truncate">{item}</span>
+                                                        {!isEditing && (
+                                                            <div className="flex items-center bg-white/50 px-2 py-1 rounded-lg">
+                                                                <span className="text-xs font-bold text-antique mr-2">{itemPrice && itemPrice.price ? `₹${itemPrice.price} / ${itemPrice.unit}` : <span className="text-gray-400 italic font-normal">Unpriced</span>}</span>
+                                                                {itemPrice?.gst > 0 && <span className="text-[9px] text-gray-500 font-bold bg-gray-200 px-1.5 py-0.5 rounded mr-3">+{itemPrice.gst}% GST</span>}
+                                                                <button onClick={() => { setEditingPriceItem(item); setTempPriceVal(itemPrice?.price || ''); setTempPriceUnit(itemPrice?.unit || 'Kg'); setTempGstVal(itemPrice?.gst || ''); }} className="text-gray-400 hover:text-victorian transition-colors ml-1"><Icons.Edit/></button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    {isEditing && (
+                                                        <div className="flex flex-col space-y-2 mt-3 bg-paper/50 p-3 rounded-lg border border-antique/20">
+                                                            <div className="flex items-center space-x-2">
+                                                                <span className="text-sm font-bold text-gray-500">₹ Base</span>
+                                                                <input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-20 p-2 border border-antique/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-antique" placeholder="Price" />
+                                                                <span className="text-xs text-gray-500">per</span>
+                                                                <select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-antique/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-antique">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2 pt-2 border-t border-antique/10">
+                                                                <span className="text-xs font-bold text-gray-500">+ GST</span>
+                                                                <input type="number" min="0" max="100" step="any" value={tempGstVal} onChange={e=>setTempGstVal(e.target.value)} className="w-16 p-2 border border-antique/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-antique" placeholder="%" />
+                                                                <span className="text-xs text-gray-500">%</span>
+                                                                <div className="flex-1 flex justify-end space-x-2">
+                                                                    <button onClick={() => setEditingPriceItem(null)} className="px-3 py-2 text-[10px] uppercase font-bold text-gray-500 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button>
+                                                                    <button onClick={() => {const newPrices = { ...prices }; newPrices[item] = { price: Number(tempPriceVal) || 0, unit: tempPriceUnit, gst: Number(tempGstVal) || 0 }; db.collection('settings').doc('main').update({ prices: newPrices }); setEditingPriceItem(null); showToast("Price & GST saved", "success");}} className="px-4 py-2 text-[10px] uppercase tracking-widest font-bold bg-victorian text-antique rounded-lg transition-all shadow-sm hover:shadow">Save</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-4 text-center">Landed Cost automatically calculated in Recipe Engine.</p>
+                                </div>
+
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">Raw Material Catalog</h3>
+                                    <div className="flex justify-between items-center mb-5"><select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-2/3 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">{Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}</select><button onClick={handleAddInventoryItem} className="bg-victorian text-antique text-[10px] font-bold py-3 px-4 rounded-xl hover:bg-victorianLight transition-all uppercase tracking-wider shadow-sm hover:shadow-md">+ Add Item</button></div>
+                                    <div className="bg-paper/50 border border-white/60 rounded-xl max-h-[500px] overflow-y-auto shadow-sm">
+                                        {inventory[dbCategory] && inventory[dbCategory].map(item => (
+                                            <div key={item} className="flex justify-between items-center p-4 border-b border-white/40 last:border-0 hover:bg-white/80 transition-colors">
+                                                <span className="text-sm font-medium text-gray-800 truncate pr-2 w-3/4">{item}</span>
+                                                <div className="flex space-x-2"><button onClick={() => handleEditInventoryItem(item)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => handleDeleteInventoryItem(item)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 
