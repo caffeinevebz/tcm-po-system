@@ -333,10 +333,6 @@
                             <div className="bg-login-tab shadow-2xl rounded-3xl w-full max-w-[380px] pt-[260px] pb-[50px] px-[35px] text-center mx-4 relative animate-slide-up border-4 border-antique/30 overflow-hidden">
                                 <div className="absolute inset-2 border-2 border-dashed border-antique/20 rounded-2xl pointer-events-none"></div>
                                 
-                                <div className="text-[12px] text-paper/90 mt-5 mb-[28px] font-poppins uppercase tracking-widest font-semibold bg-white/10 px-4 py-2 rounded-full inline-block relative z-10 backdrop-blur-sm border border-antique/20">
-                                    Inventory & Recipe Ledger
-                                </div>
-
                                 <form className="relative z-10" onSubmit={(e) => {
                                     e.preventDefault(); const pin = e.target.pin.value;
                                     if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
@@ -348,7 +344,7 @@
                                         <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-[12px] border-2 border-antique/50 outline-none focus:border-antique focus:shadow-[0_0_8px_rgba(212,175,55,0.6)] transition-all text-center text-3xl tracking-[0.6em] font-mono bg-black/20 text-white placeholder:text-antique/60 shadow-inner" />
                                     </div>
                                     <button type="submit" className="w-full p-4 border border-antique/50 rounded-[12px] bg-gradient-to-br from-vintageGreen to-antique text-paper font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-[0_10px_25px_rgba(19,42,27,0.25)]">
-                                        Open Ledger
+                                        Login
                                     </button>
                                 </form>
                                 <div className="mt-8 text-[11px] text-paper/60 font-medium tracking-wide relative z-10">Authorized Access Only</div>
