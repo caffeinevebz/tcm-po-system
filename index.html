@@ -38,7 +38,9 @@
                     },
                     boxShadow: { 
                         'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 
-                        'login': '0 15px 40px rgba(0,0,0,0.1)'
+                        'login': '0 15px 40px rgba(0,0,0,0.1)',
+                        'vintage': '0 10px 30px rgba(44, 26, 15, 0.08)', 
+                        'inner-vintage': 'inset 0 2px 10px rgba(44, 26, 15, 0.05)'
                     }
                 }
             }
@@ -52,6 +54,9 @@
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
         
         .bg-theme-orders { background-color: #FAF8F5; }
+        .bg-leaf-pattern { background-image: linear-gradient(to bottom, rgba(74, 93, 35, 0.8), rgba(212, 175, 55, 0.3)), url('leaf-pattern.jpg'); background-size: cover; background-position: center; }
+        .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
+        .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
 
         @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -311,37 +316,46 @@
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <p className="animate-pulse font-bold tracking-widest uppercase">Loading BrewOps...</p> </div> );
 
-            // --- REDESIGNED MINIMALIST LOGIN SCREEN ---
+            // ==========================================
+            // --- NEW REVISED LOGIN SCREEN (3 LAYERS) ---
+            // ==========================================
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-cover bg-center" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#FAF8F5]">
                         
-                        <div className="relative z-10 flex justify-center items-center w-full mt-24">
-                            
-                            <div className="bg-white/40 backdrop-blur-md shadow-2xl rounded-3xl w-full max-w-[320px] p-[35px] text-center mx-4 border border-white/50">
-                                
+                        {/* LAYER 1: Background Image with 55% Opacity */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" 
+                            style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}
+                        ></div>
+
+                        {/* LAYER 2: The Login Tab (Centered Card) */}
+                        <div 
+                            className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up"
+                            style={{ backgroundImage: "url('Login Tab.jpg')" }}
+                        >
+                            {/* LAYER 3: Inputs & Login Button (Placed over the blank space at the bottom) */}
+                            <div className="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
                                 <form onSubmit={(e) => {
-                                    e.preventDefault();
-                                    const pin = e.target.pin.value;
+                                    e.preventDefault(); const pin = e.target.pin.value;
                                     if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
                                     else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
                                     else showToast('Invalid PIN', 'error');
                                 }}>
-                                    <div className="mb-[20px]">
+                                    <div className="mb-5">
                                         <input 
                                             type="password" 
                                             name="pin" 
                                             autoFocus 
                                             placeholder="••••••" 
-                                            className="w-full p-4 rounded-xl border border-brandBrown/30 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.5em] font-mono bg-white/80 shadow-inner" 
+                                            className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" 
                                         />
                                     </div>
-
-                                    <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown text-white font-poppins text-sm font-bold uppercase tracking-widest cursor-pointer transition-all hover:-translate-y-[2px] hover:shadow-lg">
+                                    <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg">
                                         Login
                                     </button>
                                 </form>
-                                <div className="mt-6 text-[10px] text-gray-600 font-medium tracking-wide">Internal Use Only</div>
+                                <div className="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Use Only</div>
                             </div>
                         </div>
                     </div>
@@ -522,6 +536,7 @@
             );
         }
 
+        // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db }) {
             const activePOs = pos.filter(po => po.status === 'Approved'); const deliveredPOs = pos.filter(po => po.status === 'Delivered');
             const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
@@ -646,11 +661,10 @@
             const allRawNames = Object.values(inventory).flat(); const allBasicPreps = prepItems.map(p => p.name); const allBatchPreps = recipes.filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...allBatchPreps, ...allBasicPreps, ...allRawNames]; 
             const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
 
-            if (ownerTab === 'dashboard') return <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} setOwnerTab={setOwnerTab} />;
-
             return (
                 <div className="animate-fade-in relative">
                     
+                    {/* BREWSTER'S WORKBENCH UI */}
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
@@ -909,7 +923,7 @@
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
                                                         <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
-                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor Running...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan</>}</label></div>
                                                         <div className="space-y-3 mb-5">
                                                             <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
                                                             {(po.receivedItems || po.items).map((item, idx) => (
@@ -967,6 +981,7 @@
                         </div>
                     )}
 
+                    {/* UPDATED RECIPE VIEW: Displays Landed Costs with GST */}
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -1037,7 +1052,7 @@
                                         )}
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Instructions</label><textarea className="w-full p-3.5 border border-gray-200 rounded-xl mb-8 text-sm h-32 leading-relaxed bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" placeholder="1. Pull double espresso shot.&#10;2. Add ice... " value={recipeInstructions} onChange={e => setRecipeInstructions(e.target.value)}></textarea>
                                         <div className="flex justify-between items-end mb-4 border-b border-victorian/10 pb-3 px-1"><h3 className="font-bold text-victorian text-xs uppercase tracking-widest">Build Composition</h3><button onClick={()=>{setRecModalItem(''); setRecModalQty(''); setRecModalUnit('ml'); setIsCustomRecItem(true); setShowRecAdd(true);}} className="text-[10px] bg-white border border-gray-200 text-gray-600 font-bold px-3 py-2 rounded-lg hover:bg-paper transition-all uppercase tracking-widest shadow-sm hover:shadow">+ Custom/Water</button></div>
-                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder="Search catalog..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)}/></div>
+                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-antique/50" placeholder="Search catalog..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)}/></div>
                                         {!recSearch && (
                                             <div className="flex overflow-x-auto space-x-2 mb-5 pb-2 hide-scrollbar">
                                                 <button onClick={() => setRecCat('Batch Preps')} className={`whitespace-nowrap px-4 py-2 text-[10px] uppercase tracking-wider rounded-lg transition-all shadow-sm ${recCat === 'Batch Preps' ? 'bg-victorian text-brandLightBrown font-bold scale-[1.02]' : 'bg-white text-victorian border border-gray-100 hover:bg-gray-50'}`}>Batch Preps</button>
