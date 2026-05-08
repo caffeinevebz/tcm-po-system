@@ -11,9 +11,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
-    <script src="https://unpkg.com/recharts/umd/Recharts.js" crossorigin></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
@@ -78,7 +75,6 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, CartesianGrid } = window.Recharts;
 
         // --- FIREBASE INITIALIZATION ---
         const firebaseConfig = {
@@ -327,34 +323,41 @@
             // --- REDESIGNED MINIMALIST LOGIN SCREEN ---
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-cover bg-center" style={{ backgroundImage: "url('DSC_8010.jpg')" }}>
-                        {/* Semi-transparent overlay to ensure readability */}
-                        <div className="absolute inset-0 bg-white/45"></div>
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#FAF8F5]">
                         
-                        <div className="relative z-10 flex justify-center items-center w-full mt-10">
-                            <div className="relative z-10 w-[90%] max-w-[380px] h-[550px] sm:h-[650px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up border border-white/40" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
-                                <div className="flex-1 flex flex-col justify-end px-8 pb-16 sm:pb-20">
-                                    <form onSubmit={(e) => {
-                                        e.preventDefault(); const pin = e.target.pin.value;
-                                        if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
-                                        else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
-                                        else showToast('Invalid PIN', 'error');
-                                    }}>
-                                        <div className="mb-[20px]">
-                                            <input 
-                                                type="password" 
-                                                name="pin" 
-                                                autoFocus 
-                                                placeholder="••••••" 
-                                                className="w-full p-4 rounded-xl border border-brandBrown/40 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/30 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-white/90 shadow-inner text-victorian" 
-                                            />
-                                        </div>
-                                        <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-sm font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
-                                            Login
-                                        </button>
-                                    </form>
-                                    <div className="mt-5 text-[10px] text-gray-600/80 font-bold uppercase tracking-widest text-center">Internal Use Only</div>
-                                </div>
+                        {/* LAYER 1: Background Image with 55% Opacity */}
+                        <div 
+                            className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" 
+                            style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}
+                        ></div>
+
+                        {/* LAYER 2: The Login Tab (Centered Card) */}
+                        <div 
+                            className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up"
+                            style={{ backgroundImage: "url('Login Tab.jpg')" }}
+                        >
+                            {/* LAYER 3: Inputs & Login Button (Placed over the blank space at the bottom) */}
+                            <div className="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
+                                <form onSubmit={(e) => {
+                                    e.preventDefault(); const pin = e.target.pin.value;
+                                    if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
+                                    else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
+                                    else showToast('Invalid PIN', 'error');
+                                }}>
+                                    <div className="mb-5">
+                                        <input 
+                                            type="password" 
+                                            name="pin" 
+                                            autoFocus 
+                                            placeholder="••••••" 
+                                            className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" 
+                                        />
+                                    </div>
+                                    <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg">
+                                        Login
+                                    </button>
+                                </form>
+                                <div className="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Use Only</div>
                             </div>
                         </div>
                     </div>
