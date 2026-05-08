@@ -11,6 +11,9 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js" crossorigin></script>
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
@@ -53,8 +56,14 @@
         input[type="text"], input[type="number"], input[type="password"], select, textarea { transition: all 0.2s ease-in-out; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
         
-        .bg-theme-orders { background-color: #FAF8F5; }
-        
+        /* 65% Opacity Background Overlay for the Main App */
+        .bg-theme-orders { 
+            background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('DSC_8017.jpg'); 
+            background-size: cover; 
+            background-attachment: fixed; 
+            background-position: center; 
+        }
+
         .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
         .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
 
@@ -69,6 +78,7 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
+        const { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, CartesianGrid } = window.Recharts;
 
         // --- FIREBASE INITIALIZATION ---
         const firebaseConfig = {
@@ -153,11 +163,11 @@
                     
                     {/* Sidebar Drawer */}
                     <div className={`fixed inset-y-0 left-0 w-72 bg-victorian text-paper shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <div className="flex justify-between items-center p-6 border-b border-white/10">
-                            <div className="flex items-center space-x-3">
-                                <div className="flex flex-col"><h1 className="text-xl font-serif font-bold uppercase tracking-wider text-antique">TCM<br/>BrewOps</h1></div>
+                        <div className="flex justify-between items-center p-6 border-b border-white/10 relative">
+                            <div className="bg-white p-2 rounded-xl shadow-inner w-full flex justify-center mt-2">
+                                <img src="Name.jpg" alt="TCM BrewOps" className="h-10 md:h-12 object-contain mix-blend-multiply" />
                             </div>
-                            <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white"><Icons.Close/></button>
+                            <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white absolute right-4 top-4"><Icons.Close/></button>
                         </div>
                         <div className="p-4 space-y-2 flex flex-col h-[calc(100vh-100px)] overflow-y-auto hide-scrollbar">
                             <div className="flex-1 space-y-2 mt-4">
@@ -172,13 +182,11 @@
                         </div>
                     </div>
 
-                    <header className="bg-victorian/95 backdrop-blur-xl text-paper p-4 shadow-elegant sticky top-0 z-30 border-b border-antique/30">
+                    <header className="bg-paper/95 backdrop-blur-xl border-b border-brandBrown/20 p-4 shadow-elegant sticky top-0 z-30">
                         <div className="flex items-center max-w-6xl mx-auto px-2 lg:px-6 relative">
-                            <button onClick={() => setSidebarOpen(true)} className="mr-4 text-antique hover:text-white transition-colors"><Icons.Menu/></button>
+                            <button onClick={() => setSidebarOpen(true)} className="mr-4 text-victorian hover:text-brandBrown transition-colors"><Icons.Menu/></button>
                             <div className="flex-1 flex justify-center py-2">
-                                <p className="font-serif font-bold text-3xl uppercase tracking-widest text-white drop-shadow-sm flex items-center gap-3">
-                                    <Icons.FileText />TCM BrewOps<Icons.Box />
-                                </p>
+                                <img src="Page-Header.jpg" alt="TCM BrewOps" className="h-8 md:h-10 lg:h-12 object-contain mix-blend-multiply drop-shadow-sm" />
                             </div>
                         </div>
                     </header>
@@ -611,7 +619,7 @@
         // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db }) {
             const activePOs = pos.filter(po => po.status === 'Approved'); const deliveredPOs = pos.filter(po => po.status === 'Delivered');
-            const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0]);
+            const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
             const [localPhone, setLocalPhone] = useState(ownerPhone); const [expandedPOs, setExpandedPOs] = useState({});
             const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); const [editQuantities, setEditQuantities] = useState({}); const [editPrices, setEditPrices] = useState({}); const [unmatchedScans, setUnmatchedScans] = useState([]); const [isOwnerScanning, setIsOwnerScanning] = useState(false);
             const [prepName, setPrepName] = useState(''); const [prepYieldQty, setPrepYieldQty] = useState(''); const [prepYieldUnit, setPrepYieldUnit] = useState('ml'); const [prepRawQty, setPrepRawQty] = useState(''); const [prepRawUnit, setPrepRawUnit] = useState('gms'); const [prepRawItem, setPrepRawItem] = useState(''); const [editingPrepId, setEditingPrepId] = useState(null); 
@@ -620,17 +628,29 @@
             const [showRecAdd, setShowRecAdd] = useState(false); const [recModalItem, setRecModalItem] = useState(''); const [recModalQty, setRecModalQty] = useState(''); const [recModalUnit, setRecModalUnit] = useState('gms'); const [isCustomRecItem, setIsCustomRecItem] = useState(false);
             
             const [editingPriceItem, setEditingPriceItem] = useState(null); const [tempPriceVal, setTempPriceVal] = useState(''); const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); const [tempGstVal, setTempGstVal] = useState(''); const [priceSearchFilter, setPriceSearchFilter] = useState('');
+            const [catalogSearchFilter, setCatalogSearchFilter] = useState('');
+
+            useEffect(() => { if (!dbCategory && Object.keys(inventory).length > 0) setDbCategory(Object.keys(inventory)[0]); }, [inventory]);
 
             const savePhoneToCloud = () => { db.collection('settings').doc('main').update({ ownerPhone: localPhone }); showToast("Settings saved", "success"); };
             const togglePO = (id) => setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
 
+            const handleAddCategory = () => {
+                const catName = window.prompt("Enter new category name:");
+                if (!catName || catName.trim() === '') return;
+                if (inventory[catName.trim()]) return showToast("Category already exists!", "error");
+                const newInv = { ...inventory, [catName.trim()]: [] };
+                db.collection('settings').doc('main').update({ inventory: newInv });
+                setDbCategory(catName.trim());
+                showToast(`Added category: ${catName.trim()}`, "success");
+            };
+
             const handleAddInventoryItem = () => {
-                const cat = window.prompt(`Add item to which category?\n${Object.keys(inventory).join(', ')}`, dbCategory);
-                if (!cat || !inventory[cat]) return showToast("Invalid category", "error");
+                if (!dbCategory) return showToast("Please select a category first", "error");
                 const name = window.prompt("New Item Name (e.g., Beans (Kg)):");
                 if (!name || name.trim() === '') return;
                 const newInv = { ...inventory };
-                newInv[cat] = [...newInv[cat], name.trim()];
+                newInv[dbCategory] = [...(newInv[dbCategory] || []), name.trim()];
                 db.collection('settings').doc('main').update({ inventory: newInv });
                 showToast("Item added to catalog", "success");
             };
@@ -638,9 +658,7 @@
             const handleDeleteInventoryItem = (itemName) => {
                 confirmAction(`Delete ${itemName} from catalog?`, () => {
                     const newInv = { ...inventory };
-                    Object.keys(newInv).forEach(cat => {
-                        newInv[cat] = newInv[cat].filter(i => i !== itemName);
-                    });
+                    Object.keys(newInv).forEach(cat => { newInv[cat] = newInv[cat].filter(i => i !== itemName); });
                     db.collection('settings').doc('main').update({ inventory: newInv });
                     showToast(`${itemName} removed`, "info");
                 });
@@ -655,10 +673,7 @@
                     if (idx > -1) newInv[cat][idx] = newName.trim();
                 });
                 const newPrices = { ...prices };
-                if (newPrices[oldName]) {
-                    newPrices[newName.trim()] = newPrices[oldName];
-                    delete newPrices[oldName];
-                }
+                if (newPrices[oldName]) { newPrices[newName.trim()] = newPrices[oldName]; delete newPrices[oldName]; }
                 db.collection('settings').doc('main').update({ inventory: newInv, prices: newPrices });
                 showToast("Item updated", "success");
             };
@@ -731,6 +746,7 @@
 
             const allRawNames = Object.values(inventory).flat(); const allBasicPreps = prepItems.map(p => p.name); const allBatchPreps = recipes.filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...allBatchPreps, ...allBasicPreps, ...allRawNames]; 
             const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
+            const displayedCatalogItems = (inventory[dbCategory] || []).filter(item => item.toLowerCase().includes(catalogSearchFilter.toLowerCase()));
 
             return (
                 <div className="animate-fade-in relative">
@@ -888,14 +904,22 @@
                             <div className="lg:col-span-1 space-y-6">
                                 <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20 h-[600px] flex flex-col">
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">Raw Material Catalog</h3>
-                                    <div className="flex justify-between items-center mb-5">
-                                        <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="w-2/3 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">
+                                    
+                                    <div className="flex justify-between items-center mb-5 gap-3">
+                                        <select value={dbCategory} onChange={e => setDbCategory(e.target.value)} className="flex-1 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">
                                             {Object.keys(inventory).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                                         </select>
-                                        <button onClick={handleAddInventoryItem} className="bg-victorian text-antique text-[10px] font-bold py-3 px-4 rounded-xl hover:bg-victorianLight transition-all uppercase tracking-wider shadow-sm hover:shadow-md">+ Add Item</button>
+                                        <button onClick={handleAddCategory} className="text-victorian font-bold bg-white border border-brandBrown/30 px-4 py-3 rounded-xl hover:bg-brandBrown/10 transition-colors shadow-sm" title="Add Category">+</button>
+                                        <button onClick={handleAddInventoryItem} className="bg-victorian text-antique text-[10px] font-bold py-3 px-4 rounded-xl hover:bg-victorianLight transition-all uppercase tracking-wider shadow-sm hover:shadow-md whitespace-nowrap">+ Add Item</button>
                                     </div>
+
+                                    <div className="relative mb-5 shadow-sm">
+                                        <span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span>
+                                        <input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder={`Search ${dbCategory || 'catalog'}...`} value={catalogSearchFilter} onChange={(e) => setCatalogSearchFilter(e.target.value)}/>
+                                    </div>
+
                                     <div className="bg-paper/50 border border-brandBrown/20 rounded-xl flex-1 overflow-y-auto shadow-sm">
-                                        {inventory[dbCategory] && inventory[dbCategory].map(item => (
+                                        {displayedCatalogItems.map(item => (
                                             <div key={item} className="flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 hover:bg-white/80 transition-colors">
                                                 <span className="text-sm font-medium text-gray-800 truncate pr-2 w-3/4">{item}</span>
                                                 <div className="flex space-x-2">
@@ -904,7 +928,7 @@
                                                 </div>
                                             </div>
                                         ))}
-                                        {(!inventory[dbCategory] || inventory[dbCategory].length === 0) && <p className="text-center text-xs py-6 text-gray-500 italic">No items in this category.</p>}
+                                        {displayedCatalogItems.length === 0 && <p className="text-center text-xs py-6 text-gray-500 italic">No items found.</p>}
                                     </div>
                                 </div>
                             </div>
@@ -1140,7 +1164,7 @@
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
                                                         <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
-                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor Running...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
                                                         <div className="space-y-3 mb-5">
                                                             <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
                                                             {(po.receivedItems || po.items).map((item, idx) => (
