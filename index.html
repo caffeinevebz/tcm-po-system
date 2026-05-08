@@ -11,9 +11,6 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
-    <script src="https://unpkg.com/recharts/umd/Recharts.js" crossorigin></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
@@ -57,14 +54,14 @@
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
         
         .bg-theme-orders { background-color: #FAF8F5; }
+        
+        .vintage-checkbox { appearance: none; width: 16px; height: 16px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; }
+        .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 12px; font-weight: bold; }
 
         @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
         .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
         .animate-fade-in { animation: fade-in 0.3s ease-in-out; }
-        
-        /* Recharts custom tooltip styling */
-        .recharts-tooltip-wrapper { outline: none !important; }
     </style>
 </head>
 <body>
@@ -72,7 +69,6 @@
 
     <script type="text/babel">
         const { useState, useEffect } = React;
-        const { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, Legend, CartesianGrid } = window.Recharts;
 
         // --- FIREBASE INITIALIZATION ---
         const firebaseConfig = {
@@ -320,27 +316,36 @@
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <p className="animate-pulse font-bold tracking-widest uppercase">Loading BrewOps...</p> </div> );
 
+            // --- REDESIGNED MINIMALIST LOGIN SCREEN ---
             if (!role) {
                 return (
-                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#FAF8F5]">
-                        <div className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}></div>
-                        <div className="relative z-10 flex justify-center items-center w-full">
-                            <div className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
-                                <div className="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
+                    <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-cover bg-center" style={{ backgroundImage: "url('DSC_8010.jpg')" }}>
+                        {/* Semi-transparent overlay to ensure readability */}
+                        <div className="absolute inset-0 bg-white/45"></div>
+                        
+                        <div className="relative z-10 flex justify-center items-center w-full mt-10">
+                            <div className="relative z-10 w-[90%] max-w-[380px] h-[550px] sm:h-[650px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up border border-white/40" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
+                                <div className="flex-1 flex flex-col justify-end px-8 pb-16 sm:pb-20">
                                     <form onSubmit={(e) => {
                                         e.preventDefault(); const pin = e.target.pin.value;
                                         if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
                                         else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
                                         else showToast('Invalid PIN', 'error');
                                     }}>
-                                        <div className="mb-5">
-                                            <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" />
+                                        <div className="mb-[20px]">
+                                            <input 
+                                                type="password" 
+                                                name="pin" 
+                                                autoFocus 
+                                                placeholder="••••••" 
+                                                className="w-full p-4 rounded-xl border border-brandBrown/40 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/30 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-white/90 shadow-inner text-victorian" 
+                                            />
                                         </div>
-                                        <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg">
+                                        <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-sm font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
                                             Login
                                         </button>
                                     </form>
-                                    <div className="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Use Only</div>
+                                    <div className="mt-5 text-[10px] text-gray-600/80 font-bold uppercase tracking-widest text-center">Internal Use Only</div>
                                 </div>
                             </div>
                         </div>
@@ -380,26 +385,29 @@
             </div>
         );
 
-        // --- REDESIGNED OWNER DASHBOARD WITH CHARTS ---
+        // --- NATIVE TAILWIND/CSS DASHBOARD VISUALIZATIONS ---
         const OwnerDashboardSummary = ({ pos, requests, recipes, prepItems, suppliers, setOwnerTab }) => {
             const activePOs = pos.filter(po => po.status === 'Approved');
             
-            // Generate Pie Chart Data (Recipes by Category)
-            const catCounts = recipes.reduce((acc, r) => {
-                acc[r.category || 'Other'] = (acc[r.category || 'Other'] || 0) + 1;
-                return acc;
-            }, {});
+            // Generate Data for Native Pie Chart
+            const catCounts = recipes.reduce((acc, r) => { acc[r.category || 'Other'] = (acc[r.category || 'Other'] || 0) + 1; return acc; }, {});
             const pieData = Object.keys(catCounts).map(key => ({ name: key, value: catCounts[key] }));
+            const totalRecipes = pieData.reduce((sum, d) => sum + d.value, 0);
             const PIE_COLORS = ['#8b5e3c', '#4A5D23', '#D4AF37', '#23452F', '#c08a5b'];
+            
+            // Build the conic-gradient string safely
+            let cumulativePercent = 0;
+            const conicGradientString = totalRecipes > 0 ? pieData.map((d, i) => {
+                const start = cumulativePercent;
+                const percent = (d.value / totalRecipes) * 100;
+                cumulativePercent += percent;
+                return `${PIE_COLORS[i % PIE_COLORS.length]} ${start}% ${cumulativePercent}%`;
+            }).join(', ') : '#e5e7eb 0% 100%';
 
-            // Generate Bar Chart Data (Orders by Vendor)
-            const vendorCounts = pos.reduce((acc, p) => {
-                acc[p.supplier] = (acc[p.supplier] || 0) + 1;
-                return acc;
-            }, {});
-            const barData = Object.keys(vendorCounts)
-                .map(key => ({ name: key.length > 12 ? key.substring(0, 12) + '...' : key, Orders: vendorCounts[key] }))
-                .sort((a, b) => b.Orders - a.Orders).slice(0, 5); // Top 5 vendors
+            // Generate Data for Native Bar Chart
+            const vendorCounts = pos.reduce((acc, p) => { if(p.supplier) { acc[p.supplier] = (acc[p.supplier] || 0) + 1; } return acc; }, {});
+            const barData = Object.keys(vendorCounts).map(key => ({ name: key.length > 12 ? key.substring(0, 12) + '...' : key, Orders: vendorCounts[key] })).sort((a, b) => b.Orders - a.Orders).slice(0, 5);
+            const maxOrders = barData.length > 0 ? Math.max(...barData.map(d => d.Orders)) : 0;
 
             return (
                 <div className="animate-fade-in space-y-8">
@@ -407,7 +415,6 @@
                         <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">System Command Center</h2>
                     </div>
                     
-                    {/* 4-Column Grid for Metrics */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Catalog" value={recipes.length} icon={<Icons.FileText/>} borderColor="border-brandBrown" subtitle="Total Recipes Built" /></div>
                         <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active Shipments" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "In Transit" : "All Received"} /></div>
@@ -415,53 +422,55 @@
                         <div onClick={()=>setOwnerTab('vendors')} className="cursor-pointer"><DashboardMetric title="Active Vendors" value={suppliers.length} icon={<Icons.Users/>} borderColor="border-antique" subtitle="Supply Chain" /></div>
                     </div>
 
-                    {/* Data Visualization Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
-                        
-                        {/* Chart 1: Ledger Distribution */}
-                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
+                        {/* Native Pure CSS Pie Chart */}
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Menu Distribution</h3>
-                            <div className="h-[280px] w-full">
-                                {pieData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
-                                                {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />)}
-                                            </Pie>
-                                            <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} itemStyle={{ color: '#132A1B', fontWeight: 'bold' }} />
-                                            <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontFamily: 'Inter', fontWeight: '500' }}/>
-                                        </PieChart>
-                                    </ResponsiveContainer>
+                            <div className="flex-1 flex items-center justify-center lg:justify-start lg:ml-10 min-h-[220px]">
+                                {totalRecipes > 0 ? (
+                                    <div className="flex items-center">
+                                        <div className="w-40 h-40 rounded-full shadow-inner-vintage relative" style={{ background: `conic-gradient(${conicGradientString})` }}>
+                                            <div className="absolute inset-4 bg-paper rounded-full shadow-elegant flex flex-col items-center justify-center">
+                                                <span className="text-victorian font-bold text-2xl leading-none">{totalRecipes}</span>
+                                            </div>
+                                        </div>
+                                        <div className="ml-10 flex flex-col space-y-3 border-l-2 border-brandBrown/10 pl-6 py-2">
+                                           {pieData.map((d, i) => (
+                                               <div key={i} className="flex items-center">
+                                                   <div className="w-3.5 h-3.5 rounded-full mr-3 shadow-sm border border-black/10" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                                                   <span className="text-xs font-medium text-gray-700">{d.name} <span className="font-bold ml-1 text-victorian">({d.value})</span></span>
+                                               </div>
+                                           ))}
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No recipe data available</div>
                                 )}
                             </div>
                         </div>
 
-                        {/* Chart 2: Order Volume */}
-                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50">
+                        {/* Native Pure CSS Flexbox Bar Chart */}
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
                             <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Top Suppliers (By Order Volume)</h3>
-                            <div className="h-[280px] w-full">
+                            <div className="flex-1 min-h-[220px]">
                                 {barData.length > 0 ? (
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280', fontWeight: 500 }} dy={10} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6b7280' }} allowDecimals={false} />
-                                            <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 15px rgba(0,0,0,0.1)' }} />
-                                            <Bar dataKey="Orders" fill="#8b5e3c" radius={[4, 4, 0, 0]} maxBarSize={40}>
-                                                {barData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={index === 0 ? '#8b5e3c' : '#c08a5b'} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
-                                    </ResponsiveContainer>
+                                    <div className="flex items-end justify-around h-full pt-6 pb-2 px-4 gap-4 border-b-2 border-gray-200">
+                                        {barData.map((d, i) => {
+                                            const heightPct = maxOrders === 0 ? 0 : (d.Orders / maxOrders) * 100;
+                                            return (
+                                                <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                                    <span className="text-[10px] font-bold text-brandBrown mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{d.Orders} Orders</span>
+                                                    <div className="w-full max-w-[40px] bg-brandBrown rounded-t-md transition-all duration-700 shadow-sm group-hover:bg-brandLightBrown" style={{ height: `${Math.max(heightPct, 5)}%` }}></div>
+                                                    <span className="text-[9px] text-gray-600 font-bold text-center mt-3 truncate w-full px-1">{d.name}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
                                 ) : (
                                     <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No purchase history available</div>
                                 )}
                             </div>
                         </div>
-                        
                     </div>
                 </div>
             );
@@ -731,7 +740,6 @@
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
-                                <div className="absolute inset-0 bg-leaf-pattern opacity-[0.08] pointer-events-none z-0"></div>
                                 <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
                                     <div className="p-4">
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
@@ -1004,7 +1012,7 @@
                                         )}
                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Instructions</label><textarea className="w-full p-3.5 border border-gray-200 rounded-xl mb-8 text-sm h-32 leading-relaxed bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" placeholder="1. Pull double espresso shot.&#10;2. Add ice... " value={recipeInstructions} onChange={e => setRecipeInstructions(e.target.value)}></textarea>
                                         <div className="flex justify-between items-end mb-4 border-b border-victorian/10 pb-3 px-1"><h3 className="font-bold text-victorian text-xs uppercase tracking-widest">Build Composition</h3><button onClick={()=>{setRecModalItem(''); setRecModalQty(''); setRecModalUnit('ml'); setIsCustomRecItem(true); setShowRecAdd(true);}} className="text-[10px] bg-white border border-gray-200 text-gray-600 font-bold px-3 py-2 rounded-lg hover:bg-paper transition-all uppercase tracking-widest shadow-sm hover:shadow">+ Custom/Water</button></div>
-                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder="Search catalog..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)}/></div>
+                                        <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-antique/50" placeholder="Search catalog..." value={recSearch} onChange={(e) => setRecSearch(e.target.value)}/></div>
                                         {!recSearch && (
                                             <div className="flex overflow-x-auto space-x-2 mb-5 pb-2 hide-scrollbar">
                                                 <button onClick={() => setRecCat('Batch Preps')} className={`whitespace-nowrap px-4 py-2 text-[10px] uppercase tracking-wider rounded-lg transition-all shadow-sm ${recCat === 'Batch Preps' ? 'bg-victorian text-brandLightBrown font-bold scale-[1.02]' : 'bg-white text-victorian border border-gray-100 hover:bg-gray-50'}`}>Batch Preps</button>
