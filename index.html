@@ -224,7 +224,7 @@
                         if (doc.exists) {
                             const data = doc.data(); const rawInv = data.inventory || DEFAULT_INVENTORY; const scrubbedInv = {};
                             
-                            // AUTO-CLEANUP: Remove "Amul Milk" group if it exists per explicit request
+                            // AUTO-CLEANUP: Remove "Amul Milk" group safely
                             if (rawInv['Amul Milk']) {
                                 delete rawInv['Amul Milk'];
                                 settingsRef.update({ inventory: rawInv });
@@ -234,9 +234,9 @@
                             setSuppliers(data.suppliers || DEFAULT_SUPPLIERS); setInventory(scrubbedInv); setPrepItems(data.prepItems || []); setPoCounter(data.poCounter); setOwnerPhone(data.ownerPhone || ''); setPrices(data.prices || {}); setAliases(data.aliases || {});
                         }
                     });
-                    unsubReqs = db.collection('requests').onSnapshot(snap => { const reqData = []; snap.forEach(d => reqData.push(d.data())); setRequests(reqData.sort((a,b) => String(b.id).localeCompare(String(a.id)))); });
-                    unsubPOs = db.collection('pos').onSnapshot(snap => { const poData = []; snap.forEach(d => poData.push(d.data())); setPos(poData.sort((a,b) => String(b.id).localeCompare(String(a.id)))); });
-                    unsubRecipes = db.collection('recipes').onSnapshot(snap => { const recData = []; snap.forEach(d => recData.push(d.data())); setRecipes(recData.sort((a,b) => String(a.name).localeCompare(String(b.name)))); });
+                    unsubReqs = db.collection('requests').onSnapshot(snap => { const reqData = []; snap.forEach(d => reqData.push(d.data())); setRequests(reqData.sort((a,b) => String(b.id || '').localeCompare(String(a.id || '')))); });
+                    unsubPOs = db.collection('pos').onSnapshot(snap => { const poData = []; snap.forEach(d => poData.push(d.data())); setPos(poData.sort((a,b) => String(b.id || '').localeCompare(String(a.id || '')))); });
+                    unsubRecipes = db.collection('recipes').onSnapshot(snap => { const recData = []; snap.forEach(d => recData.push(d.data())); setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || '')))); });
                     setLoading(false);
                 };
                 initializeDB();
@@ -247,7 +247,7 @@
             
             const convertToCost = (qty, fromUnit, priceObj) => {
                 if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return { base: 0, landed: 0 };
-                let factor = 1; const pUnit = priceObj.unit;
+                let factor = 1; const pUnit = priceObj.unit || '';
                 if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001; if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
                 if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001; if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
                 
@@ -260,7 +260,7 @@
 
             const generatePONumber = () => {
                 const now = new Date(); const currentMonthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
-                let newCount = poCounter.count; if (poCounter.month !== currentMonthYear) { newCount = 1; }
+                let newCount = poCounter.count || 1; if (poCounter.month !== currentMonthYear) { newCount = 1; }
                 const paddedCount = String(newCount).padStart(3, '0');
                 db.collection('settings').doc('main').update({ poCounter: { month: currentMonthYear, count: newCount + 1 } });
                 return `TCM/${currentMonthYear}/${paddedCount}`;
@@ -270,7 +270,7 @@
                 const reqId = 'REQ-' + Math.floor(1000 + Math.random() * 9000);
                 db.collection('requests').doc(reqId).set({ id: reqId, items, date: new Date().toLocaleDateString('en-GB') });
                 if (ownerPhone && ownerPhone.trim() !== '') {
-                    const itemList = items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
+                    const itemList = items.map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
                     const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM Dashboard.`;
                     let phoneStr = ownerPhone.replace(/\D/g, ''); if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
                     window.open(`https://wa.me/${phoneStr}?text=${encodeURIComponent(message)}`, '_blank');
@@ -279,9 +279,9 @@
 
             const sendWhatsApp = (po) => {
                 if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
-                const itemList = po.items.map((i, index) => `${index + 1}. ${i.name} — ${i.qty} ${i.unit}`).join('\n');
+                const itemList = (po.items || []).map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
                 const isResend = po.status === 'Delivered'; const prefix = isResend ? `*[RESENT FOR RECORDS]*\n` : ``;
-                const message = `${prefix}*Subject:* Purchase Order - TCM BrewOps\n*PO Number:* ${po.id}\n*Date:* ${po.date}\n\nHello ${po.supplier},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
+                const message = `${prefix}*Subject:* Purchase Order - TCM BrewOps\n*PO Number:* ${po.id || ''}\n*Date:* ${po.date || ''}\n\nHello ${po.supplier || ''},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
                 let url = `https://wa.me/`;
                 if (po.supplierPhone) { let phoneStr = po.supplierPhone.replace(/\D/g, ''); if (phoneStr.length === 10) phoneStr = '91' + phoneStr; url += `${phoneStr}?text=${encodeURIComponent(message)}`; } 
                 else url += `?text=${encodeURIComponent(message)}`;
@@ -303,7 +303,7 @@
                 Object.keys(reqsToUpdate).forEach(reqId => {
                     const req = requests.find(r => r.id === reqId);
                     if (req) {
-                        const indicesToRemove = reqsToUpdate[reqId]; const remaining = req.items.filter((_, idx) => !indicesToRemove.includes(idx));
+                        const indicesToRemove = reqsToUpdate[reqId]; const remaining = (req.items || []).filter((_, idx) => !indicesToRemove.includes(idx));
                         if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining });
                     }
                 });
@@ -325,17 +325,14 @@
             };
 
             const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
-            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = req.items.filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
+            const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = (req.items || []).filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <p className="animate-pulse font-bold tracking-widest uppercase">Loading BrewOps...</p> </div> );
 
             if (!role) {
                 return (
                     <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#FAF8F5]">
-                        <div 
-                            className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" 
-                            style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}
-                        ></div>
+                        <div className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}></div>
                         <div className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up mt-10" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
                             <div className="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
                                 <form onSubmit={(e) => {
@@ -389,19 +386,111 @@
             </div>
         );
 
+        const OwnerDashboardSummary = ({ pos, requests, recipes, prepItems, suppliers, setOwnerTab }) => {
+            const activePOs = (pos || []).filter(po => po.status === 'Approved');
+            const catCounts = (recipes || []).reduce((acc, r) => { acc[r.category || 'Other'] = (acc[r.category || 'Other'] || 0) + 1; return acc; }, {});
+            const pieData = Object.keys(catCounts).map(key => ({ name: key, value: catCounts[key] }));
+            const totalRecipes = pieData.reduce((sum, d) => sum + d.value, 0);
+            const PIE_COLORS = ['#8b5e3c', '#4A5D23', '#D4AF37', '#23452F', '#c08a5b'];
+            let cumulativePercent = 0;
+            const conicGradientString = totalRecipes > 0 ? pieData.map((d, i) => {
+                const start = cumulativePercent; const percent = (d.value / totalRecipes) * 100; cumulativePercent += percent;
+                return `${PIE_COLORS[i % PIE_COLORS.length]} ${start}% ${cumulativePercent}%`;
+            }).join(', ') : '#e5e7eb 0% 100%';
+            const vendorCounts = (pos || []).reduce((acc, p) => { if(p.supplier) { acc[p.supplier] = (acc[p.supplier] || 0) + 1; } return acc; }, {});
+            const barData = Object.keys(vendorCounts).map(key => ({ name: key.length > 12 ? key.substring(0, 12) + '...' : key, Orders: vendorCounts[key] })).sort((a, b) => b.Orders - a.Orders).slice(0, 5);
+            const maxOrders = barData.length > 0 ? Math.max(...barData.map(d => d.Orders)) : 0;
+
+            return (
+                <div className="animate-fade-in space-y-8">
+                    <div className="flex justify-between items-end">
+                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">System Command Center</h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Catalog" value={(recipes || []).length} icon={<Icons.FileText/>} borderColor="border-brandBrown" subtitle="Total Recipes Built" /></div>
+                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active Shipments" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "In Transit" : "All Received"} /></div>
+                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Pending Requests" value={(requests || []).length} icon={<Icons.Activity/>} borderColor={(requests || []).length > 0 ? "border-danger" : "border-gray-200"} subtitle={(requests || []).length > 0 ? "Needs Approval" : "Queue Empty"} /></div>
+                        <div onClick={()=>setOwnerTab('vendors')} className="cursor-pointer"><DashboardMetric title="Active Vendors" value={(suppliers || []).length} icon={<Icons.Users/>} borderColor="border-antique" subtitle="Supply Chain" /></div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Menu Distribution</h3>
+                            <div className="flex-1 flex items-center justify-center lg:justify-start lg:ml-10 min-h-[220px]">
+                                {totalRecipes > 0 ? (
+                                    <div className="flex items-center">
+                                        <div className="w-40 h-40 rounded-full shadow-inner-vintage relative" style={{ background: `conic-gradient(${conicGradientString})` }}>
+                                            <div className="absolute inset-4 bg-paper rounded-full shadow-elegant flex flex-col items-center justify-center">
+                                                <span className="text-victorian font-bold text-2xl leading-none">{totalRecipes}</span>
+                                            </div>
+                                        </div>
+                                        <div className="ml-10 flex flex-col space-y-3 border-l-2 border-brandBrown/10 pl-6 py-2">
+                                           {pieData.map((d, i) => (
+                                               <div key={i} className="flex items-center">
+                                                   <div className="w-3.5 h-3.5 rounded-full mr-3 shadow-sm border border-black/10" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                                                   <span className="text-xs font-medium text-gray-700">{d.name || 'Unknown'} <span className="font-bold ml-1 text-victorian">({d.value || 0})</span></span>
+                                               </div>
+                                           ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No recipe data available</div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Top Suppliers (By Order Volume)</h3>
+                            <div className="flex-1 min-h-[220px]">
+                                {barData.length > 0 ? (
+                                    <div className="flex items-end justify-around h-full pt-6 pb-2 px-4 gap-4 border-b-2 border-gray-200">
+                                        {barData.map((d, i) => {
+                                            const heightPct = maxOrders === 0 ? 0 : ((d.Orders || 0) / maxOrders) * 100;
+                                            return (
+                                                <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                                    <span className="text-[10px] font-bold text-brandBrown mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{d.Orders || 0} Orders</span>
+                                                    <div className="w-full max-w-[40px] bg-brandBrown rounded-t-md transition-all duration-700 shadow-sm group-hover:bg-brandLightBrown" style={{ height: `${Math.max(heightPct, 5)}%` }}></div>
+                                                    <span className="text-[9px] text-gray-600 font-bold text-center mt-3 truncate w-full px-1">{d.name || 'Unknown'}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No purchase history available</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const StaffDashboardSummary = ({ pos, requests, setStaffTab }) => {
+            const activePOs = (pos || []).filter(po => po.status === 'Approved');
+            return (
+                <div className="animate-fade-in space-y-6">
+                    <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
+                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={(requests || []).length} icon={<Icons.FileText/>} borderColor={(requests || []).length > 0 ? "border-brandBrown" : "border-gray-200"} subtitle="Awaiting Owner action" /></div>
+                    </div>
+                    <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
+                        <span className="text-xl font-light leading-none">+</span> Draft BrewOps Order
+                    </button>
+                </div>
+            );
+        };
+
         function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
-            const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]); const [searchTerm, setSearchTerm] = useState('');
+            const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0] || ''); const [searchTerm, setSearchTerm] = useState('');
             const [receivingPO, setReceivingPO] = useState(null); const [receivedQuantities, setReceivedQuantities] = useState({}); const [receivedPrices, setReceivedPrices] = useState({}); 
             const [unmatchedScans, setUnmatchedScans] = useState([]); const [isScanning, setIsScanning] = useState(false);
             const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
             const [showAddModal, setShowAddModal] = useState(false); const [modalItemName, setModalItemName] = useState(''); const [modalQty, setModalQty] = useState(''); const [modalUnit, setModalUnit] = useState('Kg');
-            const [viewingRecipe, setViewingRecipe] = useState(null);
 
             const openAddModal = (item) => { if (cart.find(i => i.name === item)) return showToast("Already in cart", "error"); setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true); };
             const confirmAddItem = () => { if(!modalQty || Number(modalQty) <= 0) return showToast("Invalid quantity", "error"); setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]); setShowAddModal(false); };
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
             const handleSubmit = () => { if (cart.length === 0) return showToast('Cart is empty', 'error'); onSubmit(cart); setCart([]); setSearchTerm(''); };
-            const openReceiveScreen = (po) => { setReceivingPO(po); const initialQty = {}; const initialPrices = {}; po.items.forEach((item, idx) => { initialQty[idx] = item.qty; initialPrices[idx] = ''; }); setReceivedQuantities(initialQty); setReceivedPrices(initialPrices); setUnmatchedScans([]); };
+            const openReceiveScreen = (po) => { setReceivingPO(po); const initialQty = {}; const initialPrices = {}; (po.items || []).forEach((item, idx) => { initialQty[idx] = item.qty || 0; initialPrices[idx] = ''; }); setReceivedQuantities(initialQty); setReceivedPrices(initialPrices); setUnmatchedScans([]); };
 
             const handleRealAIScan = async (e) => {
                 const files = Array.from(e.target.files); if (files.length === 0) return;
@@ -410,9 +499,9 @@
                     let allScannedItems = []; const scanInvoice = firebase.functions().httpsCallable('scanInvoice');
                     for (let file of files) { const compressedBase64 = await compressImage(file); const response = await scanInvoice({ image: compressedBase64 }); if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems]; }
                     const autoQty = { ...receivedQuantities }; const autoPrices = { ...receivedPrices }; const unmatched = []; const usedScans = new Set();
-                    receivingPO.items.forEach((poItem, idx) => {
+                    (receivingPO.items || []).forEach((poItem, idx) => {
                         let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
-                        if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && (poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])));
+                        if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && ((poItem.name || '').toLowerCase().includes((scan.name || '').toLowerCase().split(' ')[0]) || (scan.name || '').toLowerCase().includes((poItem.name || '').toLowerCase().split(' ')[0])));
                         if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); } else { autoQty[idx] = ''; autoPrices[idx] = ''; }
                     });
                     allScannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
@@ -421,40 +510,27 @@
                 } catch (error) { console.error(error); showToast(`Scan failed: Server error.`, 'error'); } finally { setIsScanning(false); }
             };
 
-            const submitReceive = () => { const receivedItemsData = receivingPO.items.map((item, idx) => ({ ...item, receivedQty: Number(receivedQuantities[idx]) || 0, totalPrice: Number(receivedPrices[idx]) || 0 })); onReceive(receivingPO.id, receivedItemsData); setReceivingPO(null); };
+            const submitReceive = () => { const receivedItemsData = (receivingPO.items || []).map((item, idx) => ({ ...item, receivedQty: Number(receivedQuantities[idx]) || 0, totalPrice: Number(receivedPrices[idx]) || 0 })); onReceive(receivingPO.id, receivedItemsData); setReceivingPO(null); };
 
-            let displayedItems = searchTerm.trim() !== '' ? [...new Set(Object.values(inventory).flat())].filter(item => item.toLowerCase().includes(searchTerm.toLowerCase())) : (inventory[selectedCategory] || []);
-            const incomingPOs = pos.filter(po => po.status === 'Approved');
-            const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
+            let displayedItems = searchTerm.trim() !== '' ? [...new Set(Object.values(inventory).flat())].filter(item => (item || '').toLowerCase().includes(searchTerm.toLowerCase())) : (inventory[selectedCategory] || []);
+            const incomingPOs = (pos || []).filter(po => po.status === 'Approved');
+            const displayedRecipes = (recipes || []).filter(r => { const matchesSearch = (r.name || '').toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
 
-            if (staffTab === 'dashboard') {
-                return (
-                    <div className="animate-fade-in space-y-6">
-                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries" value={incomingPOs.length} icon={<Icons.Box/>} borderColor={incomingPOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={incomingPOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
-                            <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={requests.length} icon={<Icons.FileText/>} borderColor={requests.length > 0 ? "border-brandBrown" : "border-gray-200"} subtitle="Awaiting Owner action" /></div>
-                        </div>
-                        <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
-                            <span className="text-xl font-light leading-none">+</span> Draft BrewOps Order
-                        </button>
-                    </div>
-                );
-            }
+            if (staffTab === 'dashboard') return <StaffDashboardSummary pos={pos} requests={requests} setStaffTab={setStaffTab} />;
 
             if (receivingPO) return (
                 <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant border border-white/40">
                     <div className="flex justify-between items-center mb-5 border-b border-gray-200/50 pb-3"><h2 className="text-xl font-serif font-bold text-victorian">Delivery Intake</h2><button onClick={() => setReceivingPO(null)} className="text-danger font-bold text-xs uppercase tracking-wider hover:bg-danger/10 px-3 py-1.5 rounded-lg transition-colors">Cancel</button></div>
-                    <div className="mb-6 bg-paper/60 p-4 rounded-xl border border-white/50 shadow-sm"><p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">BrewOps Order Reference</p><p className="font-bold text-victorian text-lg mb-4">{receivingPO.id}</p>
+                    <div className="mb-6 bg-paper/60 p-4 rounded-xl border border-white/50 shadow-sm"><p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">BrewOps Order Reference</p><p className="font-bold text-victorian text-lg mb-4">{receivingPO.id || 'N/A'}</p>
                         <div className="relative"><input type="file" accept="image/*" multiple id="invoice-upload" className="hidden" onChange={handleRealAIScan} /><label htmlFor="invoice-upload" className={`w-full flex justify-center items-center py-3.5 border rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer transition-all ${isScanning ? 'bg-antiqueLight/30 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/20 text-victorian hover:border-victorian shadow-sm hover:shadow-md'}`}>{isScanning ? <span className="animate-pulse flex items-center">⏳ Processor Running...</span> : <span className="flex items-center gap-2"><Icons.Camera/> Auto-Scan Invoice</span>}</label></div>
                     </div>
                     <div className="mb-6 space-y-3">
                         <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Ord</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
-                        {receivingPO.items.map((item, idx) => (
+                        {(receivingPO.items || []).map((item, idx) => (
                             <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0 pb-3">
-                                <div className="flex justify-between items-center space-x-2"><span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name}</span><span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span><input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm bg-white focus:ring-2 focus:ring-antique/50" value={receivedQuantities[idx]} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} /><input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-sm bg-white focus:ring-2 focus:ring-antique" value={receivedPrices[idx]} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} /></div>
+                                <div className="flex justify-between items-center space-x-2"><span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name || 'Unknown'}</span><span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty || 0}<br/><span className="text-[9px]">{item.unit || ''}</span></span><input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm bg-white focus:ring-2 focus:ring-antique/50" value={receivedQuantities[idx] || ''} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} /><input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-sm bg-white focus:ring-2 focus:ring-antique" value={receivedPrices[idx] || ''} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} /></div>
                                 {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
-                                    <div className="mt-2 w-full"><select className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setReceivedQuantities({...receivedQuantities, [idx]: scanObj.quantity}); setReceivedPrices({...receivedPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); updateAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 AI Missed this. Map item...</option>{unmatchedScans.map(u => (<option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>))}</select></div>
+                                    <div className="mt-2 w-full"><select className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setReceivedQuantities({...receivedQuantities, [idx]: scanObj.quantity}); setReceivedPrices({...receivedPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); updateAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 AI Missed this. Map item...</option>{unmatchedScans.map(u => (<option key={u.name || Math.random()} value={u.name || ''}>{u.name || 'Unknown'} (Qty: {u.quantity || 0}, ₹{u.totalPrice || 0})</option>))}</select></div>
                                 )}
                             </div>
                         ))}
@@ -469,41 +545,15 @@
                         <div className="animate-fade-in">
                             <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-4 border border-white/50 bg-white/70 backdrop-blur-xl rounded-xl text-sm shadow-sm" placeholder="Search the ledger..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/></div>
                             {!recipeSearchFilter && <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">{['All', ...RECIPE_CATEGORIES].map(cat => <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold scale-[1.02]' : 'bg-white/70 backdrop-blur-md text-victorian hover:bg-white font-medium'}`}>{cat}</button>)}</div>}
-                            
-                            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-brandBrown/20 overflow-hidden mb-10">
-                                {displayedRecipes.length === 0 ? <p className="text-center text-sm italic text-gray-500 py-8">No recipes found.</p> :
-                                    displayedRecipes.map(recipe => (
-                                        <div key={recipe.id} onClick={() => setViewingRecipe(recipe)} className="flex justify-between items-center p-5 border-b border-brandBrown/10 last:border-0 hover:bg-white/90 cursor-pointer transition-colors group">
-                                            <div className="flex flex-col">
-                                                <span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name}</span>
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 bg-gray-100 w-max px-2 py-0.5 rounded">{recipe.category || 'Beverages'}</span>
-                                            </div>
-                                            <span className="text-brandBrown text-xl opacity-50 group-hover:opacity-100 transition-opacity">→</span>
-                                        </div>
-                                    ))
-                                }
-                            </div>
-
-                            {viewingRecipe && (
-                                <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
-                                    <div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border-2 border-brandBrown/40 max-h-[90vh] overflow-y-auto relative">
-                                        <button onClick={() => setViewingRecipe(null)} className="absolute top-4 right-4 text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm z-10"><Icons.Close/></button>
-                                        <div className="p-6">
-                                            <div className="flex flex-col mb-5 pr-10 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight">{viewingRecipe.name}</h3><div className="flex gap-2 mt-2.5"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span></div></div>
-                                            <div className="bg-white/80 p-4 rounded-xl border border-white/60 shadow-sm mb-5">
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Ingredients</p>
-                                                <ul className="text-sm space-y-2.5">
-                                                    {viewingRecipe.ingredients.map((ing, i) => (
-                                                        <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty} {ing.unit}</span></li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p>
-                                            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div>
-                                        </div>
+                            {displayedRecipes.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-md p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No records found.</p> : 
+                                displayedRecipes.map(recipe => (
+                                    <div key={recipe.id} className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 p-6 mb-5 hover:shadow-xl transition-shadow">
+                                        <div className="flex justify-between items-start mb-5 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight pr-2">{recipe.name || 'Unknown Recipe'}</h3><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-paper/80 border border-victorian/10 text-victorian/70 px-2.5 py-1.5 rounded-lg whitespace-nowrap mt-1">{recipe.category || 'Beverages'}</span></div>
+                                        <div className="flex flex-col space-y-4 mb-5"><div className="bg-paper/50 p-4 rounded-xl border border-white/60 shadow-sm"><p className="text-[10px] font-bold text-victorian/50 uppercase tracking-[0.2em] mb-3">Ingredients</p><ul className="text-sm space-y-2.5">{(recipe.ingredients || []).map((ing, i) => (<li key={i} className="flex justify-between items-end border-b border-victorian/5 pb-1.5"><span className="font-medium text-victorian/80">{ing.name || 'Unknown'} {ing.isCustom && <span className="text-[10px] text-victorian/40 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty || 0} {ing.unit || ''}</span></li>))}</ul></div></div>
+                                        <p className="text-[10px] font-bold text-victorian/50 uppercase tracking-[0.2em] mb-2">Method & Notes</p><div className="text-sm text-victorian/80 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-1">{recipe.instructions || "Standard preparation."}</div>
                                     </div>
-                                </div>
-                            )}
+                                ))
+                            }
                         </div>
                     )}
 
@@ -516,7 +566,7 @@
                             )}
 
                             {incomingPOs.length > 0 && (
-                                <div className="mb-6 bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-elegant border border-white/50 animate-alert-flash"><h3 className="text-xs font-bold uppercase tracking-widest text-victorian mb-4 flex items-center"><span className="mr-2 text-lg">⚠️</span> Incoming Deliveries</h3>{incomingPOs.map(po => (<div key={po.id} className="bg-paper/80 p-4 rounded-xl border border-victorian/10 mb-3 flex justify-between items-center last:mb-0"><div><p className="font-bold text-sm text-victorian mb-0.5">{po.id}</p><p className="text-xs text-gray-600">{po.supplier}</p></div><button onClick={() => openReceiveScreen(po)} className="bg-white border border-victorian/30 text-victorian text-xs font-bold py-2 px-4 rounded-lg hover:border-victorian transition-all uppercase tracking-wider shadow-sm hover:shadow-md flex items-center gap-1.5"><Icons.Camera /> Intake & Scan</button></div>))}</div>
+                                <div className="mb-6 bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-elegant border border-white/50 animate-alert-flash"><h3 className="text-xs font-bold uppercase tracking-widest text-victorian mb-4 flex items-center"><span className="mr-2 text-lg">⚠️</span> Incoming Deliveries</h3>{incomingPOs.map(po => (<div key={po.id} className="bg-paper/80 p-4 rounded-xl border border-victorian/10 mb-3 flex justify-between items-center last:mb-0"><div><p className="font-bold text-sm text-victorian mb-0.5">{po.id || 'N/A'}</p><p className="text-xs text-gray-600">{po.supplier || 'Unknown'}</p></div><button onClick={() => openReceiveScreen(po)} className="bg-white border border-victorian/30 text-victorian text-xs font-bold py-2 px-4 rounded-lg hover:border-victorian transition-all uppercase tracking-wider shadow-sm hover:shadow-md flex items-center gap-1.5"><Icons.Camera /> Intake & Scan</button></div>))}</div>
                             )}
 
                             <h2 className="text-xl font-serif font-semibold text-victorian mb-4 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Request BrewOps Inventory</h2>
@@ -535,7 +585,7 @@
                             {cart.length > 0 && (
                                 <div className="bg-victorian/95 backdrop-blur-xl text-paper rounded-2xl p-6 shadow-elegant mb-6 border-t-4 border-antique">
                                     <div className="flex justify-between items-end mb-5 border-b border-white/10 pb-3"><h3 className="font-serif font-bold text-xl text-antique">Active BrewOps Draft</h3><span className="text-xs uppercase tracking-widest text-gray-400 bg-white/10 px-2.5 py-1 rounded-lg">{cart.length} items</span></div>
-                                    <div className="space-y-4 mb-8">{cart.map((item, idx) => (<div key={idx} className="flex justify-between items-center group"><div className="flex flex-col"><span className="text-sm font-medium">{item.name}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty} {item.unit}</span></div><button onClick={() => removeItem(idx)} className="text-gray-400 hover:text-danger p-2 transition-colors rounded-lg hover:bg-white/5"><Icons.Trash/></button></div>))}</div>
+                                    <div className="space-y-4 mb-8">{cart.map((item, idx) => (<div key={idx} className="flex justify-between items-center group"><div className="flex flex-col"><span className="text-sm font-medium">{item.name || 'Unknown'}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty || 0} {item.unit || ''}</span></div><button onClick={() => removeItem(idx)} className="text-gray-400 hover:text-danger p-2 transition-colors rounded-lg hover:bg-white/5"><Icons.Trash/></button></div>))}</div>
                                     <button onClick={handleSubmit} className="w-full bg-antique text-victorian font-bold py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-antiqueLight transition-all shadow-lg hover:-translate-y-0.5 flex justify-center items-center gap-2"><Icons.Send/> Submit BrewOps Order</button>
                                 </div>
                             )}
@@ -547,16 +597,23 @@
 
         // --- OWNER VIEW ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
-            const activePOs = pos.filter(po => po.status === 'Approved'); const deliveredPOs = pos.filter(po => po.status === 'Delivered');
-            const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
-            const [localPhone, setLocalPhone] = useState(ownerPhone); const [expandedPOs, setExpandedPOs] = useState({});
-            const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); const [editQuantities, setEditQuantities] = useState({}); const [editPrices, setEditPrices] = useState({}); const [unmatchedScans, setUnmatchedScans] = useState([]); const [isOwnerScanning, setIsOwnerScanning] = useState(false);
+            const activePOs = (pos || []).filter(po => po.status === 'Approved'); 
+            const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
+            const [selectedItems, setSelectedItems] = useState([]); 
+            const [selectedVendor, setSelectedVendor] = useState(''); 
+            const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
+            const [localPhone, setLocalPhone] = useState(ownerPhone || ''); 
+            const [expandedPOs, setExpandedPOs] = useState({});
+            const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); 
+            const [editQuantities, setEditQuantities] = useState({}); 
+            const [editPrices, setEditPrices] = useState({}); 
+            const [unmatchedScans, setUnmatchedScans] = useState([]); 
+            const [isOwnerScanning, setIsOwnerScanning] = useState(false);
             const [prepName, setPrepName] = useState(''); const [prepYieldQty, setPrepYieldQty] = useState(''); const [prepYieldUnit, setPrepYieldUnit] = useState('ml'); const [prepRawQty, setPrepRawQty] = useState(''); const [prepRawUnit, setPrepRawUnit] = useState('gms'); const [prepRawItem, setPrepRawItem] = useState(''); const [editingPrepId, setEditingPrepId] = useState(null); 
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false); const [editingRecipeId, setEditingRecipeId] = useState(null); const [recipeName, setRecipeName] = useState(''); const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]); const [recipeYieldQty, setRecipeYieldQty] = useState(''); const [recipeYieldUnit, setRecipeYieldUnit] = useState('ml'); const [recipeInstructions, setRecipeInstructions] = useState(''); const [recipeCart, setRecipeCart] = useState([]);
             const [recSearch, setRecSearch] = useState(''); const [recCat, setRecCat] = useState('Batch Preps'); const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
             const [showRecAdd, setShowRecAdd] = useState(false); const [recModalItem, setRecModalItem] = useState(''); const [recModalQty, setRecModalQty] = useState(''); const [recModalUnit, setRecModalUnit] = useState('gms'); const [isCustomRecItem, setIsCustomRecItem] = useState(false);
             const [viewingRecipe, setViewingRecipe] = useState(null);
-            
             const [editingPriceItem, setEditingPriceItem] = useState(null); const [tempPriceVal, setTempPriceVal] = useState(''); const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); const [tempGstVal, setTempGstVal] = useState(''); const [priceSearchFilter, setPriceSearchFilter] = useState('');
             const [catalogSearchFilter, setCatalogSearchFilter] = useState('');
 
@@ -599,7 +656,7 @@
             const handleDeleteInventoryItem = (itemName) => {
                 confirmAction(`Delete ${itemName} from catalog?`, () => {
                     const newInv = { ...inventory };
-                    Object.keys(newInv).forEach(cat => { newInv[cat] = newInv[cat].filter(i => i !== itemName); });
+                    Object.keys(newInv).forEach(cat => { newInv[cat] = (newInv[cat] || []).filter(i => i !== itemName); });
                     db.collection('settings').doc('main').update({ inventory: newInv });
                     showToast(`${itemName} removed`, "info");
                 });
@@ -610,7 +667,7 @@
                 if (!newName || newName.trim() === '' || newName === oldName) return;
                 const newInv = { ...inventory };
                 Object.keys(newInv).forEach(cat => {
-                    const idx = newInv[cat].indexOf(oldName);
+                    const idx = (newInv[cat] || []).indexOf(oldName);
                     if (idx > -1) newInv[cat][idx] = newName.trim();
                 });
                 const newPrices = { ...prices };
@@ -620,8 +677,8 @@
             };
 
             const startEditingDeliveredPO = (po) => {
-                setEditingDeliveredPO(po); const initialQty = {}; const initialPrices = {}; const targetItems = po.receivedItems || po.items;
-                targetItems.forEach((item, idx) => { initialQty[idx] = item.receivedQty !== undefined ? item.receivedQty : item.qty; initialPrices[idx] = item.totalPrice || ''; });
+                setEditingDeliveredPO(po); const initialQty = {}; const initialPrices = {}; const targetItems = po.receivedItems || po.items || [];
+                targetItems.forEach((item, idx) => { initialQty[idx] = item.receivedQty !== undefined ? item.receivedQty : item.qty || 0; initialPrices[idx] = item.totalPrice || ''; });
                 setEditQuantities(initialQty); setEditPrices(initialPrices); setUnmatchedScans([]);
             };
 
@@ -636,10 +693,10 @@
                         const response = await scanInvoice({ image: compressedBase64 });
                         if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems];
                     }
-                    const autoQty = { ...editQuantities }; const autoPrices = { ...editPrices }; const unmatched = []; const usedScans = new Set(); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+                    const autoQty = { ...editQuantities }; const autoPrices = { ...editPrices }; const unmatched = []; const usedScans = new Set(); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items || [];
                     targetItems.forEach((poItem, idx) => {
                         let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
-                        if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && (poItem.name.toLowerCase().includes(scan.name.toLowerCase().split(' ')[0]) || scan.name.toLowerCase().includes(poItem.name.toLowerCase().split(' ')[0])));
+                        if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && ((poItem.name || '').toLowerCase().includes((scan.name || '').toLowerCase().split(' ')[0]) || (scan.name || '').toLowerCase().includes((poItem.name || '').toLowerCase().split(' ')[0])));
                         if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); }
                     });
                     allScannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
@@ -649,7 +706,7 @@
             };
 
             const saveDeliveredPOEdit = () => {
-                const safeDbId = editingDeliveredPO.id.replace(/\//g, '-'); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items;
+                const safeDbId = (editingDeliveredPO.id || '').replace(/\//g, '-'); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items || [];
                 const updatedItems = targetItems.map((item, idx) => ({ ...item, receivedQty: Number(editQuantities[idx]) || 0, totalPrice: Number(editPrices[idx]) || 0 }));
                 db.collection('pos').doc(safeDbId).update({ receivedItems: updatedItems, status: 'Delivered' });
                 const newPrices = { ...prices }; let pricesUpdated = false;
@@ -658,30 +715,25 @@
                 setEditingDeliveredPO(null);
             };
 
-            const getRawBreakdown = (ingredients) => {
+            const getRawBreakdown = (ingredients = []) => {
                 const rawTotals = {};
                 const processIngredient = (ingName, ingQty, ingUnit) => {
-                    const prepMatch = prepItems.find(p => p.name === ingName); const batchMatch = recipes.find(r => r.category === 'Batch Prep' && r.name === ingName);
-                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); batchMatch.ingredients.forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
+                    const prepMatch = (prepItems || []).find(p => p.name === ingName); const batchMatch = (recipes || []).find(r => r.category === 'Batch Prep' && r.name === ingName);
+                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); (batchMatch.ingredients || []).forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
                 };
-                ingredients.forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
+                (ingredients || []).forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
                 return rawTotals;
             };
 
             const handleCheck = (reqId, itemIndex, item) => { const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex); if (isSelected) setSelectedItems(selectedItems.filter(i => !(i.reqId === reqId && i.itemIndex === itemIndex))); else setSelectedItems([...selectedItems, { reqId, itemIndex, item }]); };
             
             const handleSelectAllInReq = (reqId, items) => {
-                const allSelected = items.every((_, idx) => selectedItems.some(si => si.reqId === reqId && si.itemIndex === idx));
-                if (allSelected) {
-                    setSelectedItems(prev => prev.filter(si => si.reqId !== reqId));
-                } else {
-                    const newSelected = [...selectedItems.filter(si => si.reqId !== reqId)];
-                    items.forEach((item, idx) => newSelected.push({ reqId, itemIndex: idx, item }));
-                    setSelectedItems(newSelected);
-                }
+                const allSelected = (items || []).every((_, idx) => selectedItems.some(si => si.reqId === reqId && si.itemIndex === idx));
+                if (allSelected) { setSelectedItems(prev => prev.filter(si => si.reqId !== reqId)); } 
+                else { const newSelected = [...selectedItems.filter(si => si.reqId !== reqId)]; (items || []).forEach((item, idx) => newSelected.push({ reqId, itemIndex: idx, item })); setSelectedItems(newSelected); }
             };
 
-            const handleGeneratePO = () => { if (selectedItems.length === 0) return showToast('Check at least one item.', 'error'); if (!selectedVendor) return showToast('Select a vendor.', 'error'); const vendorObj = suppliers.find(s => s.name === selectedVendor); onCreateCombinedPO(selectedItems, vendorObj); setSelectedItems([]); setSelectedVendor(''); };
+            const handleGeneratePO = () => { if (selectedItems.length === 0) return showToast('Check at least one item.', 'error'); if (!selectedVendor) return showToast('Select a vendor.', 'error'); const vendorObj = (suppliers || []).find(s => s.name === selectedVendor); onCreateCombinedPO(selectedItems, vendorObj); setSelectedItems([]); setSelectedVendor(''); };
 
             const handleSaveRecipe = () => {
                 if(!recipeName.trim()) return showToast("Recipe needs a name.", "error"); if(recipeCart.length === 0) return showToast("Add at least one ingredient.", "error"); if(recipeCategory === 'Batch Prep' && (!recipeYieldQty || Number(recipeYieldQty) <= 0)) return showToast("Batch Preps need a Yield Qty.", "error");
@@ -693,17 +745,17 @@
             const handleSavePrepItem = () => {
                 if (!prepName || !prepYieldQty || !prepRawItem || !prepRawQty) return showToast("Fill all fields.", "error");
                 const prepData = { name: prepName.trim(), yieldQty: Number(prepYieldQty), yieldUnit: prepYieldUnit, rawItem: prepRawItem, rawQty: Number(prepRawQty), rawUnit: prepRawUnit };
-                let updatedPreps; if (editingPrepId) { updatedPreps = prepItems.map(p => p.id === editingPrepId ? { ...prepData, id: editingPrepId } : p); } else { prepData.id = 'PREP-' + Date.now(); updatedPreps = [...prepItems, prepData]; }
+                let updatedPreps; if (editingPrepId) { updatedPreps = (prepItems || []).map(p => p.id === editingPrepId ? { ...prepData, id: editingPrepId } : p); } else { prepData.id = 'PREP-' + Date.now(); updatedPreps = [...(prepItems || []), prepData]; }
                 db.collection('settings').doc('main').update({ prepItems: updatedPreps }); showToast("Rule saved.", "success"); setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem(''); setEditingPrepId(null);
             };
 
             const handleEditRecipeClick = (recipe) => {
-                setEditingRecipeId(recipe.id); setRecipeName(recipe.name); setRecipeCategory(recipe.category); setRecipeYieldQty(recipe.yieldQty || ''); setRecipeYieldUnit(recipe.yieldUnit || 'ml'); setRecipeInstructions(recipe.instructions || ''); setRecipeCart(recipe.ingredients || []); setIsBuildingRecipe(true); setViewingRecipe(null);
+                setEditingRecipeId(recipe.id); setRecipeName(recipe.name || ''); setRecipeCategory(recipe.category || RECIPE_CATEGORIES[0]); setRecipeYieldQty(recipe.yieldQty || ''); setRecipeYieldUnit(recipe.yieldUnit || 'ml'); setRecipeInstructions(recipe.instructions || ''); setRecipeCart(recipe.ingredients || []); setIsBuildingRecipe(true); setViewingRecipe(null);
             };
 
-            const allRawNames = Object.values(inventory).flat(); const allBasicPreps = prepItems.map(p => p.name); const allBatchPreps = recipes.filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...allBatchPreps, ...allBasicPreps, ...allRawNames]; 
-            const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
-            const displayedCatalogItems = (inventory[dbCategory] || []).filter(item => item.toLowerCase().includes(catalogSearchFilter.toLowerCase()));
+            const allRawNames = Object.values(inventory).flat(); const allBasicPreps = (prepItems || []).map(p => p.name); const allBatchPreps = (recipes || []).filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...allBatchPreps, ...allBasicPreps, ...allRawNames]; 
+            const displayedRecipes = (recipes || []).filter(r => { const matchesSearch = (r.name || '').toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
+            const displayedCatalogItems = (inventory[dbCategory] || []).filter(item => (item || '').toLowerCase().includes(catalogSearchFilter.toLowerCase()));
 
             return (
                 <div className="animate-fade-in relative">
@@ -800,7 +852,7 @@
                                         {suppliers.length === 0 ? <p className="text-center text-xs py-6 text-gray-500 italic">No vendors found.</p> : 
                                             suppliers.map(vendor => (
                                                 <div key={vendor.name} className="flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 hover:bg-white/80 transition-colors">
-                                                    <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
+                                                    <div className="flex flex-col truncate pr-2"><span className="text-sm font-bold text-victorian">{vendor.name || 'Unknown'}</span>{vendor.phone && <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">{vendor.phone}</span>}</div>
                                                     <div className="flex space-x-2 shrink-0"><button onClick={() => editSupplier(vendor.name)} className="text-gray-400 hover:text-victorian p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => deleteSupplier(vendor.name)} className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
                                                 </div>
                                             ))
@@ -818,7 +870,7 @@
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3 flex justify-between items-end"><span>🧮 Master Price Book</span></h3>
                                     <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-3.5 border border-gray-200 bg-white rounded-xl text-sm focus:ring-2 focus:ring-brandBrown/50" placeholder="Search raw materials..." value={priceSearchFilter} onChange={(e) => setPriceSearchFilter(e.target.value)}/></div>
                                     <div className="bg-paper/50 border border-brandBrown/20 rounded-xl flex-1 overflow-y-auto shadow-sm">
-                                        {allRawNames.filter(item => item.toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
+                                        {allRawNames.filter(item => (item || '').toLowerCase().includes(priceSearchFilter.toLowerCase())).map(item => {
                                             const isEditing = editingPriceItem === item; const itemPrice = prices[item];
                                             return (
                                                 <div key={item} className={`flex flex-col p-4 border-b border-brandBrown/10 last:border-0 transition-colors ${isEditing ? 'bg-white shadow-md rounded-lg mx-1 my-1' : 'hover:bg-white/80'}`}>
@@ -880,7 +932,7 @@
                                     <button onClick={handleAddInventoryItem} className="w-full mb-5 bg-victorian text-antique text-[10px] font-bold py-3.5 rounded-xl hover:bg-victorianLight transition-all uppercase tracking-wider shadow-sm hover:shadow-md">+ Add Item to Category</button>
 
                                     <div className="bg-paper/50 border border-brandBrown/20 rounded-xl flex-1 overflow-y-auto shadow-sm">
-                                        {displayedCatalogItems.map(item => (
+                                        {(inventory[dbCategory] || []).filter(item => (item || '').toLowerCase().includes(catalogSearchFilter.toLowerCase())).map(item => (
                                             <div key={item} className="flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 hover:bg-white/80 transition-colors">
                                                 <span className="text-sm font-medium text-gray-800 truncate pr-2 w-3/4">{item}</span>
                                                 <div className="flex space-x-2">
@@ -889,7 +941,7 @@
                                                 </div>
                                             </div>
                                         ))}
-                                        {displayedCatalogItems.length === 0 && <p className="text-center text-xs py-6 text-gray-500 italic">No items found.</p>}
+                                        {(!inventory[dbCategory] || inventory[dbCategory].length === 0) && <p className="text-center text-xs py-6 text-gray-500 italic">No items found.</p>}
                                     </div>
                                 </div>
                             </div>
@@ -912,13 +964,13 @@
                                 </div>
                             </div>
                             <div className="lg:col-span-1">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Engine Rules ({prepItems.length})</h3>
-                                {prepItems.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No conversion rules set up yet.</p> : 
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Engine Rules ({(prepItems || []).length})</h3>
+                                {(prepItems || []).length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No conversion rules set up yet.</p> : 
                                     <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-2xl shadow-elegant overflow-hidden mb-12">
-                                        {prepItems.map(p => (
+                                        {(prepItems || []).map(p => (
                                             <div key={p.id} className="flex justify-between items-center p-5 border-b border-white/40 last:border-0 hover:bg-white/90 transition-colors">
-                                                <div className="flex flex-col"><span className="text-sm font-bold text-victorian mb-1.5">{p.name} <span className="text-antique font-serif ml-1">({p.yieldQty} {p.yieldUnit})</span></span><span className="text-xs text-gray-600 bg-white/50 inline-block px-2 py-0.5 rounded">Requires: <span className="font-semibold text-gray-800">{p.rawQty} {p.rawUnit}</span> of {p.rawItem}</span></div>
-                                                <div className="flex space-x-2 ml-2"><button onClick={() => {setPrepName(p.name); setPrepYieldQty(p.yieldQty); setPrepYieldUnit(p.yieldUnit); setPrepRawQty(p.rawQty); setPrepRawUnit(p.rawUnit); setPrepRawItem(p.rawItem); setEditingPrepId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-gray-400 hover:text-victorian p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => confirmAction("Delete conversion rule?", () => db.collection('settings').doc('main').update({ prepItems: prepItems.filter(x => x.id !== p.id) }))} className="text-gray-400 hover:text-danger p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                                <div className="flex flex-col"><span className="text-sm font-bold text-victorian mb-1.5">{p.name || 'Unknown'} <span className="text-antique font-serif ml-1">({p.yieldQty || 0} {p.yieldUnit || ''})</span></span><span className="text-xs text-gray-600 bg-white/50 inline-block px-2 py-0.5 rounded">Requires: <span className="font-semibold text-gray-800">{p.rawQty || 0} {p.rawUnit || ''}</span> of {p.rawItem || 'Unknown'}</span></div>
+                                                <div className="flex space-x-2 ml-2"><button onClick={() => {setPrepName(p.name || ''); setPrepYieldQty(p.yieldQty || ''); setPrepYieldUnit(p.yieldUnit || 'ml'); setPrepRawQty(p.rawQty || ''); setPrepRawUnit(p.rawUnit || 'gms'); setPrepRawItem(p.rawItem || ''); setEditingPrepId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-gray-400 hover:text-victorian p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => confirmAction("Delete conversion rule?", () => db.collection('settings').doc('main').update({ prepItems: prepItems.filter(x => x.id !== p.id) }))} className="text-gray-400 hover:text-danger p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
                                             </div>
                                         ))}
                                     </div>
@@ -944,7 +996,7 @@
                                         displayedRecipes.map(recipe => (
                                             <div key={recipe.id} onClick={() => setViewingRecipe(recipe)} className="flex justify-between items-center p-5 border-b border-brandBrown/10 last:border-0 hover:bg-white/90 cursor-pointer transition-colors group">
                                                 <div className="flex flex-col">
-                                                    <span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name}</span>
+                                                    <span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name || 'Unknown'}</span>
                                                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 bg-gray-100 w-max px-2 py-0.5 rounded">{recipe.category || 'Beverages'}</span>
                                                 </div>
                                                 <span className="text-brandBrown text-xl opacity-50 group-hover:opacity-100 transition-opacity">→</span>
@@ -957,7 +1009,7 @@
                                     <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
                                         <div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border border-brandBrown/40 max-h-[90vh] overflow-y-auto relative">
                                             <div className="sticky top-0 bg-paper/95 backdrop-blur-md p-4 border-b border-brandBrown/20 flex justify-between items-center z-10">
-                                                <h3 className="font-serif font-bold text-victorian text-xl flex-1 pr-4">{viewingRecipe.name}</h3>
+                                                <h3 className="font-serif font-bold text-victorian text-xl flex-1 pr-4">{viewingRecipe.name || 'Unknown'}</h3>
                                                 <div className="flex space-x-2">
                                                     <button onClick={() => handleEditRecipeClick(viewingRecipe)} className="text-gray-500 hover:text-victorian bg-white rounded-full p-2 shadow-sm border border-gray-200"><Icons.Edit/></button>
                                                     <button onClick={() => { deleteRecipe(viewingRecipe.id); setViewingRecipe(null); }} className="text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm border border-gray-200"><Icons.Trash/></button>
@@ -966,13 +1018,13 @@
                                             </div>
                                             
                                             <div className="p-6">
-                                                <div className="flex flex-wrap gap-2 mb-6"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span>{viewingRecipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2.5 py-1 rounded-lg shadow-sm">Yields: {viewingRecipe.yieldQty} {viewingRecipe.yieldUnit}</span>}</div>
+                                                <div className="flex flex-wrap gap-2 mb-6"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span>{viewingRecipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2.5 py-1 rounded-lg shadow-sm">Yields: {viewingRecipe.yieldQty || 0} {viewingRecipe.yieldUnit || ''}</span>}</div>
                                                 
                                                 <div className="bg-white/60 p-4 rounded-xl border border-brandBrown/20 shadow-sm mb-6">
                                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Barista Build (Prepped)</p>
                                                     <ul className="text-sm space-y-2.5">
-                                                        {viewingRecipe.ingredients.map((ing, i) => (
-                                                            <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty} {ing.unit}</span></li>
+                                                        {(viewingRecipe.ingredients || []).map((ing, i) => (
+                                                            <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name || 'Unknown'} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty || 0} {ing.unit || ''}</span></li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -981,7 +1033,7 @@
                                                     <div className="absolute top-0 left-0 w-1.5 h-full bg-brandBrown"></div>
                                                     <div className="flex justify-between items-end mb-4 border-b border-gray-100 pb-2.5 pl-2"><p className="text-[10px] font-bold text-brandBrown uppercase tracking-[0.2em]">Costing Engine</p><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Base + GST</p></div>
                                                     <ul className="text-sm text-gray-800 space-y-3 pl-2 mb-4">
-                                                        {Object.entries(getRawBreakdown(viewingRecipe.ingredients)).map(([name, data], i) => {
+                                                        {Object.entries(getRawBreakdown(viewingRecipe.ingredients || [])).map(([name, data], i) => {
                                                             const costs = convertToCost(data.qty, data.unit, prices[name]);
                                                             return (
                                                                 <li key={i} className="flex justify-between items-center border-b border-gray-50 pb-2 last:border-0">
@@ -999,7 +1051,7 @@
                                                     </ul>
                                                     <div className="pl-3 pt-3 border-t border-brandBrown/20 flex justify-between items-center bg-brandBrown/10 rounded-lg p-3 mt-2">
                                                         <span className="text-xs font-bold text-victorian uppercase tracking-widest">Total Food Cost</span>
-                                                        <span className="text-xl font-bold text-brandBrown drop-shadow-sm">₹{Object.entries(getRawBreakdown(viewingRecipe.ingredients)).reduce((sum, [name, data]) => sum + convertToCost(data.qty, data.unit, prices[name]).landed, 0).toFixed(2)}</span>
+                                                        <span className="text-xl font-bold text-brandBrown drop-shadow-sm">₹{Object.values(getRawBreakdown(viewingRecipe.ingredients || [])).reduce((sum, data) => sum + convertToCost(data.qty, data.unit, prices[data.rawItem || data.name]).landed, 0).toFixed(2)}</span>
                                                     </div>
                                                 </div>
                                                 
@@ -1038,10 +1090,10 @@
                                             </div>
                                         )}
                                         <div className="bg-paper/50 border border-white/60 p-2 mb-8 h-56 overflow-y-auto rounded-xl shadow-sm">
-                                            { (recSearch ? allRecipeIngredients.filter(item => item.toLowerCase().includes(recSearch.toLowerCase())) : (recCat === 'Batch Preps' ? allBatchPreps : recCat === 'Basic Preps' ? allBasicPreps : (inventory[recCat] || []))).map(item => (
+                                            { (recSearch ? allRecipeIngredients.filter(item => (item || '').toLowerCase().includes(recSearch.toLowerCase())) : (recCat === 'Batch Preps' ? allBatchPreps : recCat === 'Basic Preps' ? allBasicPreps : (inventory[recCat] || []))).map(item => (
                                                 <div key={item} className="flex justify-between items-center py-2.5 px-4 border-b border-white/50 last:border-0 hover:bg-white/80 rounded-lg transition-colors"><span className="text-xs font-medium text-gray-800">{item}</span><button onClick={() => { if (recipeCart.find(i => i.name === item)) return showToast("Already added.", "error"); setRecModalItem(item); setRecModalQty(''); setRecModalUnit('gms'); setIsCustomRecItem(false); setShowRecAdd(true); }} className="text-brandBrown bg-brandLightBrown/20 w-7 h-7 rounded-full flex items-center justify-center text-xl font-light hover:bg-brandBrown hover:text-white transition-colors leading-none shadow-sm">+</button></div>
                                             ))}
-                                            {((recSearch ? allRecipeIngredients.filter(item => item.toLowerCase().includes(recSearch.toLowerCase())) : (recCat === 'Batch Preps' ? allBatchPreps : recCat === 'Basic Preps' ? allBasicPreps : (inventory[recCat] || []))).length === 0) && (<div className="text-center py-8 text-xs text-gray-400 italic">No items found in this view.</div>)}
+                                            {((recSearch ? allRecipeIngredients.filter(item => (item || '').toLowerCase().includes(recSearch.toLowerCase())) : (recCat === 'Batch Preps' ? allBatchPreps : recCat === 'Basic Preps' ? allBasicPreps : (inventory[recCat] || []))).length === 0) && (<div className="text-center py-8 text-xs text-gray-400 italic">No items found in this view.</div>)}
                                         </div>
                                         {recipeCart.length > 0 && (
                                             <div className="bg-victorian/95 backdrop-blur-xl text-paper rounded-2xl p-6 shadow-elegant mb-8 border-t-4 border-brandBrown">
@@ -1049,8 +1101,8 @@
                                                 <div className="space-y-4">
                                                     {recipeCart.map((item, idx) => (
                                                         <div key={idx} className="flex justify-between items-center border-b border-white/10 pb-3 last:border-0 last:pb-0">
-                                                            <div className="flex flex-col"><span className="text-sm font-medium">{item.name}</span>{item.isCustom && <span className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5 bg-white/5 inline-block px-1.5 rounded w-max">Non-Inventory</span>}</div>
-                                                            <div className="flex items-center space-x-4"><span className="text-sm font-bold text-brandLightBrown bg-black/20 px-2 py-1 rounded">{item.qty} {item.unit}</span><button onClick={() => setRecipeCart(recipeCart.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-danger p-1.5 transition-colors bg-white/5 rounded-lg hover:bg-white/10"><Icons.Trash/></button></div>
+                                                            <div className="flex flex-col"><span className="text-sm font-medium">{item.name || 'Unknown'}</span>{item.isCustom && <span className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5 bg-white/5 inline-block px-1.5 rounded w-max">Non-Inventory</span>}</div>
+                                                            <div className="flex items-center space-x-4"><span className="text-sm font-bold text-brandLightBrown bg-black/20 px-2 py-1 rounded">{item.qty || 0} {item.unit || ''}</span><button onClick={() => setRecipeCart(recipeCart.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-danger p-1.5 transition-colors bg-white/5 rounded-lg hover:bg-white/10"><Icons.Trash/></button></div>
                                                         </div>
                                                     ))}
                                                 </div>
@@ -1084,7 +1136,7 @@
                                 </div>
                                 {requests.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm mb-10">All caught up. No pending requests.</div> : 
                                     requests.map(req => {
-                                        const reqItems = req.items;
+                                        const reqItems = req.items || [];
                                         const allSelected = reqItems.length > 0 && reqItems.every((_, idx) => selectedItems.some(si => si.reqId === req.id && si.itemIndex === idx));
 
                                         return (
@@ -1092,18 +1144,18 @@
                                                 <div className="bg-paper/70 px-5 py-4 flex justify-between items-center border-b border-victorian/10">
                                                     <div className="flex items-center space-x-3">
                                                         <input type="checkbox" checked={allSelected} onChange={() => handleSelectAllInReq(req.id, reqItems)} className="vintage-checkbox" title="Select All Items" />
-                                                        <span className="font-serif font-bold text-victorian text-lg">{req.id}</span>
+                                                        <span className="font-serif font-bold text-victorian text-lg">{req.id || 'Unknown'}</span>
                                                     </div>
-                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-white/50 px-2 py-1 rounded-md">{req.date}</span>
+                                                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-white/50 px-2 py-1 rounded-md">{req.date || ''}</span>
                                                 </div>
                                                 <div className="p-2">
-                                                    {req.items.map((item, idx) => {
+                                                    {reqItems.map((item, idx) => {
                                                         const isChecked = selectedItems.some(i => i.reqId === req.id && i.itemIndex === idx);
                                                         return (
                                                             <div key={idx} className={`flex items-center justify-between border-b border-victorian/5 py-3 px-4 last:border-0 transition-colors rounded-xl ${isChecked ? 'bg-victorian/5' : 'hover:bg-white/50'}`}>
                                                                 <label className="flex items-center space-x-4 cursor-pointer w-[85%]">
                                                                     <input type="checkbox" checked={isChecked} onChange={() => handleCheck(req.id, idx, item)} className="vintage-checkbox" />
-                                                                    <div className="flex flex-col"><span className="text-sm font-semibold text-victorian/90 leading-tight">{item.name}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty} {item.unit}</span></div>
+                                                                    <div className="flex flex-col"><span className="text-sm font-semibold text-victorian/90 leading-tight">{item.name || 'Unknown'}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty || 0} {item.unit || ''}</span></div>
                                                                 </label>
                                                                 <button onClick={() => onRemoveRequestItem(req.id, idx)} className="text-gray-400 hover:text-danger p-2 rounded-lg transition-colors bg-white/50 shadow-sm"><Icons.Trash/></button>
                                                             </div>
@@ -1121,11 +1173,11 @@
                                     activePOs.map(po => (
                                         <div key={po.id} className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant mb-5 border-l-4 border-l-antique transition-all hover:shadow-xl">
                                             <div className="flex justify-between items-start">
-                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-antique mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
+                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-antique mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier || 'Unknown'}</p></div>
                                                 <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-antiqueLight text-victorian">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors" title="Resend PO"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors" title="Delete PO"><Icons.Trash/></button></div></div>
                                             </div>
                                             {expandedPOs[po.id] && (
-                                                <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 bg-white/50 inline-block px-2 py-1 rounded">Requested Items</p><ul className="text-sm space-y-2.5">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-700 border-b border-white/50 pb-1.5 last:border-0"><span className="font-medium">{item.name}</span><span className="font-bold text-victorian bg-white/50 px-2 rounded">{item.qty} {item.unit}</span></li>))}</ul></div>
+                                                <div className="animate-fade-in mt-4 pt-4 border-t border-victorian/10"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 bg-white/50 inline-block px-2 py-1 rounded">Requested Items</p><ul className="text-sm space-y-2.5">{(po.items || []).map((item, idx) => (<li key={idx} className="flex justify-between text-gray-700 border-b border-white/50 pb-1.5 last:border-0"><span className="font-medium">{item.name || 'Unknown'}</span><span className="font-bold text-victorian bg-white/50 px-2 rounded">{item.qty || 0} {item.unit || ''}</span></li>))}</ul></div>
                                             )}
                                         </div>
                                     ))
@@ -1135,27 +1187,27 @@
                                     deliveredPOs.map(po => (
                                         <div key={po.id} className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant mb-5 border-l-4 border-l-victorian transition-all hover:shadow-xl opacity-90 hover:opacity-100">
                                             <div className="flex justify-between items-start">
-                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-gray-400 mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier}</p></div>
+                                                <div className="flex-1 cursor-pointer" onClick={() => togglePO(po.id)}><p className="font-serif font-bold text-lg text-victorian leading-tight drop-shadow-sm flex items-center"><span className={`text-xs text-gray-400 mr-2 transition-transform ${expandedPOs[po.id] ? 'rotate-90' : ''}`}>▶</span> {po.id}</p><p className="text-xs text-gray-600 mt-1 font-medium ml-4">{po.supplier || 'Unknown'}</p></div>
                                                 <div className="flex flex-col items-end space-y-3"><span className="text-[9px] px-2.5 py-1 rounded-lg font-bold uppercase tracking-widest shadow-sm bg-victorian text-paper">{po.status}</span><div className="flex space-x-2"><button onClick={(e) => { e.stopPropagation(); onResend(po); }} className="text-gray-400 hover:text-victorian p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Send/></button><button onClick={(e) => { e.stopPropagation(); onDelete(po.id); }} className="text-gray-400 hover:text-danger p-1.5 rounded-lg bg-white/50 shadow-sm transition-colors"><Icons.Trash/></button></div></div>
                                             </div>
 
                                             {expandedPOs[po.id] && editingDeliveredPO?.id !== po.id && (
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 px-1">Original Request</p>
-                                                    <ul className="text-xs space-y-2 mb-4 px-1">{po.items.map((item, idx) => (<li key={idx} className="flex justify-between text-gray-600 border-b border-white/50 pb-1 last:border-0"><span>{item.name}</span><span className="font-medium">{item.qty} {item.unit}</span></li>))}</ul>
+                                                    <ul className="text-xs space-y-2 mb-4 px-1">{(po.items || []).map((item, idx) => (<li key={idx} className="flex justify-between text-gray-600 border-b border-white/50 pb-1 last:border-0"><span>{item.name || 'Unknown'}</span><span className="font-medium">{item.qty || 0} {item.unit || ''}</span></li>))}</ul>
 
                                                     {po.receivedItems && (
                                                         <div className="bg-paper/70 p-4 rounded-xl border border-white/60 shadow-sm mb-4">
-                                                            <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Intake Receipt ({po.deliveryDate})</p>
+                                                            <p className="text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">Intake Receipt ({po.deliveryDate || ''})</p>
                                                             <ul className="text-xs space-y-2.5">
                                                                 {po.receivedItems.map((item, idx) => {
                                                                     const hasVar = item.qty !== item.receivedQty; const unitCost = item.receivedQty > 0 && item.totalPrice ? (item.totalPrice / item.receivedQty).toFixed(2) : 0;
                                                                     return (
                                                                         <li key={idx} className={`flex justify-between items-center py-1.5 border-b border-white/50 last:border-0 ${hasVar ? 'text-danger' : 'text-gray-700'}`}>
-                                                                            <span className="truncate pr-2 font-medium">{item.name}</span>
+                                                                            <span className="truncate pr-2 font-medium">{item.name || 'Unknown'}</span>
                                                                             <div className="flex flex-col items-end text-right">
-                                                                                <span className="whitespace-nowrap font-bold bg-white/50 px-2 py-0.5 rounded">{hasVar ? `Ord: ${item.qty} → Rec: ${item.receivedQty} ${item.unit}` : `${item.receivedQty} ${item.unit} (OK)`}</span>
-                                                                                {item.totalPrice > 0 && <span className="text-[9px] text-victorian/80 mt-1 uppercase tracking-widest font-bold">₹{item.totalPrice} (₹{unitCost}/{item.unit})</span>}
+                                                                                <span className="whitespace-nowrap font-bold bg-white/50 px-2 py-0.5 rounded">{hasVar ? `Ord: ${item.qty || 0} → Rec: ${item.receivedQty || 0} ${item.unit || ''}` : `${item.receivedQty || 0} ${item.unit || ''} (OK)`}</span>
+                                                                                {item.totalPrice > 0 && <span className="text-[9px] text-victorian/80 mt-1 uppercase tracking-widest font-bold">₹{item.totalPrice} (₹{unitCost}/{item.unit || ''})</span>}
                                                                             </div>
                                                                         </li>
                                                                     );
@@ -1170,18 +1222,18 @@
                                                 <div className="animate-fade-in mt-5 pt-4 border-t border-victorian/10">
                                                     <div className="bg-paper/80 p-4 rounded-xl border border-white/60 shadow-sm">
                                                         <div className="flex justify-between items-center mb-4"><p className="text-[10px] font-bold text-victorian uppercase tracking-widest">Update Order & Prices</p><button onClick={() => setEditingDeliveredPO(null)} className="text-danger text-[10px] font-bold uppercase tracking-widest bg-danger/10 px-2.5 py-1 rounded-md hover:bg-danger/20 transition-colors">Cancel</button></div>
-                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
+                                                        <div className="relative mb-5"><input type="file" accept="image/*" multiple id={`edit-invoice-${po.id}`} className="hidden" onChange={handleOwnerRealAIScan} /><label htmlFor={`edit-invoice-${po.id}`} className={`w-full flex justify-center items-center py-3 border rounded-xl text-[10px] font-bold uppercase tracking-widest cursor-pointer transition-colors ${isOwnerScanning ? 'bg-antiqueLight/40 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/30 text-victorian hover:border-victorian shadow-sm flex items-center gap-2'}`}>{isOwnerScanning ? '⏳ Processor Running...' : <><Icons.Camera/> Auto-Scan Invoice</>}</label></div>
                                                         <div className="space-y-3 mb-5">
                                                             <div className="flex justify-between text-[9px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
-                                                            {(po.receivedItems || po.items).map((item, idx) => (
+                                                            {((po.receivedItems || po.items) || []).map((item, idx) => (
                                                                 <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0">
                                                                     <div className="flex justify-between items-center space-x-2">
-                                                                        <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name} <span className="text-[8px] text-gray-400 block mt-0.5">({item.unit})</span></span>
-                                                                        <input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique/50" value={editQuantities[idx]} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
-                                                                        <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
+                                                                        <span className="text-[10px] w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name || 'Unknown'} <span className="text-[8px] text-gray-400 block mt-0.5">({item.unit || ''})</span></span>
+                                                                        <input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique/50" value={editQuantities[idx] || ''} onChange={(e) => setEditQuantities({...editQuantities, [idx]: e.target.value})} />
+                                                                        <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique" value={editPrices[idx] || ''} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
                                                                     </div>
                                                                     {unmatchedScans.length > 0 && (!editQuantities[idx] && !editPrices[idx]) && (
-                                                                        <div className="mt-2 w-full"><select className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => handleOwnerManualMap(idx, item.name, e.target.value)}><option value="">🔗 Map missing item...</option>{unmatchedScans.map(u => (<option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>))}</select></div>
+                                                                        <div className="mt-2 w-full"><select className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setEditQuantities({...editQuantities, [idx]: scanObj.quantity}); setEditPrices({...editPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); updateAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 Map missing item...</option>{unmatchedScans.map(u => (<option key={u.name || Math.random()} value={u.name || ''}>{u.name || 'Unknown'} (Qty: {u.quantity || 0}, ₹{u.totalPrice || 0})</option>))}</select></div>
                                                                     )}
                                                                 </div>
                                                             ))}
@@ -1201,7 +1253,7 @@
                         <div className="fixed bottom-0 left-0 right-0 bg-paper/90 backdrop-blur-xl border-t border-white shadow-[0_-8px_30px_rgba(19,42,27,0.15)] p-5 z-40 animate-slide-up lg:left-auto lg:w-[400px] lg:right-8 lg:bottom-8 lg:rounded-2xl lg:border lg:border-white/50 lg:shadow-2xl">
                             <div className="max-w-md mx-auto flex flex-col space-y-4">
                                 <div className="flex justify-between items-center"><span className="font-bold text-victorian bg-brandLightBrown/30 border border-brandBrown/50 text-brandBrown px-3.5 py-1.5 rounded-lg text-[10px] uppercase tracking-widest shadow-sm">{selectedItems.length} Staged Items</span><button onClick={() => setSelectedItems([])} className="text-[10px] text-gray-400 font-bold hover:text-danger uppercase tracking-widest transition-colors bg-white hover:bg-danger/10 px-3 py-1.5 rounded-lg">Clear</button></div>
-                                <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-4 border border-victorian/20 rounded-xl text-sm bg-white font-bold text-victorian shadow-inner focus:ring-2 focus:ring-victorian"><option value="">-- Assign Vendor --</option>{suppliers.map(s => <option key={s.name} value={s.name}>{s.name} {s.phone ? `(${s.phone})` : ''}</option>)}</select>
+                                <select value={selectedVendor} onChange={e => setSelectedVendor(e.target.value)} className="w-full p-4 border border-victorian/20 rounded-xl text-sm bg-white font-bold text-victorian shadow-inner focus:ring-2 focus:ring-victorian"><option value="">-- Assign Vendor --</option>{(suppliers || []).map(s => <option key={s.name || Math.random()} value={s.name || ''}>{s.name || 'Unknown'} {s.phone ? `(${s.phone})` : ''}</option>)}</select>
                                 <button onClick={handleGeneratePO} className="w-full bg-victorian text-white font-bold py-4 rounded-xl shadow-lg hover:bg-victorianLight transition-all hover:-translate-y-0.5 uppercase tracking-widest text-xs flex justify-center items-center gap-2"><Icons.Send/> Dispatch Official PO</button>
                             </div>
                         </div>
