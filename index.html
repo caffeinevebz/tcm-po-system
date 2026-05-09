@@ -281,7 +281,7 @@
                 if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
                 const itemList = (po.items || []).map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
                 const isResend = po.status === 'Delivered'; const prefix = isResend ? `*[RESENT FOR RECORDS]*\n` : ``;
-                const message = `${prefix}*Subject:* Purchase Order - TCM BrewOps\n*PO Number:* ${po.id || ''}\n*Date:* ${po.date || ''}\n\nHello ${po.supplier || ''},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
+                const message = `${prefix}*Subject:* Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id || ''}\n*Date:* ${po.date || ''}\n\nHello ${po.supplier || ''},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
                 let url = `https://wa.me/`;
                 if (po.supplierPhone) { let phoneStr = po.supplierPhone.replace(/\D/g, ''); if (phoneStr.length === 10) phoneStr = '91' + phoneStr; url += `${phoneStr}?text=${encodeURIComponent(message)}`; } 
                 else url += `?text=${encodeURIComponent(message)}`;
@@ -404,7 +404,7 @@
             return (
                 <div className="animate-fade-in space-y-8">
                     <div className="flex justify-between items-end">
-                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">System Command Center</h2>
+                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">Owner Dashboard</h2>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                         <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Catalog" value={(recipes || []).length} icon={<Icons.FileText/>} borderColor="border-brandBrown" subtitle="Total Recipes Built" /></div>
