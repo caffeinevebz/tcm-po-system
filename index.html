@@ -179,14 +179,12 @@
                         </div>
                     </div>
 
-                    {/* REDESIGNED TOP HEADER */}
                     <header className="bg-gradient-to-r from-[#e8dfd1] to-[#FAF8F5] border-b-2 border-brandBrown/30 px-4 py-3 shadow-md sticky top-0 z-30">
                         <div className="flex items-center justify-between max-w-6xl mx-auto relative">
                             <button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown transition-colors p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button>
                             <div className="flex-1 flex justify-center py-1">
                                 <img src="Page-Header.jpg" alt="TCM BrewOps" className="h-12 sm:h-16 md:h-20 lg:h-24 object-contain mix-blend-multiply drop-shadow-sm" />
                             </div>
-                            {/* Empty div to balance flexbox and keep the logo perfectly centered */}
                             <div className="w-12"></div>
                         </div>
                     </header>
@@ -331,23 +329,14 @@
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <p className="animate-pulse font-bold tracking-widest uppercase">Loading BrewOps...</p> </div> );
 
-            // --- REDESIGNED MINIMALIST LOGIN SCREEN ---
             if (!role) {
                 return (
                     <div className="min-h-screen flex justify-center items-center overflow-hidden relative bg-[#FAF8F5]">
-                        
-                        {/* LAYER 1: Background Image with 55% Opacity */}
                         <div 
                             className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" 
                             style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}
                         ></div>
-
-                        {/* LAYER 2: The Login Tab (Centered Card) */}
-                        <div 
-                            className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up"
-                            style={{ backgroundImage: "url('Login Tab.jpg')" }}
-                        >
-                            {/* LAYER 3: Inputs & Login Button (Placed over the blank space at the bottom) */}
+                        <div className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up mt-10" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
                             <div className="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
                                 <form onSubmit={(e) => {
                                     e.preventDefault(); const pin = e.target.pin.value;
@@ -356,13 +345,7 @@
                                     else showToast('Invalid PIN', 'error');
                                 }}>
                                     <div className="mb-5">
-                                        <input 
-                                            type="password" 
-                                            name="pin" 
-                                            autoFocus 
-                                            placeholder="••••••" 
-                                            className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" 
-                                        />
+                                        <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" />
                                     </div>
                                     <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg">
                                         Login
@@ -406,13 +389,105 @@
             </div>
         );
 
+        const OwnerDashboardSummary = ({ pos, requests, recipes, prepItems, suppliers, setOwnerTab }) => {
+            const activePOs = pos.filter(po => po.status === 'Approved');
+            const catCounts = recipes.reduce((acc, r) => { acc[r.category || 'Other'] = (acc[r.category || 'Other'] || 0) + 1; return acc; }, {});
+            const pieData = Object.keys(catCounts).map(key => ({ name: key, value: catCounts[key] }));
+            const totalRecipes = pieData.reduce((sum, d) => sum + d.value, 0);
+            const PIE_COLORS = ['#8b5e3c', '#4A5D23', '#D4AF37', '#23452F', '#c08a5b'];
+            let cumulativePercent = 0;
+            const conicGradientString = totalRecipes > 0 ? pieData.map((d, i) => {
+                const start = cumulativePercent; const percent = (d.value / totalRecipes) * 100; cumulativePercent += percent;
+                return `${PIE_COLORS[i % PIE_COLORS.length]} ${start}% ${cumulativePercent}%`;
+            }).join(', ') : '#e5e7eb 0% 100%';
+            const vendorCounts = pos.reduce((acc, p) => { if(p.supplier) { acc[p.supplier] = (acc[p.supplier] || 0) + 1; } return acc; }, {});
+            const barData = Object.keys(vendorCounts).map(key => ({ name: key.length > 12 ? key.substring(0, 12) + '...' : key, Orders: vendorCounts[key] })).sort((a, b) => b.Orders - a.Orders).slice(0, 5);
+            const maxOrders = barData.length > 0 ? Math.max(...barData.map(d => d.Orders)) : 0;
+
+            return (
+                <div className="animate-fade-in space-y-8">
+                    <div className="flex justify-between items-end">
+                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">System Command Center</h2>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                        <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Catalog" value={recipes.length} icon={<Icons.FileText/>} borderColor="border-brandBrown" subtitle="Total Recipes Built" /></div>
+                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active Shipments" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "In Transit" : "All Received"} /></div>
+                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Pending Requests" value={requests.length} icon={<Icons.Activity/>} borderColor={requests.length > 0 ? "border-danger" : "border-gray-200"} subtitle={requests.length > 0 ? "Needs Approval" : "Queue Empty"} /></div>
+                        <div onClick={()=>setOwnerTab('vendors')} className="cursor-pointer"><DashboardMetric title="Active Vendors" value={suppliers.length} icon={<Icons.Users/>} borderColor="border-antique" subtitle="Supply Chain" /></div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Menu Distribution</h3>
+                            <div className="flex-1 flex items-center justify-center lg:justify-start lg:ml-10 min-h-[220px]">
+                                {totalRecipes > 0 ? (
+                                    <div className="flex items-center">
+                                        <div className="w-40 h-40 rounded-full shadow-inner-vintage relative" style={{ background: `conic-gradient(${conicGradientString})` }}>
+                                            <div className="absolute inset-4 bg-paper rounded-full shadow-elegant flex flex-col items-center justify-center">
+                                                <span className="text-victorian font-bold text-2xl leading-none">{totalRecipes}</span>
+                                            </div>
+                                        </div>
+                                        <div className="ml-10 flex flex-col space-y-3 border-l-2 border-brandBrown/10 pl-6 py-2">
+                                           {pieData.map((d, i) => (
+                                               <div key={i} className="flex items-center">
+                                                   <div className="w-3.5 h-3.5 rounded-full mr-3 shadow-sm border border-black/10" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                                                   <span className="text-xs font-medium text-gray-700">{d.name} <span className="font-bold ml-1 text-victorian">({d.value})</span></span>
+                                               </div>
+                                           ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No recipe data available</div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
+                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Top Suppliers (By Order Volume)</h3>
+                            <div className="flex-1 min-h-[220px]">
+                                {barData.length > 0 ? (
+                                    <div className="flex items-end justify-around h-full pt-6 pb-2 px-4 gap-4 border-b-2 border-gray-200">
+                                        {barData.map((d, i) => {
+                                            const heightPct = maxOrders === 0 ? 0 : (d.Orders / maxOrders) * 100;
+                                            return (
+                                                <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
+                                                    <span className="text-[10px] font-bold text-brandBrown mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{d.Orders} Orders</span>
+                                                    <div className="w-full max-w-[40px] bg-brandBrown rounded-t-md transition-all duration-700 shadow-sm group-hover:bg-brandLightBrown" style={{ height: `${Math.max(heightPct, 5)}%` }}></div>
+                                                    <span className="text-[9px] text-gray-600 font-bold text-center mt-3 truncate w-full px-1">{d.name}</span>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No purchase history available</div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const StaffDashboardSummary = ({ pos, requests, setStaffTab }) => {
+            const activePOs = pos.filter(po => po.status === 'Approved');
+            return (
+                <div className="animate-fade-in space-y-6">
+                    <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
+                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={requests.length} icon={<Icons.FileText/>} borderColor={requests.length > 0 ? "border-brandBrown" : "border-gray-200"} subtitle="Awaiting Owner action" /></div>
+                    </div>
+                    <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
+                        <span className="text-xl font-light leading-none">+</span> Draft BrewOps Order
+                    </button>
+                </div>
+            );
+        };
+
         function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
             const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0]); const [searchTerm, setSearchTerm] = useState('');
             const [receivingPO, setReceivingPO] = useState(null); const [receivedQuantities, setReceivedQuantities] = useState({}); const [receivedPrices, setReceivedPrices] = useState({}); 
             const [unmatchedScans, setUnmatchedScans] = useState([]); const [isScanning, setIsScanning] = useState(false);
             const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
             const [showAddModal, setShowAddModal] = useState(false); const [modalItemName, setModalItemName] = useState(''); const [modalQty, setModalQty] = useState(''); const [modalUnit, setModalUnit] = useState('Kg');
-            const [viewingRecipe, setViewingRecipe] = useState(null); // MODAL STATE FOR RECIPES
 
             const openAddModal = (item) => { if (cart.find(i => i.name === item)) return showToast("Already in cart", "error"); setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true); };
             const confirmAddItem = () => { if(!modalQty || Number(modalQty) <= 0) return showToast("Invalid quantity", "error"); setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]); setShowAddModal(false); };
@@ -444,20 +519,7 @@
             const incomingPOs = pos.filter(po => po.status === 'Approved');
             const displayedRecipes = recipes.filter(r => { const matchesSearch = r.name.toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
 
-            if (staffTab === 'dashboard') {
-                return (
-                    <div className="animate-fade-in space-y-6">
-                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                            <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries" value={incomingPOs.length} icon={<Icons.Box/>} borderColor={incomingPOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={incomingPOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
-                            <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={requests.length} icon={<Icons.FileText/>} borderColor={requests.length > 0 ? "border-brandBrown" : "border-gray-200"} subtitle="Awaiting Owner action" /></div>
-                        </div>
-                        <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
-                            <span className="text-xl font-light leading-none">+</span> Draft BrewOps Order
-                        </button>
-                    </div>
-                );
-            }
+            if (staffTab === 'dashboard') return <StaffDashboardSummary pos={pos} requests={requests} setStaffTab={setStaffTab} />;
 
             if (receivingPO) return (
                 <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant border border-white/40">
@@ -486,45 +548,15 @@
                         <div className="animate-fade-in">
                             <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-4 border border-white/50 bg-white/70 backdrop-blur-xl rounded-xl text-sm shadow-sm" placeholder="Search the ledger..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/></div>
                             {!recipeSearchFilter && <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">{['All', ...RECIPE_CATEGORIES].map(cat => <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold scale-[1.02]' : 'bg-white/70 backdrop-blur-md text-victorian hover:bg-white font-medium'}`}>{cat}</button>)}</div>}
-                            
-                            {/* UPDATED RECIPE BOOK LIST */}
-                            <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-brandBrown/20 overflow-hidden mb-10">
-                                {displayedRecipes.length === 0 ? <p className="text-center text-sm italic text-gray-500 py-8">No recipes found.</p> :
-                                    displayedRecipes.map(recipe => (
-                                        <div key={recipe.id} onClick={() => setViewingRecipe(recipe)} className="flex justify-between items-center p-5 border-b border-brandBrown/10 last:border-0 hover:bg-white/90 cursor-pointer transition-colors group">
-                                            <div className="flex flex-col">
-                                                <span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name}</span>
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 bg-gray-100 w-max px-2 py-0.5 rounded">{recipe.category || 'Beverages'}</span>
-                                            </div>
-                                            <span className="text-brandBrown text-xl opacity-50 group-hover:opacity-100 transition-opacity">→</span>
-                                        </div>
-                                    ))
-                                }
-                            </div>
-
-                            {/* VIEW RECIPE MODAL FOR STAFF */}
-                            {viewingRecipe && (
-                                <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
-                                    <div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border-2 border-brandBrown/40 max-h-[90vh] overflow-y-auto relative">
-                                        <button onClick={() => setViewingRecipe(null)} className="absolute top-4 right-4 text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm z-10"><Icons.Close/></button>
-                                        
-                                        <div className="p-6">
-                                            <div className="flex flex-col mb-5 pr-10 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight">{viewingRecipe.name}</h3><div className="flex gap-2 mt-2.5"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span></div></div>
-                                            <div className="bg-white/80 p-4 rounded-xl border border-white/60 shadow-sm mb-5">
-                                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Ingredients</p>
-                                                <ul className="text-sm space-y-2.5">
-                                                    {viewingRecipe.ingredients.map((ing, i) => (
-                                                        <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty} {ing.unit}</span></li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p>
-                                            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div>
-                                        </div>
+                            {displayedRecipes.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-md p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No records found.</p> : 
+                                displayedRecipes.map(recipe => (
+                                    <div key={recipe.id} className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 p-6 mb-5 hover:shadow-xl transition-shadow">
+                                        <div className="flex justify-between items-start mb-5 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight pr-2">{recipe.name}</h3><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-paper/80 border border-victorian/10 text-victorian/70 px-2.5 py-1.5 rounded-lg whitespace-nowrap mt-1">{recipe.category || 'Beverages'}</span></div>
+                                        <div className="flex flex-col space-y-4 mb-5"><div className="bg-paper/50 p-4 rounded-xl border border-white/60 shadow-sm"><p className="text-[10px] font-bold text-victorian/50 uppercase tracking-[0.2em] mb-3">Ingredients</p><ul className="text-sm space-y-2.5">{recipe.ingredients.map((ing, i) => (<li key={i} className="flex justify-between items-end border-b border-victorian/5 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom && <span className="text-[10px] text-victorian/40 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty} {ing.unit}</span></li>))}</ul></div></div>
+                                        <p className="text-[10px] font-bold text-victorian/50 uppercase tracking-[0.2em] mb-2">Method & Notes</p><div className="text-sm text-victorian/80 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-1">{recipe.instructions || "Standard preparation."}</div>
                                     </div>
-                                </div>
-                            )}
-
+                                ))
+                            }
                         </div>
                     )}
 
@@ -576,7 +608,7 @@
             const [isBuildingRecipe, setIsBuildingRecipe] = useState(false); const [editingRecipeId, setEditingRecipeId] = useState(null); const [recipeName, setRecipeName] = useState(''); const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]); const [recipeYieldQty, setRecipeYieldQty] = useState(''); const [recipeYieldUnit, setRecipeYieldUnit] = useState('ml'); const [recipeInstructions, setRecipeInstructions] = useState(''); const [recipeCart, setRecipeCart] = useState([]);
             const [recSearch, setRecSearch] = useState(''); const [recCat, setRecCat] = useState('Batch Preps'); const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
             const [showRecAdd, setShowRecAdd] = useState(false); const [recModalItem, setRecModalItem] = useState(''); const [recModalQty, setRecModalQty] = useState(''); const [recModalUnit, setRecModalUnit] = useState('gms'); const [isCustomRecItem, setIsCustomRecItem] = useState(false);
-            const [viewingRecipe, setViewingRecipe] = useState(null); // MODAL STATE FOR RECIPES
+            const [viewingRecipe, setViewingRecipe] = useState(null);
             
             const [editingPriceItem, setEditingPriceItem] = useState(null); const [tempPriceVal, setTempPriceVal] = useState(''); const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); const [tempGstVal, setTempGstVal] = useState(''); const [priceSearchFilter, setPriceSearchFilter] = useState('');
             const [catalogSearchFilter, setCatalogSearchFilter] = useState('');
@@ -691,7 +723,6 @@
 
             const handleCheck = (reqId, itemIndex, item) => { const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex); if (isSelected) setSelectedItems(selectedItems.filter(i => !(i.reqId === reqId && i.itemIndex === itemIndex))); else setSelectedItems([...selectedItems, { reqId, itemIndex, item }]); };
             
-            // SELECT ALL LOGIC
             const handleSelectAllInReq = (reqId, items) => {
                 const allSelected = items.every((_, idx) => selectedItems.some(si => si.reqId === reqId && si.itemIndex === idx));
                 if (allSelected) {
@@ -732,7 +763,78 @@
                     
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
-                    {/* VENDOR MASTER */}
+                    {ownerTab === 'workbench' && (
+                        <div className="animate-fade-in space-y-8">
+                            <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
+                                <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
+                                    <div className="p-4">
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
+                                        <ul className="space-y-1">
+                                            <li><div className="flex items-center gap-3 px-3 py-2 bg-brandLightBrown/20 text-brandBrown font-bold rounded-lg border border-brandBrown/20 transition-colors">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
+                                                Overview
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                My processors
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                Processor gallery
+                                            </div></li>
+                                            <li><div className="flex items-center gap-3 px-3 py-2 text-victorian/70 font-medium rounded-lg">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/></svg>
+                                                Monitoring
+                                            </div></li>
+                                        </ul>
+                                    </div>
+                                </aside>
+                                <div className="flex-1 flex flex-col relative overflow-hidden bg-white/60 z-10">
+                                    <div className="h-14 border-b border-brandBrown/20 flex items-center justify-between px-6 bg-paper/50">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-brandBrown font-bold">←</span>
+                                            <h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2>
+                                        </div>
+                                    </div>
+                                    <div className="border-b border-brandBrown/20 px-6 flex gap-6 text-sm font-medium">
+                                        <button className="py-3 border-b-2 border-brandBrown text-brandBrown font-bold">Processor details</button>
+                                    </div>
+                                    <div className="p-8 overflow-y-auto hide-scrollbar flex-1 relative z-10 pb-20">
+                                        <div className="max-w-3xl mb-10">
+                                            <h3 className="font-serif text-2xl text-victorian mb-4">Basic information</h3>
+                                            <div className="bg-paper/80 border-2 border-brandBrown/30 rounded-2xl p-6 shadow-vintage relative overflow-hidden">
+                                                <div className="absolute inset-2 border border-brandBrown/10 rounded-xl pointer-events-none"></div>
+                                                <div className="grid grid-cols-3 gap-y-4 text-sm relative z-10">
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Name</div>
+                                                    <div className="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">TCM-Invoice Scanner</div>
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">ID</div>
+                                                    <div className="col-span-2 text-brandBrown font-mono tracking-widest border-b border-brandBrown/10 pb-2">bb2c04df74b4f962</div>
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2 flex items-center">Status</div>
+                                                    <div className="col-span-2 flex items-center gap-2 border-b border-brandBrown/10 pb-2">
+                                                        <input type="checkbox" defaultChecked className="vintage-checkbox pointer-events-none" />
+                                                        <span className="text-vintageGreen font-bold tracking-wider uppercase text-xs">Enabled</span>
+                                                    </div>
+                                                    <div className="text-victorian/70 font-semibold border-b border-brandBrown/10 pb-2">Type</div>
+                                                    <div className="col-span-2 text-victorian font-medium border-b border-brandBrown/10 pb-2">Invoice Parser</div>
+                                                    <div className="text-victorian/70 font-semibold">Region</div>
+                                                    <div className="col-span-2 text-victorian font-medium">asia-south1</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="max-w-3xl">
+                                            <h3 className="font-serif text-2xl text-victorian mb-4">Prediction endpoint</h3>
+                                            <div className="bg-paper/80 border border-brandBrown/30 rounded-2xl p-6 shadow-vintage">
+                                                <div className="bg-white/80 border border-brandBrown/20 rounded-lg p-3 font-mono text-xs text-brandBrown break-all shadow-inner-vintage">
+                                                    https://asia-south1-documentai.googleapis.com/v1/projects/tcm-orders/locations/asia-south1/processors/bb2c04df74b4f962:process
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {ownerTab === 'vendors' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1 space-y-6">
@@ -762,7 +864,6 @@
                         </div>
                     )}
 
-                    {/* RAW MATERIAL MASTER */}
                     {ownerTab === 'inventory' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1 space-y-6">
@@ -848,6 +949,37 @@
                         </div>
                     )}
 
+                    {ownerTab === 'conversions' && (
+                        <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
+                            <div className="lg:col-span-1">
+                                <div className="mb-6 shadow-sm backdrop-blur-md inline-block p-4 rounded-2xl bg-white/60"><h2 className="text-2xl font-serif font-bold text-victorian mb-2">Prep Kitchen Engine</h2><p className="text-sm text-victorian/80 leading-relaxed">Map raw vendor materials to intermediate prepped units (e.g., Beans to Espresso Shots).</p></div>
+                                <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 mb-8 lg:mb-0">
+                                    <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-victorian/10 pb-3">{editingPrepId ? 'Edit Conversion Rule' : 'New Basic Conversion'}</h3>
+                                    <div className="space-y-6">
+                                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Prepped Item Name</label><input type="text" placeholder="e.g. Filtered Espresso Shot" value={prepName} onChange={e=>setPrepName(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-antique/50" /></div>
+                                        <div className="flex space-x-3 items-center bg-paper/50 p-4 rounded-xl border border-white/60 shadow-sm"><span className="text-[10px] font-bold text-victorian uppercase tracking-widest w-16">Yields</span><input type="number" placeholder="Qty" value={prepYieldQty} onChange={e=>setPrepYieldQty(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm text-center font-bold bg-white" /><select value={prepYieldUnit} onChange={e=>setPrepYieldUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                                        <div className="flex space-x-3 items-center p-2"><span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest w-16 text-center">From</span><input type="number" placeholder="Qty" value={prepRawQty} onChange={e=>setPrepRawQty(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm text-center font-bold bg-white shadow-inner" /><select value={prepRawUnit} onChange={e=>setPrepRawUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium shadow-sm">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select></div>
+                                        <div><label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Source Raw Material</label><select value={prepRawItem} onChange={e=>setPrepRawItem(e.target.value)} className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white font-medium text-gray-700 shadow-sm"><option value="">-- Choose from Catalog --</option>{allRawNames.map(item => <option key={item} value={item}>{item}</option>)}</select></div>
+                                        <div className="flex space-x-3 mt-4 pt-4 border-t border-victorian/10">{editingPrepId && (<button onClick={()=> {setPrepName(''); setPrepYieldQty(''); setPrepRawQty(''); setPrepRawItem(''); setEditingPrepId(null);}} className="w-1/2 bg-white text-gray-600 border border-gray-200 font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-sm hover:bg-gray-50 transition-colors">Cancel</button>)}<button onClick={handleSavePrepItem} className={`${editingPrepId ? 'w-1/2' : 'w-full'} bg-brandBrown text-white font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-brandLightBrown transition-all hover:-translate-y-0.5`}>{editingPrepId ? 'Update Rule' : 'Save Engine Rule'}</button></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="lg:col-span-1">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Active Engine Rules ({prepItems.length})</h3>
+                                {prepItems.length === 0 ? <p className="text-sm text-victorian/60 italic bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center">No conversion rules set up yet.</p> : 
+                                    <div className="bg-white/80 backdrop-blur-xl border border-white/50 rounded-2xl shadow-elegant overflow-hidden mb-12">
+                                        {prepItems.map(p => (
+                                            <div key={p.id} className="flex justify-between items-center p-5 border-b border-white/40 last:border-0 hover:bg-white/90 transition-colors">
+                                                <div className="flex flex-col"><span className="text-sm font-bold text-victorian mb-1.5">{p.name} <span className="text-antique font-serif ml-1">({p.yieldQty} {p.yieldUnit})</span></span><span className="text-xs text-gray-600 bg-white/50 inline-block px-2 py-0.5 rounded">Requires: <span className="font-semibold text-gray-800">{p.rawQty} {p.rawUnit}</span> of {p.rawItem}</span></div>
+                                                <div className="flex space-x-2 ml-2"><button onClick={() => {setPrepName(p.name); setPrepYieldQty(p.yieldQty); setPrepYieldUnit(p.yieldUnit); setPrepRawQty(p.rawQty); setPrepRawUnit(p.rawUnit); setPrepRawItem(p.rawItem); setEditingPrepId(p.id); window.scrollTo({ top: 0, behavior: 'smooth' });}} className="text-gray-400 hover:text-victorian p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Edit/></button><button onClick={() => confirmAction("Delete conversion rule?", () => db.collection('settings').doc('main').update({ prepItems: prepItems.filter(x => x.id !== p.id) }))} className="text-gray-400 hover:text-danger p-2 bg-white/50 shadow-sm rounded-lg transition-colors"><Icons.Trash/></button></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    )}
+
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -860,7 +992,6 @@
                                     </div>
                                 )}
                                 
-                                {/* UPDATED RECIPE BOOK LIST */}
                                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-brandBrown/20 overflow-hidden mb-10">
                                     {displayedRecipes.length === 0 ? <p className="text-center text-sm italic text-gray-500 py-8">No recipes found.</p> :
                                         displayedRecipes.map(recipe => (
@@ -875,7 +1006,6 @@
                                     }
                                 </div>
 
-                                {/* VIEW RECIPE MODAL */}
                                 {viewingRecipe && (
                                     <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
                                         <div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border border-brandBrown/40 max-h-[90vh] overflow-y-auto relative">
@@ -895,7 +1025,7 @@
                                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Barista Build (Prepped)</p>
                                                     <ul className="text-sm space-y-2.5">
                                                         {viewingRecipe.ingredients.map((ing, i) => (
-                                                            <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian bg-white/50 px-2 rounded">{ing.qty} {ing.unit}</span></li>
+                                                            <li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty} {ing.unit}</span></li>
                                                         ))}
                                                     </ul>
                                                 </div>
@@ -927,14 +1057,13 @@
                                                 </div>
                                                 
                                                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p>
-                                                <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-brandBrown/20 pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div>
+                                                <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div>
                                             </div>
                                         </div>
                                     </div>
                                 )}
                             </div>
 
-                            {/* RECIPE BUILDER */}
                             {isBuildingRecipe && (
                                 <div className="lg:col-span-1 lg:sticky lg:top-28 lg:h-[calc(100vh-8rem)]">
                                     <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border-t-4 border-brandBrown mb-10 border-x border-b border-white/50 lg:h-full lg:overflow-y-auto hide-scrollbar">
@@ -1003,23 +1132,19 @@
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-24 lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
-                                <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 mb-4 border-b border-victorian/10 pb-2 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Pending Staff Requests</h3>
+                                <div className="flex justify-between items-end mb-4 border-b border-victorian/10 pb-2">
+                                    <h3 className="text-xs font-bold uppercase tracking-widest text-victorian/70 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Pending Staff Requests</h3>
+                                </div>
                                 {requests.length === 0 ? <div className="bg-white/70 backdrop-blur-xl p-8 rounded-2xl shadow-elegant border border-white/50 text-center text-victorian/60 italic text-sm mb-10">All caught up. No pending requests.</div> : 
                                     requests.map(req => {
-                                        // CHECKBOX LOGIC
                                         const reqItems = req.items;
                                         const allSelected = reqItems.length > 0 && reqItems.every((_, idx) => selectedItems.some(si => si.reqId === req.id && si.itemIndex === idx));
 
                                         return (
-                                            <div key={req.id} className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 mb-8 overflow-hidden">
+                                            <div key={req.id} className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 mb-8 overflow-hidden transition-all hover:shadow-xl">
                                                 <div className="bg-paper/70 px-5 py-4 flex justify-between items-center border-b border-victorian/10">
                                                     <div className="flex items-center space-x-3">
-                                                        <input 
-                                                            type="checkbox" 
-                                                            checked={allSelected} 
-                                                            onChange={() => handleSelectAllInReq(req.id, reqItems)} 
-                                                            className="vintage-checkbox" 
-                                                        />
+                                                        <input type="checkbox" checked={allSelected} onChange={() => handleSelectAllInReq(req.id, reqItems)} className="vintage-checkbox" title="Select All Items" />
                                                         <span className="font-serif font-bold text-victorian text-lg">{req.id}</span>
                                                     </div>
                                                     <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-white/50 px-2 py-1 rounded-md">{req.date}</span>
@@ -1109,7 +1234,7 @@
                                                                         <input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-[10px] bg-white focus:ring-2 focus:ring-antique" value={editPrices[idx]} onChange={(e) => setEditPrices({...editPrices, [idx]: e.target.value})} />
                                                                     </div>
                                                                     {unmatchedScans.length > 0 && (!editQuantities[idx] && !editPrices[idx]) && (
-                                                                        <div className="mt-2 w-full"><select className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => handleOwnerManualMap(idx, item.name, e.target.value)}><option value="">🔗 Map missing item...</option>{unmatchedScans.map(u => (<option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>))}</select></div>
+                                                                        <div className="mt-2 w-full"><select className="w-full text-[9px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setEditQuantities({...editQuantities, [idx]: scanObj.quantity}); setEditPrices({...editPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); updateAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 Map missing item...</option>{unmatchedScans.map(u => (<option key={u.name} value={u.name}>{u.name} (Qty: {u.quantity}, ₹{u.totalPrice})</option>))}</select></div>
                                                                     )}
                                                                 </div>
                                                             ))}
