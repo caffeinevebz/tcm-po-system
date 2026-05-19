@@ -283,7 +283,7 @@
                 if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
                 const itemList = (po.items || []).map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
                 const isResend = po.status === 'Delivered'; const prefix = isResend ? `*[RESENT FOR RECORDS]*\n` : ``;
-                const message = `${prefix}*Subject:* Purchase Order - TCM BrewOps\n*PO Number:* ${po.id || ''}\n*Date:* ${po.date || ''}\n\nHello ${po.supplier || ''},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
+                const message = `${prefix}*Subject:* Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id || ''}\n*Date:* ${po.date || ''}\n\nHello ${po.supplier || ''},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
                 let url = `https://wa.me/`;
                 if (po.supplierPhone) { let phoneStr = po.supplierPhone.replace(/\D/g, ''); if (phoneStr.length === 10) phoneStr = '91' + phoneStr; url += `${phoneStr}?text=${encodeURIComponent(message)}`; } 
                 else url += `?text=${encodeURIComponent(message)}`;
