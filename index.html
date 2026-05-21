@@ -224,15 +224,12 @@
                         if (doc.exists) {
                             const data = doc.data(); const rawInv = data.inventory || DEFAULT_INVENTORY; const scrubbedInv = {};
                             
-                            // AUTO-CLEANUP: Remove "Amul Milk" group safely
                             if (rawInv['Amul Milk']) {
                                 delete rawInv['Amul Milk'];
                                 settingsRef.update({ inventory: rawInv });
                             }
 
-                            // SCRUB ALL DUPLICATES FROM ARRAYS GLOBALLY
                             Object.keys(rawInv).forEach(key => { scrubbedInv[key] = [...new Set(rawInv[key])]; });
-                            
                             setSuppliers(data.suppliers || DEFAULT_SUPPLIERS); setInventory(scrubbedInv); setPrepItems(data.prepItems || []); setPoCounter(data.poCounter); setOwnerPhone(data.ownerPhone || ''); setPrices(data.prices || {}); setAliases(data.aliases || {});
                         }
                     });
@@ -369,7 +366,7 @@
                     <DashboardLayout role={role} activeTab={role === 'owner' ? ownerTab : staffTab} setActiveTab={role === 'owner' ? setOwnerTab : setStaffTab} onLogout={() => setRole(null)}>
                         {role === 'staff' ? 
                             <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} /> : 
-                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile:"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile:",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} onResend={sendWhatsApp} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
+                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile:"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile:",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
                         }
                     </DashboardLayout>
                 </>
@@ -819,13 +816,13 @@
                         }
                     });
 
-                    sendWhatsApp({...targetPo, items: combinedItems}, true);
+                    onResend({...targetPo, items: combinedItems}, true);
                     setSelectedItems([]); setAmendPoId(''); setSelectedVendor('');
                     showToast('PO amended and document updated!', 'success');
                 } else {
                     if (!selectedVendor) return showToast('Select a vendor.', 'error');
                     const vendorObj = (suppliers || []).find(s => s.name === selectedVendor);
-                    createCombinedPO(validatedStagedItems, vendorObj);
+                    onCreateCombinedPO(validatedStagedItems, vendorObj);
                     setSelectedItems([]); setSelectedVendor('');
                 }
             };
@@ -837,6 +834,7 @@
                 if (reqDoc) {
                     const updatedArray = [...(reqDoc.items || [])];
                     updatedArray[itemIndex] = { name: name.trim(), qty: Number(qty), unit: unit };
+                    
                     setSelectedItems([]);
                     db.collection('requests').doc(reqId).update({ items: updatedArray });
                     showToast("Staff request updated!", "success");
@@ -870,11 +868,14 @@
             return (
                 <div className="animate-fade-in relative">
                     
+                    {/* WELCOME SUMMARY & ANALYTICS */}
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
+                    {/* V_CONVERSION WORKBENCH */}
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
+                                <div className="absolute inset-0 bg-leaf-pattern opacity-[0.08] pointer-events-none z-0"></div>
                                 <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
                                     <div className="p-4">
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
@@ -974,7 +975,7 @@
                         </div>
                     )}
 
-                    {/* RAW MATERIAL MASTER */}
+                    {/* RAW MATERIAL MASTER AND PRICE BOOK METRICS */}
                     {ownerTab === 'inventory' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1 space-y-6">
@@ -1060,6 +1061,7 @@
                         </div>
                     )}
 
+                    {/* PREP KITCHEN CONVERSIONS */}
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
