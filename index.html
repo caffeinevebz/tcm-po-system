@@ -279,7 +279,6 @@
                 } else showToast('Master Request sent to database!', 'success');
             };
 
-            // CORRECTED: Fixed header text output mapping for WhatsApp messaging
             const sendWhatsApp = (po, isAmendment = false) => {
                 if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
                 const itemList = (po.items || []).map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
@@ -370,7 +369,7 @@
                     <DashboardLayout role={role} activeTab={role === 'owner' ? ownerTab : staffTab} setActiveTab={role === 'owner' ? setOwnerTab : setStaffTab} onLogout={() => setRole(null)}>
                         {role === 'staff' ? 
                             <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} /> : 
-                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile:"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile:",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} onResend={sendWhatsApp} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} setSelectedItems={setSelectedItems} selectedItems={selectedItems} />
+                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile:"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile:",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} onResend={sendWhatsApp} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
                         }
                     </DashboardLayout>
                 </>
@@ -640,9 +639,9 @@
         }
 
         // --- OWNER VIEW ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe, setSelectedItems, selectedItems }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
             const activePOs = (pos || []).filter(po => po.status === 'Approved'); const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
-            const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
+            const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
             const [localPhone, setLocalPhone] = useState(ownerPhone || ''); const [expandedPOs, setExpandedPOs] = useState({});
             const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); const [editQuantities, setEditQuantities] = useState({}); const [editPrices, setEditPrices] = useState({}); const [unmatchedScans, setUnmatchedScans] = useState([]); const [isOwnerScanning, setIsOwnerScanning] = useState(false);
             const [prepName, setPrepName] = useState(''); const [prepYieldQty, setPrepYieldQty] = useState(''); const [prepYieldUnit, setPrepYieldUnit] = useState('ml'); const [prepRawQty, setPrepRawQty] = useState(''); const [prepRawUnit, setPrepRawUnit] = useState('gms'); const [prepRawItem, setPrepRawItem] = useState(''); const [editingPrepId, setEditingPrepId] = useState(null); 
@@ -779,11 +778,9 @@
                 }
             };
 
-            // REFACTORED: Complete integration of the "Amend Existing PO" workflow logic block
             const handleGeneratePO = () => {
                 if (selectedItems.length === 0) return showToast('Check at least one item.', 'error');
                 
-                // FILTER STALE ITEMS: Ensure checked elements still live inside master reference state
                 const validatedStagedItems = selectedItems.filter(si => {
                     const matchedSrcRequest = requests.find(r => r.id === si.reqId);
                     if (!matchedSrcRequest) return false;
@@ -810,7 +807,6 @@
                     const safeDbId = targetPo.id.replace(/\//g, '-');
                     db.collection('pos').doc(safeDbId).update({ items: combinedItems });
                     
-                    // Reactive Request Cleaner loop logic
                     const reqsToUpdate = {};
                     validatedStagedItems.forEach(si => { if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = []; reqsToUpdate[si.reqId].push(si.itemIndex); });
                     Object.keys(reqsToUpdate).forEach(reqId => {
@@ -834,7 +830,6 @@
                 }
             };
 
-            // NEW WORKFLOW: Save modified staff request items directly to Firestore
             const saveModifiedRequestItem = () => {
                 if (!editingRequestItem) return;
                 const { reqId, itemIndex, name, qty, unit } = editingRequestItem;
@@ -842,8 +837,6 @@
                 if (reqDoc) {
                     const updatedArray = [...(reqDoc.items || [])];
                     updatedArray[itemIndex] = { name: name.trim(), qty: Number(qty), unit: unit };
-                    
-                    // Flush selections to guarantee index shift isolation safety checks pass
                     setSelectedItems([]);
                     db.collection('requests').doc(reqId).update({ items: updatedArray });
                     showToast("Staff request updated!", "success");
@@ -869,21 +862,19 @@
                 setEditingRecipeId(recipe.id); setRecipeName(recipe.name || ''); setRecipeCategory(recipe.category || RECIPE_CATEGORIES[0]); setRecipeYieldQty(recipe.yieldQty || ''); setRecipeYieldUnit(recipe.yieldUnit || 'ml'); setRecipeInstructions(recipe.instructions || ''); setRecipeCart(recipe.ingredients || []); setIsBuildingRecipe(true); setViewingRecipe(null);
             };
 
-            const allRawNames = Object.values(inventory).flat(); const allBasicPreps = (prepItems || []).map(p => p.name); const allBatchPreps = (recipes || []).filter(r => r.category === 'Batch Prep').map(r => r.name); const allRecipeIngredients = [...new Set([...allBatchPreps, ...allBasicPreps, ...allRawNames])]; 
+            const allRawNames = Object.values(inventory).flat(); const allBasicPreps = (prepItems || []).map(p => p.name); const allBatchPreps = (recipes || []).filter(r => r.category === 'Batch Prep').map(r => r.name); 
+            const allRecipeIngredients = [...new Set([...allBatchPreps, ...allBasicPreps, ...allRawNames])]; 
             const displayedRecipes = (recipes || []).filter(r => { const matchesSearch = (r.name || '').toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
             const displayedCatalogItems = (inventory[dbCategory] || []).filter(item => (item || '').toLowerCase().includes(catalogSearchFilter.toLowerCase()));
 
             return (
                 <div className="animate-fade-in relative">
                     
-                    {/* WELCOME SUMMARY & ANALYTICS */}
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
-                    {/* V_CONVERSION WORKBENCH */}
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
-                                <div className="absolute inset-0 bg-leaf-pattern opacity-[0.08] pointer-events-none z-0"></div>
                                 <aside className="w-64 border-r-2 border-brandBrown/20 bg-paper/80 backdrop-blur-md flex flex-col hide-scrollbar overflow-y-auto relative z-10 hidden md:flex">
                                     <div className="p-4">
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
@@ -983,7 +974,7 @@
                         </div>
                     )}
 
-                    {/* RAW MATERIAL SYSTEM AND PRICE BOOK METRICS */}
+                    {/* RAW MATERIAL MASTER */}
                     {ownerTab === 'inventory' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1 space-y-6">
@@ -1069,7 +1060,6 @@
                         </div>
                     )}
 
-                    {/* PREP KITCHEN CONVERSIONS */}
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
