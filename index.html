@@ -4,103 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TCM BrewOps - Inventory & Recipe Management</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#132A1B">
     <link rel="icon" href="TCM BrewOps icon.jpg?v=3">
     <link rel="apple-touch-icon" href="TCM BrewOps icon.jpg?v=3">
-
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: { 
-                        paper: '#FAF8F5', paperDark: '#e8dfd1', victorian: '#132A1B', victorianLight: '#23452F', 
-                        antique: '#D4AF37', antiqueLight: '#F2DF96', danger: '#8B2626', dangerLight: '#FCE8E8',
-                        brandBrown: '#8b5e3c', brandLightBrown: '#c08a5b', vintageGreen: '#4A5D23'
-                    },
-                    fontFamily: { 
-                        serif: ['"Playfair Display"', 'serif'], 
-                        sans: ['"Inter"', 'system-ui', 'sans-serif'],
-                        poppins: ['"Poppins"', 'sans-serif']
-                    },
-                    boxShadow: { 
-                        'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 
-                        'login': '0 15px 40px rgba(0,0,0,0.1)',
-                        'vintage': '0 10px 30px rgba(44, 26, 15, 0.08)', 
-                        'inner-vintage': 'inset 0 2px 10px rgba(44, 26, 15, 0.05)'
-                    }
-                }
-            }
-        }
+        tailwind.config = { theme: { extend: { colors: { paper: '#FAF8F5', paperDark: '#e8dfd1', victorian: '#132A1B', victorianLight: '#23452F', antique: '#D4AF37', antiqueLight: '#F2DF96', danger: '#8B2626', dangerLight: '#FCE8E8', brandBrown: '#8b5e3c', brandLightBrown: '#c08a5b', vintageGreen: '#4A5D23' }, fontFamily: { serif: ['"Playfair Display"', 'serif'], sans: ['"Inter"', 'system-ui', 'sans-serif'], poppins: ['"Poppins"', 'sans-serif'] }, boxShadow: { 'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 'login': '0 15px 40px rgba(0,0,0,0.1)', 'vintage': '0 10px 30px rgba(44, 26, 15, 0.08)', 'inner-vintage': 'inset 0 2px 10px rgba(44, 26, 15, 0.05)' } } } }
     </script>
     <style>
         body { background-color: #FAF8F5; color: #132A1B; font-family: 'Inter', sans-serif; margin: 0; }
-        .hide-scrollbar::-webkit-scrollbar { display: none; }
-        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input[type="text"], input[type="number"], input[type="password"], select, textarea { transition: all 0.2s ease-in-out; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
-        
-        /* 65% Opacity Background Overlay for the Main App */
-        .bg-theme-orders { 
-            background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('DSC_8017.jpg'); 
-            background-size: cover; 
-            background-attachment: fixed; 
-            background-position: center; 
-        }
-
+        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
         .vintage-checkbox { appearance: none; width: 20px; height: 20px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
-        .vintage-checkbox:checked { background-color: #FAF8F5; border-color: #4A5D23; }
-        .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 14px; font-weight: bold; }
-
-        @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
-        .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
-        .animate-fade-in { animation: fade-in 0.3s ease-in-out; }
+        .vintage-checkbox:checked { background-color: #FAF8F5; border-color: #4A5D23; } .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 14px; font-weight: bold; }
+        @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } } .animate-fade-in { animation: fade-in 0.3s ease-in-out; }
     </style>
 </head>
 <body>
     <div id="root"></div>
-
     <script type="text/babel">
         const { useState, useEffect } = React;
-
-        // --- FIREBASE INITIALIZATION ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE",
-            authDomain: "tcm-orders.firebaseapp.com",
-            projectId: "tcm-orders",
-            storageBucket: "tcm-orders.firebasestorage.app",
-            messagingSenderId: "994764639663",
-            appId: "1:994764639663:web:2b0a682f2cb1001d37335a"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE", authDomain: "tcm-orders.firebaseapp.com", projectId: "tcm-orders", storageBucket: "tcm-orders.firebasestorage.app", messagingSenderId: "994764639663", appId: "1:994764639663:web:2b0a682f2cb1001d37335a" };
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const functions = firebase.functions();
-
+        const db = firebase.firestore(); const functions = firebase.functions();
         const DEFAULT_SUPPLIERS = [ { "name": "Rare Beans Company", "phone": "8619122260" }, { "name": "Aditya Industries", "phone": "9595711611" }, { "name": "Renu Devi & Sons", "phone": "7737840411" }, { "name": "Cash Purchase", "phone": "" } ];
-        const DEFAULT_INVENTORY = {
-            "Fruits and Vegetables": ["Apple (सेव)", "Avocado (अवोकेडो)", "Banana (केले)", "Broccoli (ब्रोकली)", "Tomato (टमाटर)", "Garlic (लहसुन)", "Onion (प्याज़)"],
-            "Coffee and Matcha": ["Full House Green (Arabica)", "Baarbara Green (Cold Brew)", "Matcha (Premium)"],
-            "Groceries": ["Aata", "Amul Butter", "Amul Cheese", "Sugar", "Milk (Full Cream)", "Olive Oil"],
-            "Packing and Consumables": ["Brown Paper Bag", "Hot coffee cup", "Pizza Boxes"]
-        };
+        const DEFAULT_INVENTORY = { "Fruits and Vegetables": ["Apple (सेव)", "Avocado (अवोकेडो)", "Banana (केले)", "Broccoli (ब्रोकली)", "Tomato (टमाटर)", "Garlic (लहसुन)", "Onion (प्याज़)"], "Coffee and Matcha": ["Full House Green (Arabica)", "Baarbara Green (Cold Brew)", "Matcha (Premium)"], "Groceries": ["Aata", "Amul Butter", "Amul Cheese", "Sugar", "Milk (Full Cream)", "Olive Oil"], "Packing and Consumables": ["Brown Paper Bag", "Hot coffee cup", "Pizza Boxes"] };
         const UNITS = ["Kg", "gms", "Piece", "Pkt", "Jar", "Carton", "Tin", "bunch", "Ltr", "ml", "tsp", "tbsp", "Bottle"];
         const RECIPE_CATEGORIES = ["Beverages", "Kitchen", "Desserts", "Batch Prep"]; 
-
-        // --- ICONS ---
         const Icons = {
             Trash: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
             Edit: () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
@@ -121,8 +62,7 @@
                 reader.onload = (event) => {
                     const img = new Image(); img.src = event.target.result;
                     img.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        const scaleSize = 1500 / img.width;
+                        const canvas = document.createElement('canvas'); const scaleSize = 1500 / img.width;
                         canvas.width = 1500; canvas.height = img.height * scaleSize;
                         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
                         resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]);
@@ -131,34 +71,15 @@
             });
         };
 
-        // --- DASHBOARD LAYOUT WRAPPER ---
         const DashboardLayout = ({ role, onLogout, activeTab, setActiveTab, children }) => {
             const [isSidebarOpen, setSidebarOpen] = useState(false);
-            
-            const staffMenu = [
-                { id: 'dashboard', label: 'Dashboard' },
-                { id: 'order', label: 'Draft BrewOps Order' },
-                { id: 'recipes', label: 'Recipe Book' }
-            ];
-            
-            const ownerMenu = [
-                { id: 'dashboard', label: 'Welcome Dashboard' },
-                { id: 'orders', label: 'Manage Orders & POs' },
-                { id: 'recipes', label: 'Kitchen Recipe Book' },
-                { id: 'conversions', label: 'Prep Kitchen Engine' },
-                { id: 'vendors', label: 'Vendor Directory' },
-                { id: 'inventory', label: 'Raw Material Master' },
-                { id: 'workbench', label: "Brewster's Workbench" }
-            ];
-            
+            const staffMenu = [{ id: 'dashboard', label: 'Dashboard' }, { id: 'order', label: 'Draft BrewOps Order' }, { id: 'recipes', label: 'Recipe Book' }];
+            const ownerMenu = [{ id: 'dashboard', label: 'Welcome Dashboard' }, { id: 'orders', label: 'Manage Orders & POs' }, { id: 'recipes', label: 'Kitchen Recipe Book' }, { id: 'conversions', label: 'Prep Kitchen Engine' }, { id: 'vendors', label: 'Vendor Directory' }, { id: 'inventory', label: 'Raw Material Master' }, { id: 'workbench', label: "Brewster's Workbench" }];
             const menuItems = role === 'owner' ? ownerMenu : staffMenu;
 
             return (
                 <div className="min-h-screen pb-24 lg:pb-0 transition-all duration-700 ease-in-out bg-theme-orders relative">
-                    {/* Sidebar Overlay */}
                     {isSidebarOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setSidebarOpen(false)}></div>}
-                    
-                    {/* Sidebar Drawer */}
                     <div className={`fixed inset-y-0 left-0 w-72 bg-victorian text-paper shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                         <div className="flex justify-between items-center p-4 border-b border-white/10 relative bg-white">
                             <div className="w-full flex justify-center items-center py-4 px-2">
@@ -170,15 +91,12 @@
                             <div className="flex-1 space-y-2 mt-4">
                                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold px-4 mb-4">{role} Navigation</p>
                                 {menuItems.map(item => (
-                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-brandBrown text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>
-                                        {item.label}
-                                    </button>
+                                    <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-brandBrown text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>{item.label}</button>
                                 ))}
                             </div>
                             <button onClick={onLogout} className="w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl text-dangerLight hover:bg-danger/20 transition-all mt-6">Log Out</button>
                         </div>
                     </div>
-
                     <header className="bg-gradient-to-r from-[#e8dfd1] to-[#FAF8F5] border-b-2 border-brandBrown/30 px-4 py-3 shadow-md sticky top-0 z-30">
                         <div className="flex items-center justify-between max-w-6xl mx-auto relative">
                             <button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown transition-colors p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button>
@@ -188,25 +106,18 @@
                             <div className="w-12"></div>
                         </div>
                     </header>
-
-                    <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">
-                        {children}
-                    </main>
+                    <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">{children}</main>
                 </div>
             );
         };
 
         function App() {
-            const [role, setRole] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [staffTab, setStaffTab] = useState('dashboard'); 
-            const [ownerTab, setOwnerTab] = useState('dashboard'); 
-            
+            const [role, setRole] = useState(null); const [loading, setLoading] = useState(true);
+            const [staffTab, setStaffTab] = useState('dashboard'); const [ownerTab, setOwnerTab] = useState('dashboard'); 
             const [requests, setRequests] = useState([]); const [pos, setPos] = useState([]); const [poCounter, setPoCounter] = useState({ month: '', count: 1 });
             const [suppliers, setSuppliers] = useState([]); const [inventory, setInventory] = useState(DEFAULT_INVENTORY);
             const [prepItems, setPrepItems] = useState([]); const [ownerPhone, setOwnerPhone] = useState('');
             const [recipes, setRecipes] = useState([]); const [prices, setPrices] = useState({}); const [aliases, setAliases] = useState({});
-            
             const [toast, setToast] = useState(null); const [confirmDialog, setConfirmDialog] = useState(null);
 
             const showToast = (message, type = 'info') => { setToast({ message, type }); setTimeout(() => setToast(null), 3500); };
@@ -223,16 +134,8 @@
                     unsubSettings = settingsRef.onSnapshot(doc => {
                         if (doc.exists) {
                             const data = doc.data(); const rawInv = data.inventory || DEFAULT_INVENTORY; const scrubbedInv = {};
-                            
-                            // AUTO-CLEANUP: Remove "Amul Milk" group safely
-                            if (rawInv['Amul Milk']) {
-                                delete rawInv['Amul Milk'];
-                                settingsRef.update({ inventory: rawInv });
-                            }
-
-                            // SCRUB ALL DUPLICATES FROM ARRAYS GLOBALLY
+                            if (rawInv['Amul Milk']) { delete rawInv['Amul Milk']; settingsRef.update({ inventory: rawInv }); }
                             Object.keys(rawInv).forEach(key => { scrubbedInv[key] = [...new Set(rawInv[key])]; });
-                            
                             setSuppliers(data.suppliers || DEFAULT_SUPPLIERS); setInventory(scrubbedInv); setPrepItems(data.prepItems || []); setPoCounter(data.poCounter); setOwnerPhone(data.ownerPhone || ''); setPrices(data.prices || {}); setAliases(data.aliases || {});
                         }
                     });
@@ -241,8 +144,7 @@
                     unsubRecipes = db.collection('recipes').onSnapshot(snap => { const recData = []; snap.forEach(d => recData.push(d.data())); setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || '')))); });
                     setLoading(false);
                 };
-                initializeDB();
-                return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
+                initializeDB(); return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
 
             const updateAlias = (rawInvoiceName, dbItemName) => { const newAliases = { ...aliases, [rawInvoiceName]: dbItemName }; setAliases(newAliases); db.collection('settings').doc('main').update({ aliases: newAliases }); };
@@ -252,11 +154,9 @@
                 let factor = 1; const pUnit = priceObj.unit || '';
                 if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001; if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
                 if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001; if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
-                
                 const baseCost = (Number(qty) * factor) * Number(priceObj.price);
                 const gst = Number(priceObj.gst) || 0;
                 const landedCost = baseCost * (1 + (gst / 100));
-                
                 return { base: baseCost, landed: landedCost };
             };
 
@@ -279,18 +179,13 @@
                 } else showToast('Master Request sent to database!', 'success');
             };
 
-            // CORRECTED: Fixed header text output mapping for WhatsApp messaging
             const sendWhatsApp = (po, isAmendment = false) => {
                 if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
                 const itemList = (po.items || []).map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
-                
-                let prefix = '';
-                if (po.status === 'Delivered') prefix = `*[RESENT FOR RECORDS]*\n`;
-                else if (isAmendment) prefix = `*[AMENDED PURCHASE ORDER]*\n`;
-
+                let prefix = po.status === 'Delivered' ? `*[RESENT FOR RECORDS]*\n` : (isAmendment ? `*[AMENDED PURCHASE ORDER]*\n` : '');
                 const message = `${prefix}*Subject:* Purchase Order - The Caffeine Ministry\n*PO Number:* ${po.id || ''}\n*Date:* ${po.date || ''}\n\nHello ${po.supplier || ''},\nPlease arrange the delivery of the following items:\n\n*Order Details:*\n${itemList}\n\n*Delivery Address:*\nThe Caffeine Ministry \n'PARASUDAI', 672, 12th C Road, \nSardarpura, Jodhpur\n\nThank you,\nTeam Caffeine Ministry`;
                 let url = `https://wa.me/`;
-                if (po.supplierPhone) { let phoneStr = po.supplierPhone.replace(/\D/g, ''); if (phoneStr.length === 10) phoneStr = '91' + phoneStr; url += `${phoneStr}?text=${encodeURIComponent(message)}`; } 
+                if (po.supplierPhone) { let firstPhone = po.supplierPhone.split(',')[0].replace(/\D/g, ''); if (firstPhone.length === 10) firstPhone = '91' + firstPhone; url += `${firstPhone}?text=${encodeURIComponent(message)}`; } 
                 else url += `?text=${encodeURIComponent(message)}`;
                 window.open(url, '_blank');
             };
@@ -299,40 +194,24 @@
                 const rawPoId = generatePONumber(); const safeDbId = rawPoId.replace(/\//g, '-');
                 const newPo = { id: rawPoId, supplier: vendorObj.name, supplierPhone: vendorObj.phone, status: 'Approved', date: new Date().toLocaleDateString('en-GB') };
                 const combinedItems = [];
-                selectedItems.forEach(si => {
-                    const existing = combinedItems.find(i => i.name === si.item.name && i.unit === si.item.unit);
-                    if (existing) existing.qty = Number(existing.qty) + Number(si.item.qty); else combinedItems.push({...si.item, qty: Number(si.item.qty)});
-                });
+                selectedItems.forEach(si => { const existing = combinedItems.find(i => i.name === si.item.name && i.unit === si.item.unit); if (existing) existing.qty = Number(existing.qty) + Number(si.item.qty); else combinedItems.push({...si.item, qty: Number(si.item.qty)}); });
                 newPo.items = combinedItems; db.collection('pos').doc(safeDbId).set(newPo);
-                
                 const reqsToUpdate = {};
                 selectedItems.forEach(si => { if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = []; reqsToUpdate[si.reqId].push(si.itemIndex); });
-                Object.keys(reqsToUpdate).forEach(reqId => {
-                    const req = requests.find(r => r.id === reqId);
-                    if (req) {
-                        const indicesToRemove = reqsToUpdate[reqId]; const remaining = (req.items || []).filter((_, idx) => !indicesToRemove.includes(idx));
-                        if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining });
-                    }
-                });
+                Object.keys(reqsToUpdate).forEach(reqId => { const req = requests.find(r => r.id === reqId); if (req) { const indicesToRemove = reqsToUpdate[reqId]; const remaining = (req.items || []).filter((_, idx) => !indicesToRemove.includes(idx)); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); } });
                 sendWhatsApp(newPo);
             };
 
             const receivePO = (poId, receivedItemsData) => {
                 db.collection('pos').doc(poId.replace(/\//g, '-')).update({ status: 'Delivered', receivedItems: receivedItemsData, deliveryDate: new Date().toLocaleDateString('en-GB') });
                 const newPrices = { ...prices }; let pricesUpdated = false;
-                receivedItemsData.forEach(item => {
-                    if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) {
-                        const existingGst = prices[item.name]?.gst || 0;
-                        newPrices[item.name] = { price: Number((Number(item.totalPrice) / Number(item.receivedQty)).toFixed(2)), unit: item.unit, gst: existingGst }; 
-                        pricesUpdated = true;
-                    }
-                });
+                receivedItemsData.forEach(item => { if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) { const existingGst = prices[item.name]?.gst || 0; newPrices[item.name] = { price: Number((Number(item.totalPrice) / Number(item.receivedQty)).toFixed(2)), unit: item.unit, gst: existingGst }; pricesUpdated = true; } });
                 if (pricesUpdated) db.collection('settings').doc('main').update({ prices: newPrices });
                 showToast(pricesUpdated ? 'Intake logged & Base Prices updated!' : 'Intake logged successfully!', 'success');
             };
 
-            const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
             const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = (req.items || []).filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
+            const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <p className="animate-pulse font-bold tracking-widest uppercase">Loading BrewOps...</p> </div> );
 
@@ -342,18 +221,9 @@
                         <div className="absolute inset-0 bg-cover bg-center pointer-events-none z-0" style={{ backgroundImage: "url('DSC_8010.jpg')", opacity: 0.55 }}></div>
                         <div className="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-cover bg-center animate-slide-up mt-10" style={{ backgroundImage: "url('Login Tab.jpg')" }}>
                             <div className="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
-                                <form onSubmit={(e) => {
-                                    e.preventDefault(); const pin = e.target.pin.value;
-                                    if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); }
-                                    else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); }
-                                    else showToast('Invalid PIN', 'error');
-                                }}>
-                                    <div className="mb-5">
-                                        <input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" />
-                                    </div>
-                                    <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg">
-                                        Login
-                                    </button>
+                                <form onSubmit={(e) => { e.preventDefault(); const pin = e.target.pin.value; if (pin === '170117') { setRole('owner'); setOwnerTab('dashboard'); showToast('Welcome back, Owner.', 'success'); } else if (pin === '1234') { setRole('staff'); setStaffTab('dashboard'); showToast('Terminal accessible.', 'success'); } else showToast('Invalid PIN', 'error'); }}>
+                                    <div className="mb-5"><input type="password" name="pin" autoFocus placeholder="••••••" className="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" /></div>
+                                    <button type="submit" className="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-brandLightBrown text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md hover:shadow-lg">Login</button>
                                 </form>
                                 <div className="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Use Only</div>
                             </div>
@@ -366,11 +236,10 @@
                 <>
                     {toast && ( <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-[100] animate-slide-up"> <div className={`px-6 py-3 rounded-full shadow-2xl backdrop-blur-md border border-white/20 font-medium text-sm text-white flex items-center space-x-2 ${toast.type === 'error' ? 'bg-danger/90' : toast.type === 'success' ? 'bg-victorian/90' : 'bg-gray-800/90'}`}> {toast.type === 'success' && <Icons.Check />} <span>{toast.message}</span> </div> </div> )}
                     {confirmDialog && ( <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in"> <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30 text-center"> <h3 className="font-serif font-bold text-xl text-victorian mb-2">Are you sure?</h3> <p className="text-sm text-gray-600 mb-6">{confirmDialog.message}</p> <div className="flex space-x-3"> <button onClick={() => setConfirmDialog(null)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button> <button onClick={confirmDialog.onConfirm} className="w-1/2 bg-danger text-white font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-danger/90 transition-colors shadow-md">Confirm</button> </div> </div> </div> )}
-
                     <DashboardLayout role={role} activeTab={role === 'owner' ? ownerTab : staffTab} setActiveTab={role === 'owner' ? setOwnerTab : setStaffTab} onLogout={() => setRole(null)}>
                         {role === 'staff' ? 
                             <StaffView inventory={inventory} units={UNITS} onSubmit={submitMasterRequest} pos={pos} onReceive={receivePO} requests={requests} recipes={recipes} prepItems={prepItems} staffTab={staffTab} setStaffTab={setStaffTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} /> : 
-                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile:"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile:",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
+                            <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile Number(s) (comma separated for multiple):"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile Number(s) (comma separated for multiple):",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
                         }
                     </DashboardLayout>
                 </>
@@ -379,112 +248,11 @@
 
         const DashboardMetric = ({ title, value, subtitle, icon, borderColor = "border-white/50" }) => (
             <div className={`bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border-t-4 ${borderColor} flex flex-col justify-between hover:-translate-y-1 transition-transform relative overflow-hidden group`}>
-                <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110">
-                    <svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
-                </div>
-                <div className="flex justify-between items-start mb-4 relative z-10">
-                    <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest leading-tight w-3/4">{title}</p>
-                    <div className="text-victorian bg-paperDark/50 p-2.5 rounded-xl shadow-inner">{icon}</div>
-                </div>
-                <div className="relative z-10">
-                    <h3 className="text-4xl font-serif font-bold text-victorian tracking-tight">{value}</h3>
-                    {subtitle && <p className="text-[10px] text-brandBrown font-bold uppercase tracking-widest mt-2 bg-brandBrown/10 inline-block px-2 py-1 rounded">{subtitle}</p>}
-                </div>
+                <div className="absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110"><svg width="100" height="100" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg></div>
+                <div className="flex justify-between items-start mb-4 relative z-10"><p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest leading-tight w-3/4">{title}</p><div className="text-victorian bg-paperDark/50 p-2.5 rounded-xl shadow-inner">{icon}</div></div>
+                <div className="relative z-10"><h3 className="text-4xl font-serif font-bold text-victorian tracking-tight">{value}</h3>{subtitle && <p className="text-[10px] text-brandBrown font-bold uppercase tracking-widest mt-2 bg-brandBrown/10 inline-block px-2 py-1 rounded">{subtitle}</p>}</div>
             </div>
         );
-
-        const OwnerDashboardSummary = ({ pos, requests, recipes, prepItems, suppliers, setOwnerTab }) => {
-            const activePOs = (pos || []).filter(po => po.status === 'Approved');
-            const catCounts = (recipes || []).reduce((acc, r) => { acc[r.category || 'Other'] = (acc[r.category || 'Other'] || 0) + 1; return acc; }, {});
-            const pieData = Object.keys(catCounts).map(key => ({ name: key, value: catCounts[key] }));
-            const totalRecipes = pieData.reduce((sum, d) => sum + d.value, 0);
-            const PIE_COLORS = ['#8b5e3c', '#4A5D23', '#D4AF37', '#23452F', '#c08a5b'];
-            let cumulativePercent = 0;
-            const conicGradientString = totalRecipes > 0 ? pieData.map((d, i) => {
-                const start = cumulativePercent; const percent = (d.value / totalRecipes) * 100; cumulativePercent += percent;
-                return `${PIE_COLORS[i % PIE_COLORS.length]} ${start}% ${cumulativePercent}%`;
-            }).join(', ') : '#e5e7eb 0% 100%';
-            const vendorCounts = (pos || []).reduce((acc, p) => { if(p.supplier) { acc[p.supplier] = (acc[p.supplier] || 0) + 1; } return acc; }, {});
-            const barData = Object.keys(vendorCounts).map(key => ({ name: key.length > 12 ? key.substring(0, 12) + '...' : key, Orders: vendorCounts[key] })).sort((a, b) => b.Orders - a.Orders).slice(0, 5);
-            const maxOrders = barData.length > 0 ? Math.max(...barData.map(d => d.Orders)) : 0;
-
-            return (
-                <div className="animate-fade-in space-y-8">
-                    <div className="flex justify-between items-end">
-                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">System Command Center</h2>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                        <div onClick={()=>setOwnerTab('recipes')} className="cursor-pointer"><DashboardMetric title="Master Catalog" value={(recipes || []).length} icon={<Icons.FileText/>} borderColor="border-brandBrown" subtitle="Total Recipes Built" /></div>
-                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Active Shipments" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "In Transit" : "All Received"} /></div>
-                        <div onClick={()=>setOwnerTab('orders')} className="cursor-pointer"><DashboardMetric title="Pending Requests" value={(requests || []).length} icon={<Icons.Activity/>} borderColor={(requests || []).length > 0 ? "border-danger" : "border-gray-200"} subtitle={(requests || []).length > 0 ? "Needs Approval" : "Queue Empty"} /></div>
-                        <div onClick={()=>setOwnerTab('vendors')} className="cursor-pointer"><DashboardMetric title="Active Vendors" value={(suppliers || []).length} icon={<Icons.Users/>} borderColor="border-antique" subtitle="Supply Chain" /></div>
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10">
-                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Menu Distribution</h3>
-                            <div className="flex-1 flex items-center justify-center lg:justify-start lg:ml-10 min-h-[220px]">
-                                {totalRecipes > 0 ? (
-                                    <div className="flex items-center">
-                                        <div className="w-40 h-40 rounded-full shadow-inner-vintage relative" style={{ background: `conic-gradient(${conicGradientString})` }}>
-                                            <div className="absolute inset-4 bg-paper rounded-full shadow-elegant flex flex-col items-center justify-center">
-                                                <span className="text-victorian font-bold text-2xl leading-none">{totalRecipes}</span>
-                                            </div>
-                                        </div>
-                                        <div className="ml-10 flex flex-col space-y-3 border-l-2 border-brandBrown/10 pl-6 py-2">
-                                           {pieData.map((d, i) => (
-                                               <div key={i} className="flex items-center">
-                                                   <div className="w-3.5 h-3.5 rounded-full mr-3 shadow-sm border border-black/10" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
-                                                   <span className="text-xs font-medium text-gray-700">{d.name || 'Unknown'} <span className="font-bold ml-1 text-victorian">({d.value || 0})</span></span>
-                                               </div>
-                                           ))}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No recipe data available</div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 flex flex-col">
-                            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 border-b border-gray-200 pb-2">Top Suppliers (By Order Volume)</h3>
-                            <div className="flex-1 min-h-[220px]">
-                                {barData.length > 0 ? (
-                                    <div className="flex items-end justify-around h-full pt-6 pb-2 px-4 gap-4 border-b-2 border-gray-200">
-                                        {barData.map((d, i) => {
-                                            const heightPct = maxOrders === 0 ? 0 : ((d.Orders || 0) / maxOrders) * 100;
-                                            return (
-                                                <div key={i} className="flex flex-col items-center flex-1 h-full justify-end group">
-                                                    <span className="text-[10px] font-bold text-brandBrown mb-2 opacity-0 group-hover:opacity-100 transition-opacity">{d.Orders || 0} Orders</span>
-                                                    <div className="w-full max-w-[40px] bg-brandBrown rounded-t-md transition-all duration-700 shadow-sm group-hover:bg-brandLightBrown" style={{ height: `${Math.max(heightPct, 5)}%` }}></div>
-                                                    <span className="text-[9px] text-gray-600 font-bold text-center mt-3 truncate w-full px-1">{d.name || 'Unknown'}</span>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="flex h-full items-center justify-center text-sm text-gray-400 italic">No purchase history available</div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const StaffDashboardSummary = ({ pos, requests, setStaffTab }) => {
-            const activePOs = (pos || []).filter(po => po.status === 'Approved');
-            return (
-                <div className="animate-fade-in space-y-6">
-                    <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries" value={activePOs.length} icon={<Icons.Box/>} borderColor={activePOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={activePOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
-                        <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={(requests || []).length} icon={<Icons.FileText/>} borderColor={(requests || []).length > 0 ? "border-brandBrown" : "border-gray-200"} subtitle="Awaiting Owner action" /></div>
-                    </div>
-                    <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
-                        <span className="text-xl font-light leading-none">+</span> Draft BrewOps Order
-                    </button>
-                </div>
-            );
-        };
 
         function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
             const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0] || ''); const [searchTerm, setSearchTerm] = useState('');
@@ -498,14 +266,7 @@
             const confirmAddItem = () => { if(!modalQty || Number(modalQty) <= 0) return showToast("Invalid quantity", "error"); setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]); setShowAddModal(false); };
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
             
-            const handleSubmit = () => { 
-                if (cart.length === 0) return showToast('Cart is empty', 'error'); 
-                const cartToSubmit = [...cart];
-                setCart([]); 
-                setSearchTerm('');
-                onSubmit(cartToSubmit); 
-            };
-            
+            const handleSubmit = () => { if (cart.length === 0) return showToast('Cart is empty', 'error'); const cartToSubmit = [...cart]; setCart([]); setSearchTerm(''); onSubmit(cartToSubmit); };
             const openReceiveScreen = (po) => { setReceivingPO(po); const initialQty = {}; const initialPrices = {}; (po.items || []).forEach((item, idx) => { initialQty[idx] = item.qty || 0; initialPrices[idx] = ''; }); setReceivedQuantities(initialQty); setReceivedPrices(initialPrices); setUnmatchedScans([]); };
 
             const handleRealAIScan = async (e) => {
@@ -515,11 +276,7 @@
                     let allScannedItems = []; const scanInvoice = firebase.functions().httpsCallable('scanInvoice');
                     for (let file of files) { const compressedBase64 = await compressImage(file); const response = await scanInvoice({ image: compressedBase64 }); if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems]; }
                     const autoQty = { ...receivedQuantities }; const autoPrices = { ...receivedPrices }; const unmatched = []; const usedScans = new Set();
-                    (receivingPO.items || []).forEach((poItem, idx) => {
-                        let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name);
-                        if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && ((poItem.name || '').toLowerCase().includes((scan.name || '').toLowerCase().split(' ')[0]) || (scan.name || '').toLowerCase().includes((poItem.name || '').toLowerCase().split(' ')[0])));
-                        if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); } else { autoQty[idx] = ''; autoPrices[idx] = ''; }
-                    });
+                    (receivingPO.items || []).forEach((poItem, idx) => { let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name); if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && ((poItem.name || '').toLowerCase().includes((scan.name || '').toLowerCase().split(' ')[0]) || (scan.name || '').toLowerCase().includes((poItem.name || '').toLowerCase().split(' ')[0]))); if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); } else { autoQty[idx] = ''; autoPrices[idx] = ''; } });
                     allScannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
                     setReceivedQuantities(autoQty); setReceivedPrices(autoPrices); setUnmatchedScans(unmatched);
                     if (unmatched.length > 0) showToast(`Mapped partially. Map ${unmatched.length} items below.`, 'info'); else showToast("Perfect Auto-Match!", 'success');
@@ -532,22 +289,29 @@
             const incomingPOs = (pos || []).filter(po => po.status === 'Approved');
             const displayedRecipes = (recipes || []).filter(r => { const matchesSearch = (r.name || '').toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
 
-            if (staffTab === 'dashboard') return <StaffDashboardSummary pos={pos} requests={requests} setStaffTab={setStaffTab} />;
+            if (staffTab === 'dashboard') {
+                return (
+                    <div className="animate-fade-in space-y-6">
+                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Incoming Deliveries" value={incomingPOs.length} icon={<Icons.Box/>} borderColor={incomingPOs.length > 0 ? "border-vintageGreen" : "border-gray-200"} subtitle={incomingPOs.length > 0 ? "Scanner intake required" : "No pending deliveries"} /></div>
+                            <div onClick={()=>setStaffTab('order')} className="cursor-pointer"><DashboardMetric title="Requests Awaiting Approval" value={requests.length} icon={<Icons.FileText/>} borderColor={requests.length > 0 ? "border-brandBrown" : "border-gray-200"} subtitle="Awaiting Owner action" /></div>
+                        </div>
+                        <button onClick={() => setStaffTab('order')} className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-5 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8"><span className="text-xl font-light leading-none">+</span> Draft BrewOps Order</button>
+                    </div>
+                );
+            }
 
             if (receivingPO) return (
                 <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant border border-white/40">
                     <div className="flex justify-between items-center mb-5 border-b border-gray-200/50 pb-3"><h2 className="text-xl font-serif font-bold text-victorian">Delivery Intake</h2><button onClick={() => setReceivingPO(null)} className="text-danger font-bold text-xs uppercase tracking-wider hover:bg-danger/10 px-3 py-1.5 rounded-lg transition-colors">Cancel</button></div>
-                    <div className="mb-6 bg-paper/60 p-4 rounded-xl border border-white/50 shadow-sm"><p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">BrewOps Order Reference</p><p className="font-bold text-victorian text-lg mb-4">{receivingPO.id || 'N/A'}</p>
-                        <div className="relative"><input type="file" accept="image/*" multiple id="invoice-upload" className="hidden" onChange={handleRealAIScan} /><label htmlFor="invoice-upload" className={`w-full flex justify-center items-center py-3.5 border rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer transition-all ${isScanning ? 'bg-antiqueLight/30 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/20 text-victorian hover:border-victorian shadow-sm hover:shadow-md'}`}>{isScanning ? <span className="animate-pulse flex items-center">⏳ Processor Running...</span> : <span className="flex items-center gap-2"><Icons.Camera/> Auto-Scan Invoice</span>}</label></div>
-                    </div>
+                    <div className="mb-6 bg-paper/60 p-4 rounded-xl border border-white/50 shadow-sm"><p className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">BrewOps Order Reference</p><p className="font-bold text-victorian text-lg mb-4">{receivingPO.id || 'N/A'}</p><div className="relative"><input type="file" accept="image/*" multiple id="invoice-upload" className="hidden" onChange={handleRealAIScan} /><label htmlFor="invoice-upload" className={`w-full flex justify-center items-center py-3.5 border rounded-xl text-xs font-bold uppercase tracking-widest cursor-pointer transition-all ${isScanning ? 'bg-antiqueLight/30 border-antique text-victorian shadow-inner' : 'bg-white border-victorian/20 text-victorian hover:border-victorian shadow-sm hover:shadow-md'}`}>{isScanning ? <span className="animate-pulse flex items-center">⏳ Processor Running...</span> : <span className="flex items-center gap-2"><Icons.Camera/> Auto-Scan Invoice</span>}</label></div></div>
                     <div className="mb-6 space-y-3">
                         <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Ord</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
                         {(receivingPO.items || []).map((item, idx) => (
                             <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0 pb-3">
                                 <div className="flex justify-between items-center space-x-2"><span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name || 'Unknown'}</span><span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty || 0}<br/><span className="text-[9px]">{item.unit || ''}</span></span><input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm bg-white focus:ring-2 focus:ring-antique/50" value={receivedQuantities[idx] || ''} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} /><input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-sm bg-white focus:ring-2 focus:ring-antique" value={receivedPrices[idx] || ''} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} /></div>
-                                {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (
-                                    <div className="mt-2 w-full"><select className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setReceivedQuantities({...receivedQuantities, [idx]: scanObj.quantity}); setReceivedPrices({...receivedPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); updateAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 AI Missed this. Map item...</option>{unmatchedScans.map((u, ui) => (<option key={u.name + ui} value={u.name || ''}>{u.name || 'Unknown'} (Qty: {u.quantity || 0}, ₹{u.totalPrice || 0})</option>))}</select></div>
-                                )}
+                                {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (<div className="mt-2 w-full"><select className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setReceivedQuantities({...receivedQuantities, [idx]: scanObj.quantity}); setReceivedPrices({...receivedPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); updateAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 AI Missed this. Map item...</option>{unmatchedScans.map((u, ui) => (<option key={u.name + ui} value={u.name || ''}>{u.name || 'Unknown'} (Qty: {u.quantity || 0}, ₹{u.totalPrice || 0})</option>))}</select></div>)}
                             </div>
                         ))}
                     </div>
@@ -561,26 +325,20 @@
                         <div className="animate-fade-in">
                             <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-4 border border-white/50 bg-white/70 backdrop-blur-xl rounded-xl text-sm shadow-sm" placeholder="Search the ledger..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/></div>
                             {!recipeSearchFilter && <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">{['All', ...RECIPE_CATEGORIES].map(cat => <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold scale-[1.02]' : 'bg-white/70 backdrop-blur-md text-victorian hover:bg-white font-medium'}`}>{cat}</button>)}</div>}
-                            
                             <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-brandBrown/20 overflow-hidden mb-10">
                                 {displayedRecipes.length === 0 ? <p className="text-center text-sm italic text-gray-500 py-8">No recipes found.</p> :
                                     displayedRecipes.map((recipe, idx) => (
                                         <div key={recipe.id || idx} onClick={() => setViewingRecipe(recipe)} className="flex justify-between items-center p-5 border-b border-brandBrown/10 last:border-0 hover:bg-white/90 cursor-pointer transition-colors group">
-                                            <div className="flex flex-col">
-                                                <span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name || 'Unknown'}</span>
-                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 bg-gray-100 w-max px-2 py-0.5 rounded">{recipe.category || 'Beverages'}</span>
-                                            </div>
+                                            <div className="flex flex-col"><span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name || 'Unknown'}</span><span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 bg-gray-100 w-max px-2 py-0.5 rounded">{recipe.category || 'Beverages'}</span></div>
                                             <span className="text-brandBrown text-xl opacity-50 group-hover:opacity-100 transition-opacity">→</span>
                                         </div>
                                     ))
                                 }
                             </div>
-
                             {viewingRecipe && (
                                 <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
                                     <div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border-2 border-brandBrown/40 max-h-[90vh] overflow-y-auto relative">
                                         <button onClick={() => setViewingRecipe(null)} className="absolute top-4 right-4 text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm z-10"><Icons.Close/></button>
-                                        
                                         <div className="p-6">
                                             <div className="flex flex-col mb-5 pr-10 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight">{viewingRecipe.name || 'Unknown'}</h3><div className="flex gap-2 mt-2.5"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span></div></div>
                                             <div className="bg-white/80 p-4 rounded-xl border border-white/60 shadow-sm mb-5">
@@ -591,13 +349,11 @@
                                                     ))}
                                                 </ul>
                                             </div>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p>
-                                            <div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div>
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p><div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div>
                                         </div>
                                     </div>
                                 </div>
                             )}
-
                         </div>
                     )}
 
@@ -608,24 +364,16 @@
                                     <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30"><h3 className="font-serif font-bold text-xl text-victorian mb-1">Add to Request</h3><p className="text-sm text-gray-600 mb-6 truncate">{modalItemName}</p><div className="flex space-x-4 mb-8"><div className="w-1/2"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Quantity</label><input type="number" min="0" step="any" value={modalQty} onChange={e=>setModalQty(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-center font-bold text-lg bg-white shadow-inner" placeholder="0" /></div><div className="w-1/2"><label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Unit</label><select value={modalUnit} onChange={e=>setModalUnit(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-lg bg-white font-medium text-gray-700 shadow-sm">{units.map(u => <option key={u} value={u}>{u}</option>)}</select></div></div><div className="flex space-x-3"><button onClick={() => setShowAddModal(false)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button><button onClick={confirmAddItem} className="w-1/2 bg-victorian text-antique border border-antique/30 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-victorianLight transition-colors shadow-md">Add</button></div></div>
                                 </div>
                             )}
-
-                            {incomingPOs.length > 0 && (
-                                <div className="mb-6 bg-white/80 backdrop-blur-xl rounded-2xl p-5 shadow-elegant border border-white/50 animate-alert-flash"><h3 className="text-xs font-bold uppercase tracking-widest text-victorian mb-4 flex items-center"><span className="mr-2 text-lg">⚠️</span> Incoming Deliveries</h3>{incomingPOs.map(po => (<div key={po.id} className="bg-paper/80 p-4 rounded-xl border border-victorian/10 mb-3 flex justify-between items-center last:mb-0"><div><p className="font-bold text-sm text-victorian mb-0.5">{po.id || 'N/A'}</p><p className="text-xs text-gray-600">{po.supplier || 'Unknown'}</p></div><button onClick={() => openReceiveScreen(po)} className="bg-white border border-victorian/30 text-victorian text-xs font-bold py-2 px-4 rounded-lg hover:border-victorian transition-all uppercase tracking-wider shadow-sm hover:shadow-md flex items-center gap-1.5"><Icons.Camera /> Intake & Scan</button></div>))}</div>
-                            )}
-
                             <h2 className="text-xl font-serif font-semibold text-victorian mb-4 shadow-sm backdrop-blur-md inline-block px-3 py-1 rounded-lg bg-white/40">Request BrewOps Inventory</h2>
                             <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-4 border border-white/50 bg-white/70 backdrop-blur-xl rounded-xl text-sm shadow-sm" placeholder="Search catalog..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}/></div>
-
                             {!searchTerm && (
                                 <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">{Object.keys(inventory).map(cat => <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-4 py-2 text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm ${selectedCategory === cat ? 'bg-victorian text-paper font-bold scale-[1.02]' : 'bg-white/70 backdrop-blur-md text-victorian hover:bg-white font-medium'}`}>{cat.split(' ')[0]}</button>)}</div>
                             )}
-
                             <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 p-2 mb-8 max-h-[45vh] overflow-y-auto">
                                 {displayedItems.length === 0 ? <p className="text-victorian/50 text-sm text-center py-8 italic">No items found</p> : 
                                     displayedItems.map((item, i) => (<div key={`${item}-${i}`} className="flex justify-between items-center py-3.5 px-4 border-b border-victorian/5 last:border-0 hover:bg-white/90 rounded-lg transition-colors"><span className="text-sm font-medium text-victorian/90 pr-2">{item}</span><button onClick={() => openAddModal(item)} className="text-antique bg-antiqueLight/20 w-8 h-8 rounded-full flex items-center justify-center text-xl font-light hover:bg-antique hover:text-white transition-colors leading-none shadow-sm">+</button></div>))
                                 }
                             </div>
-
                             {cart.length > 0 && (
                                 <div className="bg-victorian/95 backdrop-blur-xl text-paper rounded-2xl p-6 shadow-elegant mb-6 border-t-4 border-antique">
                                     <div className="flex justify-between items-end mb-5 border-b border-white/10 pb-3"><h3 className="font-serif font-bold text-xl text-antique">Active BrewOps Draft</h3><span className="text-xs uppercase tracking-widest text-gray-400 bg-white/10 px-2.5 py-1 rounded-lg">{cart.length} items</span></div>
@@ -770,20 +518,13 @@
             
             const handleSelectAllInReq = (reqId, items) => {
                 const allSelected = (items || []).every((_, idx) => selectedItems.some(si => si.reqId === reqId && si.itemIndex === idx));
-                if (allSelected) {
-                    setSelectedItems(prev => prev.filter(si => si.reqId !== reqId));
-                } else {
-                    const newSelected = [...selectedItems.filter(si => si.reqId !== reqId)];
-                    items.forEach((item, idx) => newSelected.push({ reqId, itemIndex: idx, item }));
-                    setSelectedItems(newSelected);
-                }
+                if (allSelected) { setSelectedItems(prev => prev.filter(si => si.reqId !== reqId)); } 
+                else { const newSelected = [...selectedItems.filter(si => si.reqId !== reqId)]; (items || []).forEach((item, idx) => newSelected.push({ reqId, itemIndex: idx, item })); setSelectedItems(newSelected); }
             };
 
-            // REFACTORED: Complete integration of the "Amend Existing PO" workflow logic block
             const handleGeneratePO = () => {
                 if (selectedItems.length === 0) return showToast('Check at least one item.', 'error');
                 
-                // FILTER STALE ITEMS: Ensure checked elements still live inside master reference state
                 const validatedStagedItems = selectedItems.filter(si => {
                     const matchedSrcRequest = requests.find(r => r.id === si.reqId);
                     if (!matchedSrcRequest) return false;
@@ -810,7 +551,6 @@
                     const safeDbId = targetPo.id.replace(/\//g, '-');
                     db.collection('pos').doc(safeDbId).update({ items: combinedItems });
                     
-                    // Reactive Request Cleaner loop logic
                     const reqsToUpdate = {};
                     validatedStagedItems.forEach(si => { if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = []; reqsToUpdate[si.reqId].push(si.itemIndex); });
                     Object.keys(reqsToUpdate).forEach(reqId => {
@@ -834,7 +574,6 @@
                 }
             };
 
-            // NEW WORKFLOW: Save modified staff request items directly to Firestore
             const saveModifiedRequestItem = () => {
                 if (!editingRequestItem) return;
                 const { reqId, itemIndex, name, qty, unit } = editingRequestItem;
@@ -843,7 +582,6 @@
                     const updatedArray = [...(reqDoc.items || [])];
                     updatedArray[itemIndex] = { name: name.trim(), qty: Number(qty), unit: unit };
                     
-                    // Flush selections to guarantee index shift isolation safety checks pass
                     setSelectedItems([]);
                     db.collection('requests').doc(reqId).update({ items: updatedArray });
                     showToast("Staff request updated!", "success");
@@ -877,10 +615,8 @@
             return (
                 <div className="animate-fade-in relative">
                     
-                    {/* WELCOME SUMMARY & ANALYTICS */}
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
-                    {/* V_CONVERSION WORKBENCH */}
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
@@ -1022,7 +758,7 @@
                                                                                 <span className="text-sm font-bold text-gray-500">₹ Base</span>
                                                                                 <input type="number" min="0" step="any" autoFocus value={tempPriceVal} onChange={e=>setTempPriceVal(e.target.value)} className="w-20 p-2 border border-brandBrown/50 rounded-lg text-sm font-bold text-center bg-white focus:ring-2 focus:ring-brandBrown" placeholder="Price" />
                                                                                 <span className="text-xs text-gray-500">per</span>
-                                                                                <select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-brandBrown/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-brandBrown">{units.map(u => <option key={u} value={u}>{u}</option>)}</select>
+                                                                                <select value={tempPriceUnit} onChange={e=>setTempPriceUnit(e.target.value)} className="p-2 border border-brandBrown/50 rounded-lg text-sm bg-white font-medium focus:ring-2 focus:ring-brandBrown">{UNITS.map(u => <option key={u} value={u}>{u}</option>)}</select>
                                                                             </div>
                                                                             <div className="flex items-center space-x-2 pt-2 border-t border-brandBrown/10">
                                                                                 <span className="text-xs font-bold text-gray-500">+ GST</span>
