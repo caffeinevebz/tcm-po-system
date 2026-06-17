@@ -7,15 +7,13 @@
     
     <script>
         window.addEventListener('error', function(e) {
-            document.body.innerHTML = '<div style="background-color: #ffe6e6; border: 2px solid red; padding: 20px; margin: 20px; font-family: monospace; color: #900; border-radius: 8px;"><h2 style="margin-top: 0;">BrewOps System Crash Report</h2><p><b>Error:</b> ' + e.message + '</p><p><b>Line:</b> ' + e.lineno + '</p><p>Please copy this red text and send it to your AI architect.</p></div>';
+            document.body.innerHTML = '<div style="background-color: #ffe6e6; border: 2px solid red; padding: 20px; margin: 20px; font-family: monospace; color: #900; border-radius: 8px;"><h2 style="margin-top: 0;">BrewOps System Crash Report</h2><p><b>Error:</b> ' + e.message + '</p><p><b>Line:</b> ' + e.lineno + '</p><p>Please send this red text to your AI architect.</p></div>';
         });
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -182,7 +180,7 @@
             );
         }
 
-        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
+        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, ownerPhone, db }) {
             const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0] || ''); const [searchTerm, setSearchTerm] = useState('');
             const [receivingPO, setReceivingPO] = useState(null); const [receivedQuantities, setReceivedQuantities] = useState({}); const [receivedPrices, setReceivedPrices] = useState({}); 
             const [unmatchedScans, setUnmatchedScans] = useState([]); const [isScanning, setIsScanning] = useState(false);
@@ -284,7 +282,7 @@
         }
 
         // --- OWNER VIEW COMPONENT ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe, poCounter }) {
             const activePOs = (pos || []).filter(po => po.status === 'Approved'); 
             const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
             
@@ -326,19 +324,20 @@
             const [recModalUnit, setRecModalUnit] = useState('gms'); 
             const [isCustomRecItem, setIsCustomRecItem] = useState(false);
             const [viewingRecipe, setViewingRecipe] = useState(null);
+            
             const [editingPriceItem, setEditingPriceItem] = useState(null); 
             const [tempPriceVal, setTempPriceVal] = useState(''); 
             const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); 
             const [tempGstVal, setTempGstVal] = useState(''); 
             const [priceSearchFilter, setPriceSearchFilter] = useState('');
             const [catalogSearchFilter, setCatalogSearchFilter] = useState('');
-            
-            const [amendPoId, setAmendPoId] = useState(''); 
-            const [editingRequestItem, setEditingRequestItem] = useState(null); 
+
+            const [amendPoId, setAmendPoId] = useState('');
+            const [editingRequestItem, setEditingRequestItem] = useState(null);
             const [targetPhones, setTargetPhones] = useState([]);
 
             useEffect(() => { if (!dbCategory && Object.keys(inventory).length > 0) setDbCategory(Object.keys(inventory)[0]); }, [inventory]);
-            
+
             useEffect(() => {
                 if (!amendPoId && selectedVendor) { const v = (suppliers || []).find(s => s.name === selectedVendor); if (v && v.phone) { setTargetPhones([v.phone.split(',')[0].trim()]); } else { setTargetPhones([]); } } 
                 else if (amendPoId) { const po = activePOs.find(p => p.id === amendPoId); if (po && po.supplierPhone) { setTargetPhones([po.supplierPhone.split(',')[0].trim()]); } else { setTargetPhones([]); } } 
@@ -380,9 +379,7 @@
                 const rawTotals = {};
                 const processIngredient = (ingName, ingQty, ingUnit) => {
                     const prepMatch = (prepItems || []).find(p => p.name === ingName); const batchMatch = (recipes || []).find(r => r.category === 'Batch Prep' && r.name === ingName);
-                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); (batchMatch.ingredients || []).forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } 
-                    else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } 
-                    else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
+                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); (batchMatch.ingredients || []).forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
                 };
                 (ingredients || []).forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
                 return rawTotals;
@@ -458,18 +455,14 @@
                                         <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-brandBrown/70 mb-3">Processor Engine</p>
                                         <ul className="space-y-1">
                                             <li><div className="flex items-center gap-3 px-3 py-2 bg-brandLightBrown/20 text-brandBrown font-bold rounded-lg border border-brandBrown/20 transition-colors">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg>
-                                                Overview
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-1.74.56-3.35 1.5-4.66.42 1.6 1.34 3 2.62 4.02C8.63 12.03 9 12.87 9 13.8V16h2v-2.2c0-1.39-.77-2.67-2.02-3.32-.71-.36-1.34-.87-1.85-1.48C8.5 7.15 10.15 6 12 6c3.31 0 6 2.69 6 6s-2.69 6-6 6z"/></svg> Overview
                                             </div></li>
                                         </ul>
                                     </div>
                                 </aside>
                                 <div className="flex-1 flex flex-col relative overflow-hidden bg-white/60 z-10">
                                     <div className="h-14 border-b border-brandBrown/20 flex items-center justify-between px-6 bg-paper/50">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-brandBrown font-bold">←</span>
-                                            <h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2>
-                                        </div>
+                                        <div className="flex items-center gap-2"><span className="text-brandBrown font-bold">←</span><h2 className="font-serif font-bold text-xl text-victorian tracking-wide">Brewster's Workbench</h2></div>
                                     </div>
                                     <div className="p-8 overflow-y-auto hide-scrollbar flex-1 relative z-10 pb-20">
                                         <div className="max-w-3xl mb-10">
@@ -497,7 +490,7 @@
                                 <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
                                     <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-5 border-b border-brandBrown/20 pb-3">Firm Operations Bridge</h3>
                                     <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 mt-4">Owner Alerts Core Terminal</label>
-                                    <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" placeholder="e.g. 9876543210" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
+                                    <input type="text" className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner focus:ring-2 focus:ring-brandBrown/50" value={localPhone} onChange={e => setLocalPhone(e.target.value)} onBlur={savePhoneToCloud} />
                                     <p className="text-[10px] text-vintageGreen mt-5 uppercase tracking-widest font-bold bg-antiqueLight/20 border border-antique/30 inline-block px-3 py-1.5 rounded-lg flex items-center gap-2"><Icons.Check/> Secure Database Document Parsing Connected</p>
                                 </div>
                             </div>
@@ -581,7 +574,7 @@
                                             );
                                         })}
                                     </div>
-                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-4 text-center">Landed Cost dynamically applied in Recipe Engine.</p>
+                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-4 text-center">Frictionless Landed Cost calculation running in recipe builds.</p>
                                 </div>
                             </div>
                             <div className="lg:col-span-1 space-y-6">
@@ -1028,7 +1021,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(<React.Fragment><App /></React.Fragment>);
     </script>
 </body>
 </html>
