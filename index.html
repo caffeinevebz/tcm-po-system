@@ -12,8 +12,10 @@
     </script>
 
     <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
     <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
     
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -180,7 +182,7 @@
             );
         }
 
-        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, ownerPhone, db }) {
+        function StaffView({ inventory, units, onSubmit, pos, onReceive, requests, recipes, prepItems, staffTab, setStaffTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons }) {
             const [cart, setCart] = useState([]); const [selectedCategory, setSelectedCategory] = useState(Object.keys(inventory)[0] || ''); const [searchTerm, setSearchTerm] = useState('');
             const [receivingPO, setReceivingPO] = useState(null); const [receivedQuantities, setReceivedQuantities] = useState({}); const [receivedPrices, setReceivedPrices] = useState({}); 
             const [unmatchedScans, setUnmatchedScans] = useState([]); const [isScanning, setIsScanning] = useState(false);
@@ -282,62 +284,24 @@
         }
 
         // --- OWNER VIEW COMPONENT ---
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe, poCounter }) {
-            const activePOs = (pos || []).filter(po => po.status === 'Approved'); 
-            const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
+            const activePOs = (pos || []).filter(po => po.status === 'Approved'); const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
             
-            const [selectedItems, setSelectedItems] = useState([]); 
-            const [selectedVendor, setSelectedVendor] = useState(''); 
-            const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
-            const [localPhone, setLocalPhone] = useState(ownerPhone || ''); 
-            const [expandedPOs, setExpandedPOs] = useState({});
-            
-            const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); 
-            const [editQuantities, setEditQuantities] = useState({}); 
-            const [editPrices, setEditPrices] = useState({}); 
-            const [unmatchedScans, setUnmatchedScans] = useState([]); 
-            const [isOwnerScanning, setIsOwnerScanning] = useState(false);
-            
-            const [prepName, setPrepName] = useState(''); 
-            const [prepYieldQty, setPrepYieldQty] = useState(''); 
-            const [prepYieldUnit, setPrepYieldUnit] = useState('ml'); 
-            const [prepRawQty, setPrepRawQty] = useState(''); 
-            const [prepRawUnit, setPrepRawUnit] = useState('gms'); 
-            const [prepRawItem, setPrepRawItem] = useState(''); 
-            const [editingPrepId, setEditingPrepId] = useState(null); 
-            
-            const [isBuildingRecipe, setIsBuildingRecipe] = useState(false); 
-            const [editingRecipeId, setEditingRecipeId] = useState(null); 
-            const [recipeName, setRecipeName] = useState(''); 
-            const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]); 
-            const [recipeYieldQty, setRecipeYieldQty] = useState(''); 
-            const [recipeYieldUnit, setRecipeYieldUnit] = useState('ml'); 
-            const [recipeInstructions, setRecipeInstructions] = useState(''); 
-            const [recipeCart, setRecipeCart] = useState([]);
-            const [recSearch, setRecSearch] = useState(''); 
-            const [recCat, setRecCat] = useState('Batch Preps'); 
-            const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); 
-            const [activeRecipeTab, setActiveRecipeTab] = useState('All');
-            const [showRecAdd, setShowRecAdd] = useState(false); 
-            const [recModalItem, setRecModalItem] = useState(''); 
-            const [recModalQty, setRecModalQty] = useState(''); 
-            const [recModalUnit, setRecModalUnit] = useState('gms'); 
-            const [isCustomRecItem, setIsCustomRecItem] = useState(false);
+            const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState(Object.keys(inventory)[0] || '');
+            const [localPhone, setLocalPhone] = useState(ownerPhone || ''); const [expandedPOs, setExpandedPOs] = useState({});
+            const [editingDeliveredPO, setEditingDeliveredPO] = useState(null); const [editQuantities, setEditQuantities] = useState({}); const [editPrices, setEditPrices] = useState({}); const [unmatchedScans, setUnmatchedScans] = useState([]); const [isOwnerScanning, setIsOwnerScanning] = useState(false);
+            const [prepName, setPrepName] = useState(''); const [prepYieldQty, setPrepYieldQty] = useState(''); const [prepYieldUnit, setPrepYieldUnit] = useState('ml'); const [prepRawQty, setPrepRawQty] = useState(''); const [prepRawUnit, setPrepRawUnit] = useState('gms'); const [prepRawItem, setPrepRawItem] = useState(''); const [editingPrepId, setEditingPrepId] = useState(null); 
+            const [isBuildingRecipe, setIsBuildingRecipe] = useState(false); const [editingRecipeId, setEditingRecipeId] = useState(null); const [recipeName, setRecipeName] = useState(''); const [recipeCategory, setRecipeCategory] = useState(RECIPE_CATEGORIES[0]); const [recipeYieldQty, setRecipeYieldQty] = useState(''); const [recipeYieldUnit, setRecipeYieldUnit] = useState('ml'); const [recipeInstructions, setRecipeInstructions] = useState(''); const [recipeCart, setRecipeCart] = useState([]);
+            const [recSearch, setRecSearch] = useState(''); const [recCat, setRecCat] = useState('Batch Preps'); const [recipeSearchFilter, setRecipeSearchFilter] = useState(''); const [activeRecipeTab, setActiveRecipeTab] = useState('All');
+            const [showRecAdd, setShowRecAdd] = useState(false); const [recModalItem, setRecModalItem] = useState(''); const [recModalQty, setRecModalQty] = useState(''); const [recModalUnit, setRecModalUnit] = useState('gms'); const [isCustomRecItem, setIsCustomRecItem] = useState(false);
             const [viewingRecipe, setViewingRecipe] = useState(null);
-            
-            const [editingPriceItem, setEditingPriceItem] = useState(null); 
-            const [tempPriceVal, setTempPriceVal] = useState(''); 
-            const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); 
-            const [tempGstVal, setTempGstVal] = useState(''); 
-            const [priceSearchFilter, setPriceSearchFilter] = useState('');
+            const [editingPriceItem, setEditingPriceItem] = useState(null); const [tempPriceVal, setTempPriceVal] = useState(''); const [tempPriceUnit, setTempPriceUnit] = useState('Kg'); const [tempGstVal, setTempGstVal] = useState(''); const [priceSearchFilter, setPriceSearchFilter] = useState('');
             const [catalogSearchFilter, setCatalogSearchFilter] = useState('');
-
-            const [amendPoId, setAmendPoId] = useState('');
-            const [editingRequestItem, setEditingRequestItem] = useState(null);
-            const [targetPhones, setTargetPhones] = useState([]);
+            
+            const [amendPoId, setAmendPoId] = useState(''); const [editingRequestItem, setEditingRequestItem] = useState(null); const [targetPhones, setTargetPhones] = useState([]);
 
             useEffect(() => { if (!dbCategory && Object.keys(inventory).length > 0) setDbCategory(Object.keys(inventory)[0]); }, [inventory]);
-
+            
             useEffect(() => {
                 if (!amendPoId && selectedVendor) { const v = (suppliers || []).find(s => s.name === selectedVendor); if (v && v.phone) { setTargetPhones([v.phone.split(',')[0].trim()]); } else { setTargetPhones([]); } } 
                 else if (amendPoId) { const po = activePOs.find(p => p.id === amendPoId); if (po && po.supplierPhone) { setTargetPhones([po.supplierPhone.split(',')[0].trim()]); } else { setTargetPhones([]); } } 
@@ -379,7 +343,9 @@
                 const rawTotals = {};
                 const processIngredient = (ingName, ingQty, ingUnit) => {
                     const prepMatch = (prepItems || []).find(p => p.name === ingName); const batchMatch = (recipes || []).find(r => r.category === 'Batch Prep' && r.name === ingName);
-                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); (batchMatch.ingredients || []).forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
+                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); (batchMatch.ingredients || []).forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } 
+                    else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } 
+                    else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
                 };
                 (ingredients || []).forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
                 return rawTotals;
@@ -441,11 +407,8 @@
 
             return (
                 <div className="animate-fade-in relative">
-                    
-                    {/* WELCOME SUMMARY & ANALYTICS */}
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
-                    {/* V_CONVERSION WORKBENCH */}
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
@@ -483,7 +446,6 @@
                         </div>
                     )}
 
-                    {/* VENDOR DIRECTORY */}
                     {ownerTab === 'vendors' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1 space-y-6">
@@ -513,7 +475,6 @@
                         </div>
                     )}
 
-                    {/* RAW MATERIAL MASTER AND PRICE BOOK METRICS */}
                     {ownerTab === 'inventory' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1 space-y-6">
@@ -574,7 +535,6 @@
                                             );
                                         })}
                                     </div>
-                                    <p className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-4 text-center">Frictionless Landed Cost calculation running in recipe builds.</p>
                                 </div>
                             </div>
                             <div className="lg:col-span-1 space-y-6">
@@ -608,14 +568,12 @@
                                                 </div>
                                             </div>
                                         ))}
-                                        {(!inventory[dbCategory] || (inventory[dbCategory] || []).length === 0) && <p className="text-center text-xs py-6 text-gray-500 italic">View empty.</p>}
                                     </div>
                                 </div>
                             </div>
                         </div>
                     )}
 
-                    {/* PREP KITCHEN CONVERSIONS */}
                     {ownerTab === 'conversions' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -647,7 +605,6 @@
                         </div>
                     )}
 
-                    {/* KITCHEN RECIPE BOOK */}
                     {ownerTab === 'recipes' && (
                         <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -663,7 +620,7 @@
                                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-brandBrown/20 overflow-hidden mb-10">
                                     {displayedRecipes.length === 0 ? <p className="text-center text-sm italic text-gray-500 py-8">Ledger clear.</p> :
                                         displayedRecipes.map((recipe, idx) => (
-                                            <div key={recipe.id || idx} onClick={() => setViewingRecipe(recipe)} className="flex justify-between items-center p-5 border-b border-brandBrown/10 last:border-0 hover:bg-white/90 cursor-pointer transition-colors group">
+                                            <div key={`recipe-list-${recipe.id || idx}`} onClick={() => setViewingRecipe(recipe)} className="flex justify-between items-center p-5 border-b border-brandBrown/10 last:border-0 hover:bg-white/90 cursor-pointer transition-colors group">
                                                 <div className="flex flex-col">
                                                     <span className="font-serif font-bold text-lg text-victorian group-hover:text-brandBrown transition-colors">{recipe.name || 'Unknown'}</span>
                                                     <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1 bg-gray-100 w-max px-2 py-0.5 rounded">{recipe.category || 'Beverages'}</span>
@@ -674,7 +631,6 @@
                                     }
                                 </div>
 
-                                {/* FIXED RECIPE DETAIL COSTING WINDOW */}
                                 {viewingRecipe && (
                                     <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in">
                                         <div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border border-brandBrown/40 max-h-[90vh] overflow-y-auto relative">
@@ -735,7 +691,6 @@
                                 )}
                             </div>
 
-                            {/* RECIPE CREATOR OR PUBLISHER PANELS */}
                             {isBuildingRecipe && (
                                 <div className="lg:col-span-1 lg:sticky lg:top-28 lg:h-[calc(100vh-8rem)]">
                                     <div className="animate-fade-in bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border-t-4 border-brandBrown mb-10 border-x border-b border-white/50 lg:h-full lg:overflow-y-auto hide-scrollbar">
@@ -824,7 +779,6 @@
                         </div>
                     )}
 
-                    {/* DRAFT STAFF REQUEST PROCESSING */}
                     {ownerTab === 'orders' && (
                         <div className="animate-fade-in mb-24 lg:grid lg:grid-cols-2 lg:gap-8">
                             <div className="lg:col-span-1">
@@ -1021,7 +975,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<React.Fragment><App /></React.Fragment>);
+        root.render(<App />);
     </script>
 </body>
 </html>
