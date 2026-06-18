@@ -666,9 +666,7 @@
                 </div>
             );
         }
-        
-        ```
-// --- OWNER VIEW COMPONENT ---
+  // --- OWNER VIEW COMPONENT ---
         function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
             const activePOs = (pos || []).filter(po => po.status === 'Approved'); 
             const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
