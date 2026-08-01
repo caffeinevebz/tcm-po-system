@@ -1,0 +1,18 @@
+{
+  "name": "tcm-brewops-functions",
+  "description": "Cloud Functions for The Caffeine Ministry BrewOps",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "hash-pin": "node scripts/hash-pin.js",
+    "deploy:auth": "firebase deploy --only functions:verifyPin",
+    "logs": "firebase functions:log --only verifyPin"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^4.9.0"
+  }
+}

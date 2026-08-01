@@ -4,36 +4,67 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrewOps - Owner Command Center</title>
-    
-    <script>
-        window.addEventListener('error', function(e) {
-            document.body.innerHTML = '<div style="background-color: #ffe6e6; border: 2px solid red; padding: 20px; margin: 20px; font-family: monospace; color: #900; border-radius: 8px;"><h2 style="margin-top: 0;">System Crash Report</h2><p><b>Error:</b> ' + e.message + '</p><p><b>Line:</b> ' + e.lineno + '</p></div>';
-        });
-    </script>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-    
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="manifest" href="/manifest.json">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
-    <link rel="icon" href="TCM BrewOps icon.jpg?v=3">
 
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="assets/tcm-theme.js"></script>
+
+    <!-- Pinned exact versions with Subresource Integrity. These were previously
+         floating tags (react@18) with no integrity check, so whatever the CDN
+         happened to serve ran with full access to the owner's session. -->
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"
+            integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"
+            integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"
+            integrity="sha384-sw98ksifz4z7bpf5bssQYm0RlqkUsNXcYh7KqhO3+SIrvf3+mf0kQRNxaCWcgzjG"
+            crossorigin="anonymous"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+            integrity="sha384-ajMUFBUFMCyjh8uxJg6bkGcKe9RTolyjwbxB3yES0QQMenP3Oztj/W9vA2SJPcIh"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+            integrity="sha384-xD1t9dGSVKobUztxDkv6xUI0H4AnFz0NxwlgDJJ7FDlblG9xxr1Z9iauCZuJYj6p"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"
+            integrity="sha384-XMIl1b2Ez9tKAM0R5q67/iLdfnlLBl9kfo40X5WMtCPb+3OLplrjnOxZTYCg1SKY"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"
+            integrity="sha384-Cn425IPPqYFT0+lUg71+39dOh8zj/Ebpl97FkjUqrd+P37HLlysOYDvdw+N7tPuj"
+            crossorigin="anonymous"></script>
+
+    <script src="assets/tcm-core.js"></script>
     <script>
-        tailwind.config = { theme: { extend: { colors: { paper: '#FAF8F5', paperDark: '#e8dfd1', victorian: '#132A1B', victorianLight: '#23452F', antique: '#D4AF37', antiqueLight: '#F2DF96', danger: '#8B2626', dangerLight: '#FCE8E8', brandBrown: '#8b5e3c', brandLightBrown: '#c08a5b', vintageGreen: '#4A5D23' }, fontFamily: { serif: ['"Playfair Display"', 'serif'], sans: ['"Inter"', 'system-ui', 'sans-serif'], poppins: ['"Poppins"', 'sans-serif'] }, boxShadow: { 'elegant': '0 8px 32px -4px rgba(19, 42, 27, 0.1)', 'login': '0 15px 40px rgba(0,0,0,0.1)', 'vintage': '0 10px 30px rgba(44, 26, 15, 0.08)', 'inner-vintage': 'inset 0 2px 10px rgba(44, 26, 15, 0.05)' } } } }
+        // Safe replacement for the old crash reporter, which interpolated the
+        // raw error message into document.body.innerHTML — a script-injection
+        // sink. TCM.installCrashHandler writes with textContent instead.
+        TCM.installCrashHandler();
     </script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- Relative, not "/manifest.json": the absolute path 404s on a GitHub Pages
+         project site, which is served from /<repo>/ rather than the domain root. -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/favicon.png">
     <style>
         body { background-color: #FAF8F5; color: #132A1B; font-family: 'Inter', sans-serif; margin: 0; }
         .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         input[type="text"], input[type="number"], input[type="password"], select, textarea { transition: all 0.2s ease-in-out; }
         input:focus, select:focus, textarea:focus { outline: none; border-color: #D4AF37 !important; box-shadow: 0 0 0 1px #D4AF37 !important; }
-        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        /* Was url('DSC_8017.jpg') — a 13 MB, 5743px original loaded on every
+           dashboard visit. The derivative below is 131 KB and visually identical
+           at screen sizes. `background-attachment: fixed` is dropped on touch
+           devices because it forces a repaint on every scroll frame. */
+        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('assets/bg-dashboard.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        @media (hover: none) { .bg-theme-orders { background-attachment: scroll; } }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
         .vintage-checkbox { appearance: none; width: 20px; height: 20px; border: 2px solid #8b5e3c; border-radius: 4px; background-color: #FAF8F5; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; }
         .vintage-checkbox:checked { background-color: #FAF8F5; border-color: #4A5D23; } .vintage-checkbox:checked::before { content: '✔'; color: #4A5D23; font-size: 14px; font-weight: bold; }
         @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -41,7 +72,13 @@
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <!-- Nothing renders and no Firestore listener is opened until TCM.guard()
+         confirms an owner-role session. Previously this page was reachable by
+         simply typing its URL. -->
+    <div id="auth-gate" class="min-h-screen flex items-center justify-center font-serif text-victorian bg-paper">
+        <p class="animate-pulse font-bold tracking-widest uppercase text-sm">Verifying terminal…</p>
+    </div>
+    <div id="root" hidden></div>
 
     <script type="text/babel" data-presets="react">
         /** @jsx React.createElement */
@@ -49,23 +86,14 @@
 
         const { useState, useEffect } = React;
 
-        // --- FIREBASE CONFIGURATION ---
-        const firebaseConfig = { 
-            apiKey: "AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE", 
-            authDomain: "tcm-orders.firebaseapp.com", 
-            projectId: "tcm-orders", 
-            storageBucket: "tcm-orders.firebasestorage.app", 
-            messagingSenderId: "994764639663", 
-            appId: "1:994764639663:web:2b0a682f2cb1001d37335a" 
-        };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); 
-        const functions = firebase.functions();
+        // Firebase handles, unit maths, costing, id allocation and auth all live
+        // in assets/tcm-core.js so owner.html and staff.html cannot drift apart.
+        const { db, auth } = TCM;
 
         // --- SYSTEM CONSTANTS ---
         const DEFAULT_SUPPLIERS = [{name:"Rare Beans Company",phone:"8619122260"},{name:"Aditya Industries",phone:"9595711611"},{name:"Renu Devi & Sons",phone:"7737840411"},{name:"Cash Purchase",phone:""}];
         const DEFAULT_INVENTORY = {"Fruits and Vegetables":["Apple (सेव)","Avocado (अवोकेडो)","Banana (केले)","Broccoli (ब्रोकली)","Tomato (टमाटर)","Garlic (लहसुन)","Onion (प्याज़)","Mixed Bell Peppers (2:1:1 Green:Yellow:Red)"],"Coffee and Matcha":["Full House Green (Arabica)","Baarbara Green (Cold Brew)","Matcha (Premium)"],"Groceries":["Aata","Amul Butter","Amul Cheese","Sugar","Milk (Full Cream)","Olive Oil"],"Packing and Consumables":["Brown Paper Bag","Hot coffee cup","Pizza Boxes"]};
-        const UNITS = ["Kg","gms","Piece","Pkt","Jar","Carton","Tin","bunch","Ltr","ml","tsp","tbsp","Bottle"]; 
+        const UNITS = TCM.UNITS;
         const RECIPE_CATEGORIES = ["Beverages","Kitchen","Desserts","Batch Prep"];
 
         // --- ICONS ENGINE ---
@@ -83,7 +111,21 @@
             Users: ()=><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
         };
 
-        const compressImage = (file) => new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = (event) => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const scaleSize = 1500 / img.width; canvas.width = 1500; canvas.height = img.height * scaleSize; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]); }; img.onerror = reject; }; reader.onerror = reject; });
+        const compressImage = TCM.compressImage;
+
+        // Renders the reason a line could not be costed instead of showing a
+        // confident ₹0.00. Silent zeroes were the most misleading thing in the
+        // costing screen: an unpriced item and a free item looked identical.
+        function CostWarning({ reason, priceUnit }) {
+            if (!reason) return null;
+            const label = TCM.COST_WARNINGS[reason] || 'Not costed';
+            return (
+                <span title={priceUnit ? `${label} (priced per ${priceUnit})` : label}
+                      className="text-[9px] font-bold uppercase tracking-wider text-danger bg-dangerLight border border-danger/30 px-1.5 py-0.5 rounded">
+                    {reason === 'unpriced' ? 'No price' : 'Unit mismatch'}
+                </span>
+            );
+        }
 
         // --- SHARED UI COMPONENTS ---
         function DashboardMetric({ title, value, subtitle, icon, borderColor = "border-white/50" }) {
@@ -112,10 +154,10 @@
                 <div className="min-h-screen pb-24 lg:pb-0 transition-all duration-700 ease-in-out bg-theme-orders relative">
                     {isSidebarOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 transition-opacity" onClick={() => setSidebarOpen(false)}></div>}
                     <div className={`fixed inset-y-0 left-0 w-72 bg-victorian text-paper shadow-2xl z-50 transform transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                        <div className="flex justify-between items-center p-4 border-b border-white/10 relative bg-white"><div className="w-full flex justify-center items-center py-4 px-2"><img src="Name.jpg" alt="TCM BrewOps" className="h-16 sm:h-20 object-contain mix-blend-multiply drop-shadow-sm w-full" /></div><button onClick={() => setSidebarOpen(false)} className="text-victorian hover:text-brandBrown absolute right-3 top-3 bg-white/80 rounded-full p-1 shadow-sm"><Icons.Close/></button></div>
-                        <div className="p-4 space-y-2 flex flex-col h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar"><div className="flex-1 space-y-2 mt-4"><p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold px-4 mb-4">Owner Navigation</p>{ownerMenu.map(item => (<button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-brandBrown text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>{item.label}</button>))}</div><button onClick={() => window.location.href='index.html'} className="w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl text-dangerLight hover:bg-danger/20 transition-all mt-6">Log Out</button></div>
+                        <div className="flex justify-between items-center p-4 border-b border-white/10 relative bg-white"><div className="w-full flex justify-center items-center py-4 px-2"><img src="assets/name.jpg" alt="TCM BrewOps" width="640" height="420" className="h-16 sm:h-20 object-contain mix-blend-multiply drop-shadow-sm w-full" /></div><button onClick={() => setSidebarOpen(false)} className="text-victorian hover:text-brandBrown absolute right-3 top-3 bg-white/80 rounded-full p-1 shadow-sm"><Icons.Close/></button></div>
+                        <div className="p-4 space-y-2 flex flex-col h-[calc(100vh-120px)] overflow-y-auto hide-scrollbar"><div className="flex-1 space-y-2 mt-4"><p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold px-4 mb-4">Owner Navigation</p>{ownerMenu.map(item => (<button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-brandBrown text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>{item.label}</button>))}</div><button onClick={() => TCM.signOut()} className="w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl text-dangerLight hover:bg-danger/20 transition-all mt-6">Log Out</button></div>
                     </div>
-                    <header className="bg-gradient-to-r from-[#e8dfd1] to-[#FAF8F5] border-b-2 border-brandBrown/30 px-4 py-3 shadow-md sticky top-0 z-30"><div className="flex items-center justify-between max-w-6xl mx-auto relative"><button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown transition-colors p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button><div className="flex-1 flex justify-center py-1"><img src="Page-Header.jpg" alt="TCM BrewOps" className="h-12 sm:h-16 md:h-20 lg:h-24 object-contain mix-blend-multiply drop-shadow-sm" /></div><div className="w-12"></div></div></header>
+                    <header className="bg-gradient-to-r from-[#e8dfd1] to-[#FAF8F5] border-b-2 border-brandBrown/30 px-4 py-3 shadow-md sticky top-0 z-30"><div className="flex items-center justify-between max-w-6xl mx-auto relative"><button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown transition-colors p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button><div className="flex-1 flex justify-center py-1"><img src="assets/page-header.jpg" alt="TCM BrewOps" width="1200" height="201" className="h-12 sm:h-16 md:h-20 lg:h-24 object-contain mix-blend-multiply drop-shadow-sm" /></div><div className="w-12"></div></div></header>
                     <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">{children}</main>
                 </div>
             );
@@ -185,7 +227,7 @@
             );
         }
 
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, convertToCost, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
             const activePOs = (pos || []).filter(po => po.status === 'Approved'); const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
             
             const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState('');
@@ -209,50 +251,173 @@
                 else { setTargetPhones([]); }
             }, [selectedVendor, amendPoId, suppliers, activePOs]);
 
-            const savePhoneToCloud = () => { db.collection('settings').doc('main').update({ ownerPhone: localPhone }); showToast("Settings saved", "success"); };
+            // Only writes when the value actually changed, and refuses anything
+            // that is not a usable number — the old version wrote to Firestore on
+            // every blur and happily stored typos that then broke staff alerts.
+            const savePhoneToCloud = () => {
+                const trimmed = (localPhone || '').trim();
+                if (trimmed === (ownerPhone || '').trim()) return;
+                if (trimmed && !TCM.isPlausiblePhone(trimmed)) return showToast("That does not look like a valid number.", "error");
+                db.collection('settings').doc('main').update({ ownerPhone: trimmed })
+                    .then(() => showToast("Settings saved", "success"))
+                    .catch(() => showToast("Could not save — check your connection.", "error"));
+            };
             const togglePO = (id) => setExpandedPOs(prev => ({ ...prev, [id]: !prev[id] }));
 
             const handleAddCategory = () => { const catName = window.prompt("Enter category name:"); if (!catName || !catName.trim()) return; if (inventory[catName.trim()]) return showToast("Exists!", "error"); const newInv = { ...inventory, [catName.trim()]: [] }; db.collection('settings').doc('main').update({ inventory: newInv }); setDbCategory(catName.trim()); };
             const handleDeleteCategory = () => { if (!dbCategory) return; confirmAction("Delete " + dbCategory + "?", () => { const newInv = { ...inventory }; delete newInv[dbCategory]; db.collection('settings').doc('main').update({ inventory: newInv }); setDbCategory(Object.keys(newInv)[0] || ''); }); };
             const handleAddInventoryItem = () => { if (!dbCategory) return; const name = window.prompt("Item Name:"); if (!name || !name.trim()) return; const newInv = { ...inventory }; newInv[dbCategory] = [...(newInv[dbCategory] || []), name.trim()]; db.collection('settings').doc('main').update({ inventory: newInv }); };
-            const handleDeleteInventoryItem = (itemName) => { confirmAction("Delete " + itemName + "?", () => { const newInv = { ...inventory }; Object.keys(newInv).forEach(cat => { newInv[cat] = (newInv[cat] || []).filter(i => i !== itemName); }); db.collection('settings').doc('main').update({ inventory: newInv }); }); };
-            const handleEditInventoryItem = (oldName) => { const newName = window.prompt("Edit Name:", oldName); if (!newName || !newName.trim() || newName === oldName) return; const newInv = { ...inventory }; Object.keys(newInv).forEach(cat => { const idx = (newInv[cat] || []).indexOf(oldName); if (idx > -1) newInv[cat][idx] = newName.trim(); }); const newPrices = { ...prices }; if (newPrices[oldName]) { newPrices[newName.trim()] = newPrices[oldName]; delete newPrices[oldName]; } db.collection('settings').doc('main').update({ inventory: newInv, prices: newPrices }); };
+            // Everything in this system is keyed by item NAME — prices, prep
+            // rules and recipe ingredients all store the raw string. So renaming
+            // or deleting a catalogue item has to be treated as a migration, not
+            // a one-line edit. The previous version updated only `prices`, which
+            // left every recipe using the item pointing at a name that no longer
+            // existed; those ingredients quietly costed as ₹0 from then on.
+            const usageOf = (itemName) => {
+                const usingRecipes = (recipes || []).filter(r => (r.ingredients || []).some(i => i && i.name === itemName));
+                const usingPreps = (prepItems || []).filter(p => p && p.rawItem === itemName);
+                return { usingRecipes, usingPreps };
+            };
+
+            const handleDeleteInventoryItem = (itemName) => {
+                const { usingRecipes, usingPreps } = usageOf(itemName);
+                const refs = usingRecipes.length + usingPreps.length;
+                const warning = refs > 0
+                    ? `"${itemName}" is used by ${usingRecipes.length} recipe(s) and ${usingPreps.length} prep rule(s). They will lose their costing for this ingredient. Delete anyway?`
+                    : `Delete "${itemName}"?`;
+
+                confirmAction(warning, () => {
+                    const newInv = {};
+                    Object.keys(inventory).forEach(cat => { newInv[cat] = (inventory[cat] || []).filter(i => i !== itemName); });
+                    const newPrices = { ...prices };
+                    delete newPrices[itemName];
+                    db.collection('settings').doc('main').update({ inventory: newInv, prices: newPrices })
+                        .catch(() => showToast("Could not delete — check your connection.", "error"));
+                });
+            };
+
+            const handleEditInventoryItem = async (oldName) => {
+                const raw = window.prompt("Edit Name:", oldName);
+                if (raw === null) return;
+                const newName = raw.trim();
+                if (!newName || newName === oldName) return;
+
+                const alreadyExists = Object.values(inventory).some(list => (list || []).indexOf(newName) > -1);
+                if (alreadyExists) return showToast(`"${newName}" already exists in the catalogue.`, "error");
+
+                // Rebuild the nested arrays rather than assigning into them: the
+                // old `{...inventory}` was a shallow copy, so writing
+                // newInv[cat][idx] mutated React state in place.
+                const newInv = {};
+                Object.keys(inventory).forEach(cat => {
+                    newInv[cat] = (inventory[cat] || []).map(i => (i === oldName ? newName : i));
+                });
+
+                const newPrices = { ...prices };
+                if (newPrices[oldName]) { newPrices[newName] = newPrices[oldName]; delete newPrices[oldName]; }
+
+                const newPreps = (prepItems || []).map(p => (p && p.rawItem === oldName ? { ...p, rawItem: newName } : p));
+
+                const { usingRecipes } = usageOf(oldName);
+
+                try {
+                    await db.collection('settings').doc('main').update({ inventory: newInv, prices: newPrices, prepItems: newPreps });
+
+                    // Carry the rename into every affected recipe so costing stays intact.
+                    if (usingRecipes.length > 0) {
+                        const batch = db.batch();
+                        usingRecipes.forEach(r => {
+                            const updated = (r.ingredients || []).map(i => (i && i.name === oldName ? { ...i, name: newName } : i));
+                            batch.update(db.collection('recipes').doc(r.id), { ingredients: updated });
+                        });
+                        await batch.commit();
+                    }
+                    showToast(usingRecipes.length > 0 ? `Renamed and updated ${usingRecipes.length} recipe(s).` : "Renamed.", "success");
+                } catch (err) {
+                    console.error(err);
+                    showToast("Rename failed — nothing was changed.", "error");
+                }
+            };
 
             const startEditingDeliveredPO = (po) => { setEditingDeliveredPO(po); const initialQty = {}; const initialPrices = {}; const targetItems = po.receivedItems || po.items || []; targetItems.forEach((item, idx) => { initialQty[idx] = item.receivedQty !== undefined ? item.receivedQty : item.qty || 0; initialPrices[idx] = item.totalPrice || ''; }); setEditQuantities(initialQty); setEditPrices(initialPrices); setUnmatchedScans([]); };
 
             const handleOwnerRealAIScan = async (e) => {
-                const files = Array.from(e.target.files); if (files.length === 0) return; setIsOwnerScanning(true);
+                const input = e.target;
+                const files = Array.from(input.files || []);
+                // Resetting the input means re-picking the SAME photo fires
+                // onChange again; previously a retry after a failed scan did nothing.
+                input.value = '';
+                if (files.length === 0) return;
+                if (files.length > TCM.MAX_SCAN_FILES) return showToast(`Scan up to ${TCM.MAX_SCAN_FILES} pages at a time.`, "error");
+                setIsOwnerScanning(true);
                 try {
-                    let allScannedItems = []; for (let file of files) { const compressedBase64 = await compressImage(file); const scanInvoice = firebase.functions().httpsCallable('scanInvoice'); const response = await scanInvoice({ image: compressedBase64 }); if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems]; }
+                    let allScannedItems = []; const scanInvoice = TCM.fns.httpsCallable('scanInvoice'); for (let file of files) { const compressedBase64 = await compressImage(file); const response = await scanInvoice({ image: compressedBase64 }); if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems]; }
                     const autoQty = { ...editQuantities }; const autoPrices = { ...editPrices }; const unmatched = []; const usedScans = new Set(); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items || [];
                     targetItems.forEach((poItem, idx) => { let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name); if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && ((poItem.name || '').toLowerCase().includes((scan.name || '').toLowerCase().split(' ')[0]) || (scan.name || '').toLowerCase().includes((poItem.name || '').toLowerCase().split(' ')[0]))); if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); } });
                     allScannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
                     setEditQuantities(autoQty); setEditPrices(autoPrices); setUnmatchedScans(unmatched);
                     if (unmatched.length > 0) showToast(`Scan Complete. ${unmatched.length} unknown items found.`, 'info'); else showToast("Scan Complete: All matched perfectly!", "success");
-                } catch (error) { console.error(error); showToast(`Scan failed: Server error.`, "error"); } finally { setIsOwnerScanning(false); }
+                } catch (error) {
+                    console.error(error);
+                    if (error && error.code === 'functions/permission-denied') showToast("Not authorised to scan invoices.", "error");
+                    else if (error && error.code === 'functions/not-found') showToast("Invoice scanner is not deployed.", "error");
+                    else showToast(error && error.message ? `Scan failed: ${error.message}` : "Scan failed.", "error");
+                } finally { setIsOwnerScanning(false); }
             };
 
-            const saveDeliveredPOEdit = () => {
-                const safeDbId = (editingDeliveredPO.id || '').replace(/\//g, '-'); const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items || [];
+            const saveDeliveredPOEdit = async () => {
+                const safeDbId = TCM.poDocId(editingDeliveredPO.id);
+                const targetItems = editingDeliveredPO.receivedItems || editingDeliveredPO.items || [];
+
+                // Reject nonsense before it reaches the master price book. This
+                // screen feeds the cost of every recipe, so a mistyped invoice
+                // total silently re-prices the whole menu.
+                const bad = targetItems.find((item, idx) => {
+                    const q = Number(editQuantities[idx]);
+                    const p = Number(editPrices[idx]);
+                    return (editQuantities[idx] !== '' && (!isFinite(q) || q < 0)) ||
+                           (editPrices[idx] !== '' && (!isFinite(p) || p < 0));
+                });
+                if (bad) return showToast("Quantities and amounts must be zero or more.", "error");
+
                 const updatedItems = targetItems.map((item, idx) => ({ ...item, receivedQty: Number(editQuantities[idx]) || 0, totalPrice: Number(editPrices[idx]) || 0 }));
-                db.collection('pos').doc(safeDbId).update({ receivedItems: updatedItems, status: 'Delivered' });
-                const newPrices = { ...prices }; let pricesUpdated = false;
-                updatedItems.forEach(item => { if (item.receivedQty > 0 && item.totalPrice && Number(item.totalPrice) > 0) { const unitPrice = Number(item.totalPrice) / Number(item.receivedQty); const existingGst = prices[item.name]?.gst || 0; newPrices[item.name] = { price: Number(unitPrice.toFixed(2)), unit: item.unit, gst: existingGst }; pricesUpdated = true; } });
-                if (pricesUpdated) { db.collection('settings').doc('main').update({ prices: newPrices }); showToast('Order & Base Prices Updated!', 'success'); } else showToast('Order Updated!', 'success');
-                setEditingDeliveredPO(null);
+
+                const newPrices = { ...prices }; let pricesUpdated = 0;
+                updatedItems.forEach(item => {
+                    if (item.receivedQty > 0 && Number(item.totalPrice) > 0) {
+                        const unitPrice = Number(item.totalPrice) / Number(item.receivedQty);
+                        if (!isFinite(unitPrice) || unitPrice <= 0) return;
+                        const existingGst = prices[item.name]?.gst || 0;
+                        newPrices[item.name] = { price: Number(unitPrice.toFixed(2)), unit: item.unit, gst: existingGst };
+                        pricesUpdated++;
+                    }
+                });
+
+                try {
+                    await db.collection('pos').doc(safeDbId).update({ receivedItems: updatedItems, status: 'Delivered' });
+                    if (pricesUpdated > 0) {
+                        await db.collection('settings').doc('main').update({ prices: newPrices });
+                        showToast(`Order saved. ${pricesUpdated} base price(s) updated.`, 'success');
+                    } else {
+                        showToast('Order updated.', 'success');
+                    }
+                    setEditingDeliveredPO(null);
+                } catch (err) {
+                    console.error(err);
+                    showToast("Could not save the audit — check your connection.", "error");
+                }
             };
 
-            const getRawBreakdown = (ingredients = []) => {
-                const rawTotals = {};
-                const processIngredient = (ingName, ingQty, ingUnit) => {
-                    const prepMatch = (prepItems || []).find(p => p.name === ingName); const batchMatch = (recipes || []).find(r => r.category === 'Batch Prep' && r.name === ingName);
-                    if (batchMatch && batchMatch.yieldQty) { const ratio = Number(ingQty) / Number(batchMatch.yieldQty); (batchMatch.ingredients || []).forEach(subIng => { if (!subIng.isCustom) processIngredient(subIng.name, Number(subIng.qty) * ratio, subIng.unit); }); } 
-                    else if (prepMatch) { const ratio = Number(ingQty) / Number(prepMatch.yieldQty); const rawNeeded = ratio * Number(prepMatch.rawQty); if (rawTotals[prepMatch.rawItem]) rawTotals[prepMatch.rawItem].qty += rawNeeded; else rawTotals[prepMatch.rawItem] = { qty: rawNeeded, unit: prepMatch.rawUnit }; } 
-                    else { if (rawTotals[ingName]) rawTotals[ingName].qty += Number(ingQty); else rawTotals[ingName] = { qty: Number(ingQty), unit: ingUnit || 'unit' }; }
-                };
-                (ingredients || []).forEach(ing => { if (!ing.isCustom) processIngredient(ing.name, Number(ing.qty), ing.unit); });
-                return rawTotals;
-            };
+            // Recipe explosion and costing now live in TCM.costRecipe. The old
+            // local version had three defects that all produced wrong money:
+            //   1. no cycle guard — a Batch Prep referring to itself blew the stack
+            //   2. `rawTotals[x].qty += qty` added quantities without converting,
+            //      so 100 gms + 0.5 Kg totalled 100.5
+            //   3. sub-recipe ratios ignored units, so 200 ml drawn from a batch
+            //      yielding 1 Ltr scaled by 200x instead of 0.2x
+            // It also returns per-line reasons, so an uncostable ingredient is
+            // flagged rather than silently contributing ₹0 to the total.
+            const costFor = (ingredients) => TCM.costRecipe(ingredients, { prepItems, recipes, prices });
 
             const handleCheck = (reqId, itemIndex, item) => { const isSelected = selectedItems.some(i => i.reqId === reqId && i.itemIndex === itemIndex); if (isSelected) setSelectedItems(selectedItems.filter(i => !(i.reqId === reqId && i.itemIndex === itemIndex))); else setSelectedItems([...selectedItems, { reqId, itemIndex, item }]); };
             const handleSelectAllInReq = (reqId, items) => { const allSelected = (items || []).every((_, idx) => selectedItems.some(si => si.reqId === reqId && si.itemIndex === idx)); if (allSelected) { setSelectedItems(prev => prev.filter(si => si.reqId !== reqId)); } else { const newSelected = [...selectedItems.filter(si => si.reqId !== reqId)]; items.forEach((item, idx) => newSelected.push({ reqId, itemIndex: idx, item })); setSelectedItems(newSelected); } };
@@ -264,9 +429,12 @@
 
                 if (amendPoId) {
                     const targetPo = pos.find(p => p.id === amendPoId); if (!targetPo) return showToast('PO reference mismatch.', 'error');
-                    const combinedItems = [...(targetPo.items || [])];
+                    // Copy each line object, not just the array: the previous
+                    // `[...targetPo.items]` was shallow, so `existing.qty = ...`
+                    // mutated the objects held in React state.
+                    const combinedItems = (targetPo.items || []).map(i => ({ ...i }));
                     validatedStagedItems.forEach(si => { const existing = combinedItems.find(i => i.name === si.item.name && i.unit === si.item.unit); if (existing) existing.qty = Number(existing.qty) + Number(si.item.qty); else combinedItems.push({...si.item, qty: Number(si.item.qty)}); });
-                    db.collection('pos').doc(targetPo.id.replace(/\//g, '-')).update({ items: combinedItems });
+                    db.collection('pos').doc(TCM.poDocId(targetPo.id)).update({ items: combinedItems });
                     
                     const reqsToUpdate = {}; validatedStagedItems.forEach(si => { if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = []; reqsToUpdate[si.reqId].push(si.itemIndex); });
                     Object.keys(reqsToUpdate).forEach(reqId => { const req = requests.find(r => r.id === reqId); if (req) { const indicesToRemove = reqsToUpdate[reqId]; const remaining = (req.items || []).filter((_, idx) => !indicesToRemove.includes(idx)); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); } });
@@ -569,29 +737,47 @@
                                                 <div className="bg-white p-5 rounded-xl border border-brandBrown/30 relative overflow-hidden shadow-sm mb-6">
                                                     <div className="absolute top-0 left-0 w-1.5 h-full bg-brandBrown"></div>
                                                     <div className="flex justify-between items-end mb-4 border-b border-gray-100 pb-2.5 pl-2"><p className="text-[10px] font-bold text-brandBrown uppercase tracking-[0.2em]">Procurement Cost Breakdown Analyzer</p><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Landed Unit Base</p></div>
-                                                    <ul className="text-sm text-gray-800 space-y-3 pl-2 mb-4">
-                                                        {Object.entries(getRawBreakdown(viewingRecipe.ingredients || [])).map(([name, data], i) => {
-                                                            const costs = convertToCost(data.qty, data.unit, prices[name]);
-                                                            return (
-                                                                <li key={`view-cost-${name}-${i}`} className="flex justify-between items-center border-b border-gray-50 pb-2 last:border-0">
-                                                                    <div className="flex flex-col">
-                                                                        <span className="font-medium text-gray-700">{name}</span>
-                                                                        <span className="text-[10px] text-gray-500 font-bold mt-0.5 bg-gray-50 inline-block px-1.5 rounded w-max">{data.qty && !isNaN(data.qty) ? parseFloat(data.qty.toFixed(2)) : 0} {data.unit || 'units'}</span>
-                                                                    </div>
-                                                                    <div className="flex flex-col items-end">
-                                                                        <span className="font-bold text-victorian">₹{costs.landed.toFixed(2)}</span>
-                                                                        {prices[name]?.gst > 0 && <span className="text-[9px] text-gray-400 font-medium tracking-wide">incl. {prices[name].gst}% GST</span>}
-                                                                    </div>
-                                                                </li>
-                                                            )
-                                                        })}
-                                                    </ul>
-                                                    <div className="pl-3 pt-3 border-t border-brandBrown/20 flex justify-between items-center bg-brandBrown/10 rounded-lg p-3 mt-2">
-                                                        <span className="text-xs font-bold text-victorian uppercase tracking-widest">Total Recipe Landed Food Cost</span>
-                                                        <span className="text-xl font-bold text-brandBrown drop-shadow-sm">
-                                                            ₹{Object.entries(getRawBreakdown(viewingRecipe.ingredients || [])).reduce((sum, [name, data]) => sum + convertToCost(data.qty, data.unit, prices[name]).landed, 0).toFixed(2)}
-                                                        </span>
-                                                    </div>
+                                                    {(() => {
+                                                        const costing = costFor(viewingRecipe.ingredients || []);
+                                                        return (
+                                                            <React.Fragment>
+                                                                <ul className="text-sm text-gray-800 space-y-3 pl-2 mb-4">
+                                                                    {costing.lines.map((line, i) => (
+                                                                        <li key={`view-cost-${line.name}-${i}`} className="flex justify-between items-center border-b border-gray-50 pb-2 last:border-0">
+                                                                            <div className="flex flex-col">
+                                                                                <span className="font-medium text-gray-700">{line.name}</span>
+                                                                                <span className="text-[10px] text-gray-500 font-bold mt-0.5 bg-gray-50 inline-block px-1.5 rounded w-max">{isFinite(line.qty) ? parseFloat(line.qty.toFixed(2)) : 0} {line.unit || 'units'}</span>
+                                                                            </div>
+                                                                            <div className="flex flex-col items-end gap-1">
+                                                                                {line.cost.ok
+                                                                                    ? <span className="font-bold text-victorian">₹{line.cost.landed.toFixed(2)}</span>
+                                                                                    : <CostWarning reason={line.cost.reason} priceUnit={line.cost.priceUnit} />}
+                                                                                {line.cost.ok && prices[line.name]?.gst > 0 && <span className="text-[9px] text-gray-400 font-medium tracking-wide">incl. {prices[line.name].gst}% GST</span>}
+                                                                            </div>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+
+                                                                {costing.warnings.length > 0 && (
+                                                                    <ul className="mb-3 space-y-1.5 bg-dangerLight/60 border border-danger/25 rounded-lg p-3">
+                                                                        {costing.warnings.map((w, i) => (
+                                                                            <li key={`warn-${i}`} className="text-[10px] font-medium text-danger leading-snug">⚠ {w}</li>
+                                                                        ))}
+                                                                    </ul>
+                                                                )}
+
+                                                                <div className={"pl-3 pt-3 border-t flex justify-between items-center rounded-lg p-3 mt-2 " + (costing.complete ? 'border-brandBrown/20 bg-brandBrown/10' : 'border-danger/30 bg-dangerLight/50')}>
+                                                                    <span className="text-xs font-bold text-victorian uppercase tracking-widest">
+                                                                        Total Recipe Landed Food Cost
+                                                                        {!costing.complete && <span className="block text-[9px] text-danger font-bold normal-case tracking-normal mt-0.5">Incomplete — some ingredients could not be costed</span>}
+                                                                    </span>
+                                                                    <span className={"text-xl font-bold drop-shadow-sm " + (costing.complete ? 'text-brandBrown' : 'text-danger')}>
+                                                                        {costing.complete ? '' : '≥ '}₹{costing.total.toFixed(2)}
+                                                                    </span>
+                                                                </div>
+                                                            </React.Fragment>
+                                                        );
+                                                    })()}
                                                 </div>
                                                 
                                                 <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Structural Guidelines</p>
@@ -956,28 +1142,38 @@
                         }
                     });
                     
-                    unsubReqs = db.collection('requests').onSnapshot(snap => { 
-                        const reqData = []; 
-                        snap.forEach(d => reqData.push(d.data())); 
-                        setRequests(reqData.sort((a,b) => String(b.id || '').localeCompare(String(a.id || '')))); 
-                    });
-                    
-                    unsubPOs = db.collection('pos').onSnapshot(snap => { 
-                        const poData = []; 
-                        snap.forEach(d => poData.push(d.data())); 
-                        setPos(poData.sort((a,b) => String(b.id || '').localeCompare(String(a.id || '')))); 
-                    });
-                    
-                    unsubRecipes = db.collection('recipes').onSnapshot(snap => { 
-                        const recData = []; 
-                        snap.forEach(d => recData.push(d.data())); 
-                        setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || '')))); 
-                    });
-                    
+                    // Newest first. Prefer the explicit createdAt stamp and fall
+                    // back to the id, so requests written before that field
+                    // existed still sort sensibly.
+                    const newestFirst = (a, b) =>
+                        String(b.createdAt || b.id || '').localeCompare(String(a.createdAt || a.id || ''));
+
+                    unsubReqs = db.collection('requests').onSnapshot(snap => {
+                        const reqData = [];
+                        snap.forEach(d => reqData.push(d.data()));
+                        setRequests(reqData.sort(newestFirst));
+                    }, err => { console.error(err); showToast("Lost connection to requests.", "error"); });
+
+                    unsubPOs = db.collection('pos').onSnapshot(snap => {
+                        const poData = [];
+                        snap.forEach(d => poData.push(d.data()));
+                        setPos(poData.sort((a,b) => String(b.id || '').localeCompare(String(a.id || ''))));
+                    }, err => { console.error(err); showToast("Lost connection to purchase orders.", "error"); });
+
+                    unsubRecipes = db.collection('recipes').onSnapshot(snap => {
+                        const recData = [];
+                        snap.forEach(d => recData.push(d.data()));
+                        setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''))));
+                    }, err => { console.error(err); showToast("Lost connection to the recipe book.", "error"); });
+
                     setLoading(false);
                 };
                 
-                initializeDB(); 
+                initializeDB().catch(err => {
+                    console.error(err);
+                    setLoading(false);
+                    showToast("Could not reach the database. Check your connection and sign in again.", "error");
+                });
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
 
@@ -987,30 +1183,17 @@
                 db.collection('settings').doc('main').update({ aliases: newAliases }); 
             };
             
-            const convertToCost = (qty, fromUnit, priceObj) => {
-                if (!priceObj || !priceObj.price || isNaN(priceObj.price)) return { base: 0, landed: 0 };
-                let factor = 1; 
-                const pUnit = priceObj.unit || '';
-                
-                if (fromUnit === 'ml' && pUnit === 'Ltr') factor = 0.001; 
-                if (fromUnit === 'Ltr' && pUnit === 'ml') factor = 1000;
-                if (fromUnit === 'gms' && pUnit === 'Kg') factor = 0.001; 
-                if (fromUnit === 'Kg' && pUnit === 'gms') factor = 1000;
-                
-                const baseCost = (Number(qty) * factor) * Number(priceObj.price); 
-                const gst = Number(priceObj.gst) || 0;
-                return { base: baseCost, landed: baseCost * (1 + (gst / 100)) };
-            };
+            // Unit conversion and costing moved to TCM.costOf / TCM.costRecipe.
+            // The version that lived here understood only ml<->Ltr and gms<->Kg;
+            // every other pairing fell through with factor = 1, so a recipe
+            // calling for 30 gms of a bean priced per Kg was costed as 30 Kg.
 
-            const generatePONumber = () => {
-                const now = new Date(); 
-                const currentMonthYear = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).slice(-2)}`;
-                let newCount = poCounter.count || 1; 
-                if (poCounter.month !== currentMonthYear) { newCount = 1; }
-                const paddedCount = String(newCount).padStart(3, '0'); 
-                db.collection('settings').doc('main').update({ poCounter: { month: currentMonthYear, count: newCount + 1 } });
-                return `TCM/${currentMonthYear}/${paddedCount}`;
-            };
+            // PO numbers are allocated by TCM.nextPoNumber, which does the
+            // read-modify-write inside a Firestore transaction. The old version
+            // computed the next number from React state and wrote it back with a
+            // plain update(), so two POs raised close together took the same
+            // number — and because POs are written with .set(), the second one
+            // silently overwrote the first.
 
             const sendWhatsApp = (po, isAmendment = false, customPhones = null) => {
                 if(po.supplier === "Cash Purchase") return showToast("Internal Cash Purchase PO generated.", "info");
@@ -1038,57 +1221,68 @@
                 
                 if (!phonesToUse || phonesToUse.length === 0) return showToast("PO saved (No phone checked).", "info");
                 
+                // The first window.open runs inside the click's user gesture so
+                // it is not blocked; only subsequent ones are staggered. The old
+                // loop deferred every open behind a setTimeout, which meant popup
+                // blockers silently dropped all of them.
                 phonesToUse.forEach((phone, idx) => {
-                    setTimeout(() => {
-                        let phoneStr = phone.replace(/\D/g, ''); 
-                        if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
-                        window.open('https://wa.me/' + phoneStr + '?text=' + encodeURIComponent(message), '_blank');
-                    }, idx * 800);
+                    const url = 'https://wa.me/' + TCM.normalizePhone(phone) + '?text=' + encodeURIComponent(message);
+                    if (idx === 0) window.open(url, '_blank', 'noopener');
+                    else setTimeout(() => window.open(url, '_blank', 'noopener'), idx * 800);
                 });
             };
 
-            const createCombinedPO = (selectedItems, vendorObj, targetPhones) => {
-                const rawPoId = generatePONumber(); 
-                const safeDbId = rawPoId.replace(/\//g, '-');
-                const newPo = { id: rawPoId, supplier: vendorObj.name, supplierPhone: vendorObj.phone, status: 'Approved', date: new Date().toLocaleDateString('en-GB') };
+            const createCombinedPO = async (selectedItems, vendorObj, targetPhones) => {
                 const combinedItems = [];
-                
-                selectedItems.forEach(si => { 
-                    const existing = combinedItems.find(i => i.name === si.item.name && i.unit === si.item.unit); 
+                selectedItems.forEach(si => {
+                    const existing = combinedItems.find(i => i.name === si.item.name && i.unit === si.item.unit);
                     if (existing) {
-                        existing.qty = Number(existing.qty) + Number(si.item.qty); 
+                        existing.qty = Number(existing.qty) + Number(si.item.qty);
                     } else {
-                        combinedItems.push({...si.item, qty: Number(si.item.qty)}); 
+                        combinedItems.push({...si.item, qty: Number(si.item.qty)});
                     }
                 });
-                
-                newPo.items = combinedItems; 
-                db.collection('pos').doc(safeDbId).set(newPo);
-                
+
+                let newPo;
+                try {
+                    // Transactional allocation — see TCM.nextPoNumber.
+                    const rawPoId = await TCM.nextPoNumber();
+                    newPo = { id: rawPoId, supplier: vendorObj.name, supplierPhone: vendorObj.phone, status: 'Approved', date: TCM.today(), items: combinedItems };
+                    await db.collection('pos').doc(TCM.poDocId(rawPoId)).set(newPo);
+                } catch (err) {
+                    console.error(err);
+                    return showToast("Could not raise the PO — nothing was sent.", "error");
+                }
+
+                // Only clear the source requests once the PO is safely written.
                 const reqsToUpdate = {};
-                selectedItems.forEach(si => { 
-                    if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = []; 
-                    reqsToUpdate[si.reqId].push(si.itemIndex); 
+                selectedItems.forEach(si => {
+                    if (!reqsToUpdate[si.reqId]) reqsToUpdate[si.reqId] = [];
+                    reqsToUpdate[si.reqId].push(si.itemIndex);
                 });
-                
-                Object.keys(reqsToUpdate).forEach(reqId => { 
-                    const req = requests.find(r => r.id === reqId); 
-                    if (req) { 
-                        const indicesToRemove = reqsToUpdate[reqId]; 
-                        const remaining = (req.items || []).filter((_, idx) => !indicesToRemove.includes(idx)); 
-                        if (remaining.length === 0) {
-                            db.collection('requests').doc(reqId).delete(); 
-                        } else {
-                            db.collection('requests').doc(reqId).update({ items: remaining }); 
-                        }
-                    } 
-                });
-                
+
+                try {
+                    const batch = db.batch();
+                    Object.keys(reqsToUpdate).forEach(reqId => {
+                        const req = requests.find(r => r.id === reqId);
+                        if (!req) return;
+                        const indicesToRemove = reqsToUpdate[reqId];
+                        const remaining = (req.items || []).filter((_, idx) => !indicesToRemove.includes(idx));
+                        const ref = db.collection('requests').doc(reqId);
+                        if (remaining.length === 0) batch.delete(ref);
+                        else batch.update(ref, { items: remaining });
+                    });
+                    await batch.commit();
+                } catch (err) {
+                    console.error(err);
+                    showToast(`PO ${newPo.id} was raised, but the staff request could not be cleared.`, "error");
+                }
+
                 sendWhatsApp(newPo, false, targetPhones);
             };
 
             const removeRequestItem = (reqId, itemIndex) => confirmAction("Remove item?", () => { const req = requests.find(r => r.id === reqId); const remaining = (req.items || []).filter((_, idx) => idx !== itemIndex); if (remaining.length === 0) db.collection('requests').doc(reqId).delete(); else db.collection('requests').doc(reqId).update({ items: remaining }); });
-            const deletePO = (poId) => confirmAction("Delete official PO?", () => db.collection('pos').doc(poId.replace(/\//g, '-')).delete());
+            const deletePO = (poId) => confirmAction(`Delete purchase order ${poId}? This cannot be undone.`, () => db.collection('pos').doc(TCM.poDocId(poId)).delete().catch(() => showToast("Could not delete.", "error")));
 
             if (loading) return ( <div className="min-h-screen bg-paper flex flex-col items-center justify-center font-serif text-victorian"> <p className="animate-pulse font-bold tracking-widest uppercase">Loading BrewOps Engine...</p> </div> );
 
@@ -1098,14 +1292,24 @@
                     {confirmDialog && ( <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in"> <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30 text-center"> <h3 className="font-serif font-bold text-xl text-victorian mb-2">Are you sure?</h3> <p className="text-sm text-gray-600 mb-6">{confirmDialog.message}</p> <div className="flex space-x-3"> <button onClick={() => setConfirmDialog(null)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button> <button onClick={confirmDialog.onConfirm} className="w-1/2 bg-danger text-white font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-danger/90 transition-colors shadow-md">Confirm</button> </div> </div> </div> )}
                     
                     <DashboardLayout activeTab={ownerTab} setActiveTab={setOwnerTab}>
-                        <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile Number(s) (comma separated for multiple):"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile Number(s) (comma separated for multiple):",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} convertToCost={convertToCost} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
+                        <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile Number(s) (comma separated for multiple):"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile Number(s) (comma separated for multiple):",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
                     </DashboardLayout>
                 </React.Fragment>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        // Nothing mounts — and no Firestore listener opens — until the session is
+        // confirmed to carry the 'owner' role. TCM.guard redirects to the login
+        // page instead of resolving when it is not, so this render is only ever
+        // reached by an authenticated owner. The server-side rules in
+        // firestore.rules are the real enforcement; this is the UX half.
+        TCM.guard('owner').then(() => {
+            document.getElementById('auth-gate').remove();
+            const rootEl = document.getElementById('root');
+            rootEl.hidden = false;
+            ReactDOM.createRoot(rootEl).render(<App />);
+            TCM.registerServiceWorker();
+        });
     </script>
 </body>
 </html>

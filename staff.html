@@ -4,30 +4,65 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrewOps - Staff Terminal</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
 
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#132A1B">
+
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <!-- Shared theme. staff.html previously declared its own cut-down Tailwind
+         config that was missing vintageGreen, victorianLight, paperDark,
+         brandLightBrown, dangerLight, shadow-elegant and animate-alert-flash —
+         all of which this page uses, so those styles silently did nothing. -->
+    <script src="assets/tcm-theme.js"></script>
+
+    <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"
+            integrity="sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"
+            integrity="sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1"
+            crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"
+            integrity="sha384-sw98ksifz4z7bpf5bssQYm0RlqkUsNXcYh7KqhO3+SIrvf3+mf0kQRNxaCWcgzjG"
+            crossorigin="anonymous"></script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+            integrity="sha384-ajMUFBUFMCyjh8uxJg6bkGcKe9RTolyjwbxB3yES0QQMenP3Oztj/W9vA2SJPcIh"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+            integrity="sha384-xD1t9dGSVKobUztxDkv6xUI0H4AnFz0NxwlgDJJ7FDlblG9xxr1Z9iauCZuJYj6p"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"
+            integrity="sha384-XMIl1b2Ez9tKAM0R5q67/iLdfnlLBl9kfo40X5WMtCPb+3OLplrjnOxZTYCg1SKY"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"
+            integrity="sha384-Cn425IPPqYFT0+lUg71+39dOh8zj/Ebpl97FkjUqrd+P37HLlysOYDvdw+N7tPuj"
+            crossorigin="anonymous"></script>
+
+    <script src="assets/tcm-core.js"></script>
+    <script>TCM.installCrashHandler();</script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
-    <script>
-        tailwind.config = { theme: { extend: { colors: { paper: '#FAF8F5', victorian: '#132A1B', antique: '#D4AF37', antiqueLight: '#F2DF96', danger: '#8B2626', brandBrown: '#8b5e3c' }, fontFamily: { serif: ['"Playfair Display"', 'serif'], sans: ['"Inter"', 'sans-serif'] } } } }
-    </script>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="assets/favicon.png">
+
     <style>
         body { background-color: #FAF8F5; color: #132A1B; font-family: 'Inter', sans-serif; margin: 0; }
         .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('DSC_8017.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        /* 131 KB derivative in place of the 13 MB original. */
+        .bg-theme-orders { background-image: linear-gradient(rgba(250, 248, 245, 0.35), rgba(250, 248, 245, 0.35)), url('assets/bg-dashboard.jpg'); background-size: cover; background-attachment: fixed; background-position: center; }
+        @media (hover: none) { .bg-theme-orders { background-attachment: scroll; } }
         @keyframes slide-up { 0% { transform: translateY(100%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } } .animate-slide-up { animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } } .animate-fade-in { animation: fade-in 0.3s ease-in-out; }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="auth-gate" class="min-h-screen flex items-center justify-center font-serif text-victorian bg-paper">
+        <p class="animate-pulse font-bold tracking-widest uppercase text-sm">Verifying terminal…</p>
+    </div>
+    <div id="root" hidden></div>
 
     <script type="text/babel" data-presets="react">
         /** @jsx React.createElement */
@@ -35,12 +70,9 @@
 
         const { useState, useEffect } = React;
 
-        const firebaseConfig = { apiKey: "AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE", authDomain: "tcm-orders.firebaseapp.com", projectId: "tcm-orders", storageBucket: "tcm-orders.firebasestorage.app", messagingSenderId: "994764639663", appId: "1:994764639663:web:2b0a682f2cb1001d37335a" };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore(); 
-        const functions = firebase.functions();
+        const { db } = TCM;
 
-        const UNITS = ["Kg","gms","Piece","Pkt","Jar","Carton","Tin","bunch","Ltr","ml","tsp","tbsp","Bottle"]; 
+        const UNITS = TCM.UNITS;
         const RECIPE_CATEGORIES = ["Beverages","Kitchen","Desserts","Batch Prep"];
 
         const Icons = {
@@ -54,7 +86,7 @@
             FileText: ()=><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
         };
 
-        const compressImage = (file) => new Promise((resolve, reject) => { const reader = new FileReader(); reader.readAsDataURL(file); reader.onload = (event) => { const img = new Image(); img.src = event.target.result; img.onload = () => { const canvas = document.createElement('canvas'); const scaleSize = 1500 / img.width; canvas.width = 1500; canvas.height = img.height * scaleSize; canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height); resolve(canvas.toDataURL('image/jpeg', 0.8).split(',')[1]); }; img.onerror = reject; }; reader.onerror = reject; });
+        const compressImage = TCM.compressImage;
 
         function App() {
             const [loading, setLoading] = useState(true);
@@ -91,8 +123,33 @@
 
             const showToast = (message, type = 'info') => { setToast({ message, type }); setTimeout(() => setToast(null), 3500); };
 
+            // Writes the whole aliases map rather than a dotted field path.
+            // The previous `update({ ['aliases.' + scannedName]: item })` broke
+            // whenever a scanned invoice line contained a dot ("AMUL BUTTER
+            // 500G PKT.") — Firestore reads that as a nested path and buries the
+            // alias one level deeper, so the mapping never matched again. Names
+            // containing / ~ * [ ] were rejected outright.
+            const saveAlias = (scannedName, catalogueName) => {
+                const next = { ...aliases, [scannedName]: catalogueName };
+                setAliases(next);
+                db.collection('settings').doc('main').update({ aliases: next })
+                    .catch(err => { console.error(err); showToast("Mapping could not be saved.", "error"); });
+            };
+
+            // Subscribe exactly once. This used to depend on [selectedCategory],
+            // so every tap on a category tab tore down and re-opened all four
+            // Firestore listeners — re-reading the entire catalogue, request
+            // list, PO list and recipe book each time, and billing for it.
+            // The default category is now chosen with a functional update, which
+            // removes the need for the dependency.
             useEffect(() => {
                 const settingsRef = db.collection('settings').doc('main');
+                const onError = (label) => (err) => {
+                    console.error(err);
+                    showToast(`Lost connection to ${label}.`, 'error');
+                    setLoading(false);
+                };
+
                 const unsubSettings = settingsRef.onSnapshot(doc => {
                     if (doc.exists) {
                         const data = doc.data();
@@ -100,69 +157,123 @@
                         const scrubbedInv = {};
                         Object.keys(rawInv).forEach(key => { scrubbedInv[key] = [...new Set(rawInv[key])]; });
                         setInventory(scrubbedInv);
-                        if(Object.keys(scrubbedInv).length > 0 && !selectedCategory) setSelectedCategory(Object.keys(scrubbedInv)[0]);
+                        setSelectedCategory(prev => prev || Object.keys(scrubbedInv).sort()[0] || '');
                         setAliases(data.aliases || {});
                         setOwnerPhone(data.ownerPhone || '');
                     }
-                });
-                
-                const unsubReqs = db.collection('requests').onSnapshot(snap => { 
-                    const reqData = []; snap.forEach(d => reqData.push(d.data())); setRequests(reqData); 
-                });
-                
-                const unsubPOs = db.collection('pos').onSnapshot(snap => { 
-                    const poData = []; snap.forEach(d => poData.push(d.data())); setPos(poData); 
-                });
-                
-                const unsubRecipes = db.collection('recipes').onSnapshot(snap => { 
-                    const recData = []; snap.forEach(d => recData.push(d.data())); setRecipes(recData); 
-                });
-                
-                setLoading(false);
+                    // Only stop showing the loader once real data has arrived.
+                    setLoading(false);
+                }, onError('settings'));
+
+                const unsubReqs = db.collection('requests').onSnapshot(snap => {
+                    const reqData = []; snap.forEach(d => reqData.push(d.data())); setRequests(reqData);
+                }, onError('requests'));
+
+                const unsubPOs = db.collection('pos').onSnapshot(snap => {
+                    const poData = []; snap.forEach(d => poData.push(d.data())); setPos(poData);
+                }, onError('purchase orders'));
+
+                const unsubRecipes = db.collection('recipes').onSnapshot(snap => {
+                    const recData = []; snap.forEach(d => recData.push(d.data()));
+                    setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''))));
+                }, onError('the recipe book'));
+
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
-            }, [selectedCategory]);
+            }, []);
 
             // DRAFTING LOGIC
             const openAddModal = (item) => { if (cart.find(i => i.name === item)) return showToast("Already in cart", "error"); setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true); };
             const confirmAddItem = () => { if(!modalQty || Number(modalQty) <= 0) return showToast("Invalid quantity", "error"); setCart([...cart, { name: modalItemName, qty: Number(modalQty), unit: modalUnit }]); setShowAddModal(false); };
             const removeItem = (index) => setCart(cart.filter((_, i) => i !== index));
             
-            const handleSubmit = () => { 
-                if (cart.length === 0) return showToast('Cart is empty', 'error'); 
-                const reqId = 'REQ-' + Math.floor(1000 + Math.random() * 9000); 
-                db.collection('requests').doc(reqId).set({ id: reqId, items: cart, date: new Date().toLocaleDateString('en-GB') });
-                
-                if (ownerPhone) {
-                    const itemList = cart.map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
-                    const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM Dashboard.`;
-                    let phoneStr = ownerPhone.replace(/\D/g, ''); if (phoneStr.length === 10) phoneStr = '91' + phoneStr; 
-                    window.open('https://wa.me/' + phoneStr + '?text=' + encodeURIComponent(message), '_blank');
-                } else {
-                    showToast('Master Request sent!', 'success');
+            const [isSubmitting, setIsSubmitting] = useState(false);
+
+            const handleSubmit = async () => {
+                if (cart.length === 0) return showToast('Cart is empty', 'error');
+                if (isSubmitting) return;
+                setIsSubmitting(true);
+
+                // TCM.newRequestId is timestamp-prefixed with a random suffix.
+                // The old 'REQ-' + random(1000..9999) had only 9000 possible ids
+                // and was written with .set(), so a collision silently replaced
+                // an existing request — roughly a coin flip after 100 requests.
+                const reqId = TCM.newRequestId();
+                const itemList = cart.map((i, index) => `${index + 1}. ${i.name || ''} — ${i.qty || 0} ${i.unit || ''}`).join('\n');
+
+                try {
+                    await db.collection('requests').doc(reqId).set({
+                        id: reqId,
+                        items: cart,
+                        date: TCM.today(),
+                        createdAt: new Date().toISOString()
+                    });
+                } catch (err) {
+                    console.error(err);
+                    setIsSubmitting(false);
+                    // Keep the cart so the shift's work is not lost on a flaky connection.
+                    return showToast('Could not send the request. Your list has been kept — try again.', 'error');
                 }
-                setCart([]); setSearchTerm(''); 
+
+                setCart([]); setSearchTerm(''); setIsSubmitting(false);
+                showToast('Master Request sent!', 'success');
+
+                if (ownerPhone) {
+                    const message = `*New Master Request: ${reqId}*\n\nHello, the staff has prepared a new order list.\n\n*Items Requested:*\n${itemList}\n\nPlease check the TCM Dashboard.`;
+                    window.open('https://wa.me/' + TCM.normalizePhone(ownerPhone) + '?text=' + encodeURIComponent(message), '_blank', 'noopener');
+                }
             };
 
             // SCANNING LOGIC
             const openReceiveScreen = (po) => { setReceivingPO(po); const initialQty = {}; const initialPrices = {}; (po.items || []).forEach((item, idx) => { initialQty[idx] = item.qty || 0; initialPrices[idx] = ''; }); setReceivedQuantities(initialQty); setReceivedPrices(initialPrices); setUnmatchedScans([]); };
 
             const handleRealAIScan = async (e) => {
-                const files = Array.from(e.target.files); if (files.length === 0) return; setIsScanning(true);
+                const input = e.target;
+                const files = Array.from(input.files || []);
+                input.value = ''; // allows re-picking the same photo after a failure
+                if (files.length === 0) return;
+                if (files.length > TCM.MAX_SCAN_FILES) return showToast(`Scan up to ${TCM.MAX_SCAN_FILES} pages at a time.`, 'error');
+                setIsScanning(true);
                 try {
-                    let allScannedItems = []; const scanInvoice = firebase.functions().httpsCallable('scanInvoice');
+                    let allScannedItems = []; const scanInvoice = TCM.fns.httpsCallable('scanInvoice');
                     for (let file of files) { const compressedBase64 = await compressImage(file); const response = await scanInvoice({ image: compressedBase64 }); if (response.data.lineItems) allScannedItems = [...allScannedItems, ...response.data.lineItems]; }
                     const autoQty = { ...receivedQuantities }; const autoPrices = { ...receivedPrices }; const unmatched = []; const usedScans = new Set();
                     (receivingPO.items || []).forEach((poItem, idx) => { let matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && aliases[scan.name] === poItem.name); if (matchIndex === -1) matchIndex = allScannedItems.findIndex((scan, i) => !usedScans.has(i) && ((poItem.name || '').toLowerCase().includes((scan.name || '').toLowerCase().split(' ')[0]) || (scan.name || '').toLowerCase().includes((poItem.name || '').toLowerCase().split(' ')[0]))); if (matchIndex !== -1) { const match = allScannedItems[matchIndex]; autoQty[idx] = match.quantity; autoPrices[idx] = match.totalPrice; usedScans.add(matchIndex); } else { autoQty[idx] = ''; autoPrices[idx] = ''; } });
                     allScannedItems.forEach((scan, i) => { if (!usedScans.has(i)) unmatched.push(scan); });
                     setReceivedQuantities(autoQty); setReceivedPrices(autoPrices); setUnmatchedScans(unmatched);
                     if (unmatched.length > 0) showToast(`Mapped partially. Map ${unmatched.length} items below.`, 'info'); else showToast("Perfect Auto-Match!", 'success');
-                } catch (error) { showToast(`Scan failed.`, 'error'); } finally { setIsScanning(false); }
+                } catch (error) {
+                    console.error(error);
+                    if (error && error.code === 'functions/permission-denied') showToast('Not authorised to scan invoices.', 'error');
+                    else if (error && error.code === 'functions/not-found') showToast('Invoice scanner is not deployed.', 'error');
+                    else showToast(error && error.message ? `Scan failed: ${error.message}` : 'Scan failed.', 'error');
+                } finally { setIsScanning(false); }
             };
 
-            const submitReceive = () => { 
-                const receivedItemsData = (receivingPO.items || []).map((item, idx) => ({ ...item, receivedQty: Number(receivedQuantities[idx]) || 0, totalPrice: Number(receivedPrices[idx]) || 0 })); 
-                db.collection('pos').doc(receivingPO.id.replace(/\//g, '-')).update({ status: 'Delivered', receivedItems: receivedItemsData, deliveryDate: new Date().toLocaleDateString('en-GB') });
-                setReceivingPO(null); showToast('Intake registered!', 'success');
+            const submitReceive = async () => {
+                const items = receivingPO.items || [];
+
+                const invalid = items.some((item, idx) => {
+                    const q = Number(receivedQuantities[idx]);
+                    const p = Number(receivedPrices[idx]);
+                    return (receivedQuantities[idx] !== '' && receivedQuantities[idx] !== undefined && (!isFinite(q) || q < 0)) ||
+                           (receivedPrices[idx] !== '' && receivedPrices[idx] !== undefined && (!isFinite(p) || p < 0));
+                });
+                if (invalid) return showToast('Quantities and amounts must be zero or more.', 'error');
+
+                const receivedItemsData = items.map((item, idx) => ({ ...item, receivedQty: Number(receivedQuantities[idx]) || 0, totalPrice: Number(receivedPrices[idx]) || 0 }));
+
+                try {
+                    await db.collection('pos').doc(TCM.poDocId(receivingPO.id)).update({
+                        status: 'Delivered',
+                        receivedItems: receivedItemsData,
+                        deliveryDate: TCM.today()
+                    });
+                    setReceivingPO(null);
+                    showToast('Intake registered!', 'success');
+                } catch (err) {
+                    console.error(err);
+                    showToast('Could not register the delivery — nothing was saved.', 'error');
+                }
             };
 
             if (loading) return <div className="min-h-screen bg-paper flex items-center justify-center font-serif text-victorian animate-pulse">Loading Staff Terminal...</div>;
@@ -178,7 +289,7 @@
                     {isSidebarOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setSidebarOpen(false)}></div>}
                     <div className={`fixed inset-y-0 left-0 w-72 bg-victorian text-paper shadow-2xl z-50 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
                         <div className="flex justify-between items-center p-4 border-b border-white/10 bg-white relative">
-                            <div className="w-full flex justify-center items-center py-4"><img src="Name.jpg" className="h-16 object-contain mix-blend-multiply drop-shadow-sm w-full" /></div>
+                            <div className="w-full flex justify-center items-center py-4"><img src="assets/name.jpg" alt="TCM BrewOps" width="640" height="420" className="h-16 object-contain mix-blend-multiply drop-shadow-sm w-full" /></div>
                             <button onClick={() => setSidebarOpen(false)} className="text-victorian hover:text-brandBrown absolute right-3 top-3 bg-white/80 rounded-full p-1"><Icons.Close/></button>
                         </div>
                         <div className="p-4 space-y-2 flex flex-col h-[calc(100vh-120px)]">
@@ -188,12 +299,12 @@
                                     <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-brandBrown text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>{item.label}</button>
                                 ))}
                             </div>
-                            <button onClick={() => window.location.href='index.html'} className="w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl text-dangerLight hover:bg-danger/20 transition-all mt-6">Log Out</button>
+                            <button onClick={() => TCM.signOut()} className="w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl text-dangerLight hover:bg-danger/20 transition-all mt-6">Log Out</button>
                         </div>
                     </div>
 
                     <header className="bg-gradient-to-r from-[#e8dfd1] to-[#FAF8F5] border-b-2 border-brandBrown/30 px-4 py-3 shadow-md sticky top-0 z-30">
-                        <div className="flex items-center justify-between max-w-6xl mx-auto"><button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button><div className="flex-1 flex justify-center py-1"><img src="Page-Header.jpg" className="h-12 sm:h-16 object-contain mix-blend-multiply drop-shadow-sm" /></div><div className="w-12"></div></div>
+                        <div className="flex items-center justify-between max-w-6xl mx-auto"><button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button><div className="flex-1 flex justify-center py-1"><img src="assets/page-header.jpg" alt="TCM BrewOps" width="1200" height="201" className="h-12 sm:h-16 object-contain mix-blend-multiply drop-shadow-sm" /></div><div className="w-12"></div></div>
                     </header>
 
                     <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">
@@ -222,7 +333,7 @@
                                     <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest pb-2 border-b border-gray-200 space-x-2"><span className="w-2/5">Item Name</span><span className="w-1/5 text-center">Ord</span><span className="w-1/5 text-center">Rec</span><span className="w-1/5 text-center">Inv (₹)</span></div>
                                     {(receivingPO.items || []).map((item, idx) => (
                                         <div key={idx} className="flex flex-col py-2 border-b border-gray-100 last:border-0 pb-3"><div className="flex justify-between items-center space-x-2"><span className="text-xs w-2/5 pr-1 font-medium text-gray-800 leading-tight">{item.name}</span><span className="text-xs text-center w-1/5 text-gray-500 font-medium leading-tight">{item.qty}<br/><span className="text-[9px]">{item.unit}</span></span><input type="number" min="0" step="any" className="w-1/5 border border-gray-200 rounded-lg p-2 text-center font-bold text-sm bg-white" value={receivedQuantities[idx] || ''} onChange={(e) => setReceivedQuantities({...receivedQuantities, [idx]: e.target.value})} /><input type="number" min="0" step="any" placeholder="₹" className="w-1/5 border border-antique/50 rounded-lg p-2 text-center font-bold text-sm bg-white" value={receivedPrices[idx] || ''} onChange={(e) => setReceivedPrices({...receivedPrices, [idx]: e.target.value})} /></div>
-                                            {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (<div className="mt-2 w-full"><select className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setReceivedQuantities({...receivedQuantities, [idx]: scanObj.quantity}); setReceivedPrices({...receivedPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); db.collection('settings').doc('main').update({[`aliases.${e.target.value}`]: item.name}); showToast("Mapped!", "success"); } }}><option value="">🔗 Map item...</option>{unmatchedScans.map((u, ui) => (<option key={u.name + ui} value={u.name || ''}>{u.name || 'Unknown'} (Qty: {u.quantity || 0}, ₹{u.totalPrice || 0})</option>))}</select></div>)}
+                                            {unmatchedScans.length > 0 && (!receivedQuantities[idx] && !receivedPrices[idx]) && (<div className="mt-2 w-full"><select className="w-full text-[10px] border border-dashed border-antique bg-antiqueLight/20 text-victorian p-2 font-bold uppercase tracking-widest rounded-lg focus:outline-none" value="" onChange={(e) => { const scanObj = unmatchedScans.find(u => u.name === e.target.value); if(scanObj){ setReceivedQuantities({...receivedQuantities, [idx]: scanObj.quantity}); setReceivedPrices({...receivedPrices, [idx]: scanObj.totalPrice}); setUnmatchedScans(unmatchedScans.filter(u => u.name !== e.target.value)); saveAlias(e.target.value, item.name); showToast("Mapped!", "success"); } }}><option value="">🔗 Map item...</option>{unmatchedScans.map((u, ui) => (<option key={u.name + ui} value={u.name || ''}>{u.name || 'Unknown'} (Qty: {u.quantity || 0}, ₹{u.totalPrice || 0})</option>))}</select></div>)}
                                         </div>
                                     ))}
                                 </div>
@@ -250,7 +361,7 @@
                                     <div className="bg-victorian/95 backdrop-blur-xl text-paper rounded-2xl p-6 shadow-elegant mb-6 border-t-4 border-antique">
                                         <div className="flex justify-between items-end mb-5 border-b border-white/10 pb-3"><h3 className="font-serif font-bold text-xl text-antique">Active BrewOps Draft</h3><span className="text-xs uppercase tracking-widest text-gray-400 bg-white/10 px-2.5 py-1 rounded-lg">{cart.length} items</span></div>
                                         <div className="space-y-4 mb-8">{cart.map((item, idx) => (<div key={`cart-${item.name}-${idx}`} className="flex justify-between items-center group"><div className="flex flex-col"><span className="text-sm font-medium">{item.name || 'Unknown'}</span><span className="text-xs text-antique font-bold mt-0.5">{item.qty || 0} {item.unit || ''}</span></div><button onClick={() => removeItem(idx)} className="text-gray-400 hover:text-danger p-2 transition-colors rounded-lg hover:bg-white/5"><Icons.Trash/></button></div>))}</div>
-                                        <button onClick={handleSubmit} className="w-full bg-antique text-victorian font-bold py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-antiqueLight transition-all shadow-lg hover:-translate-y-0.5 flex justify-center items-center gap-2"><Icons.Send/> Submit BrewOps Order</button>
+                                        <button onClick={handleSubmit} disabled={isSubmitting} className="w-full bg-antique text-victorian font-bold py-4 rounded-xl uppercase tracking-widest text-xs hover:bg-antiqueLight transition-all shadow-lg hover:-translate-y-0.5 flex justify-center items-center gap-2 disabled:opacity-60 disabled:cursor-wait"><Icons.Send/> {isSubmitting ? 'Sending…' : 'Submit BrewOps Order'}</button>
                                     </div>
                                 )}
                             </div>
@@ -277,8 +388,16 @@
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<React.Fragment><App /></React.Fragment>);
+        // 'staff' is the minimum role; TCM.guard also admits an owner, so the
+        // owner can use the staff terminal without a second PIN. A visitor with
+        // no session is redirected to the login page and this never runs.
+        TCM.guard('staff').then(() => {
+            document.getElementById('auth-gate').remove();
+            const rootEl = document.getElementById('root');
+            rootEl.hidden = false;
+            ReactDOM.createRoot(rootEl).render(<React.Fragment><App /></React.Fragment>);
+            TCM.registerServiceWorker();
+        });
     </script>
 </body>
 </html>
