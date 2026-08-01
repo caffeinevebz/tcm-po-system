@@ -39,9 +39,17 @@ sends only a handful of messages a month.
    opened it.
 3. Open the **Sign-in method** tab, click **Phone**, turn it **Enable** on, and
    **Save**.
-4. Open the **Settings** tab → **Authorized domains** → **Add domain**, and add
-   the web address where the app lives (for example `caffeinevebz.github.io`).
-   Skip this and the SMS step fails with a security-check error.
+4. **Settings → SMS region policy** → allow **India (IN)**, then Save.
+
+   > **Do not skip this one.** Enabling Phone sign-in does *not* allow any
+   > country by default. Firebase keeps a separate region allowlist to stop SMS
+   > pumping fraud, and until India is on it every code is refused with
+   > *"SMS unable to be sent until this region enabled by the app developer"* —
+   > which the app used to report, misleadingly, as phone sign-in being off.
+
+5. **Settings → Authorized domains → Add domain**, and add the web address where
+   the app lives (for example `tcm-po-system.vercel.app`). Skip this and the SMS
+   step fails with a security-check error.
 
 ## Step 2 — Open Cloud Shell
 
@@ -152,8 +160,14 @@ These limits are enforced by the database itself, not just by hiding buttons —
 **"This number has not been added to the team"**
 Correct behaviour for an uninvited number. Add it in **Team & Access** first.
 
-**"Phone sign-in is not switched on in Firebase yet"**
-Step 1 was skipped or not saved.
+**"SMS is blocked for this country"**
+Step 1.4 — the SMS region policy — has not been set. Enabling the Phone provider
+is not enough on its own.
+
+**"SMS could not be sent…"**
+Either the Phone provider is off (step 1.3) or the region policy is unset
+(step 1.4). Firebase returns the same code for both; `/diagnostics.html` asks the
+server directly and tells you which one it is.
 
 **"Security check failed. Reload the page and try again"**
 The site's domain is missing from **Authentication → Settings → Authorized
