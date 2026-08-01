@@ -93,16 +93,39 @@
     results.appendChild(row);
   }
 
-  function load(src) {
+  /**
+   * Load a script exactly the way the app loads it.
+   *
+   * `useCors` must mirror whether the real page sets crossorigin="anonymous".
+   * It does so only for the scripts carrying an integrity hash — SRI requires
+   * it. Tailwind has no hash and no crossorigin attribute, so probing it with
+   * one applies a stricter CORS rule than the app ever does, and a CDN that
+   * omits Access-Control-Allow-Origin then looks broken when it is fine.
+   */
+  function load(src, useCors) {
     return new Promise(function (resolve) {
       var s = document.createElement('script');
       s.src = src;
-      s.crossOrigin = 'anonymous';
+      if (useCors) s.crossOrigin = 'anonymous';
       s.onload = function () { resolve(true); };
       s.onerror = function () { resolve(false); };
       document.head.appendChild(s);
       setTimeout(function () { resolve(false); }, 15000);
     });
+  }
+
+  /**
+   * fetch with a hard deadline. A probe that hangs would otherwise leave the
+   * page stuck on "Running checks…" with no conclusion at all — worse than a
+   * failed check, because there is nothing to act on.
+   */
+  function fetchWithTimeout(url, options, ms) {
+    return Promise.race([
+      fetch(url, options),
+      new Promise(function (_, reject) {
+        setTimeout(function () { reject(new Error('timed out after ' + (ms / 1000) + 's')); }, ms);
+      })
+    ]);
   }
 
   var FIREBASE_API_KEY = 'AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE';
@@ -115,6 +138,7 @@
   };
 
   (async function run() {
+   try {
 
     // 1 — is this page being served over http(s), not file:// ?
     if (location.protocol === 'file:') {
@@ -147,32 +171,50 @@
     }
 
     // 3 — CDN scripts (this is what SRI or an ad blocker breaks)
+    // `cors` mirrors the crossorigin attribute on the real page tag.
+    // `blocking` marks the ones the checks BELOW depend on — only Firebase.
+    // A missing Tailwind makes the app ugly, not broken, and must not stop us
+    // reaching the sign-in checks, which are what people actually come here for.
     var cdn = [
-      { name: 'Firebase app SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', glob: 'firebase' },
-      { name: 'Firebase auth SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js', glob: null },
-      { name: 'Firebase functions SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js', glob: null },
-      { name: 'Firebase firestore SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js', glob: null },
-      { name: 'React', url: 'https://unpkg.com/react@18.3.1/umd/react.production.min.js', glob: 'React' },
-      { name: 'Babel (JSX compiler)', url: 'https://unpkg.com/@babel/standalone@7.23.6/babel.min.js', glob: 'Babel' },
-      { name: 'Tailwind CSS', url: 'https://cdn.tailwindcss.com/3.4.16', glob: 'tailwind' }
+      { name: 'Firebase app SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', glob: 'firebase', cors: true, blocking: true },
+      { name: 'Firebase auth SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js', glob: null, cors: true, blocking: true },
+      { name: 'Firebase functions SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js', glob: null, cors: true, blocking: true },
+      { name: 'Firebase firestore SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js', glob: null, cors: true, blocking: true },
+      { name: 'React', url: 'https://unpkg.com/react@18.3.1/umd/react.production.min.js', glob: 'React', cors: true },
+      { name: 'Babel (JSX compiler)', url: 'https://unpkg.com/@babel/standalone@7.23.6/babel.min.js', glob: 'Babel', cors: true },
+      { name: 'Tailwind CSS', url: 'https://cdn.tailwindcss.com/3.4.16', glob: 'tailwind', cors: false }
     ];
 
-    var cdnDown = 0;
+    var essentialDown = 0;
     for (var j = 0; j < cdn.length; j++) {
-      var okLoad = await load(cdn[j].url);
-      if (okLoad && (!cdn[j].glob || typeof window[cdn[j].glob] !== 'undefined')) {
-        add('pass', cdn[j].name + ' reachable');
-      } else {
-        cdnDown++;
-        add('fail', cdn[j].name + ' did not load', cdn[j].url,
-          'Usually an ad blocker, a VPN, or a network that blocks this domain. ' +
-          'It can also mean the <code>integrity="…"</code> hash in the page no longer matches ' +
-          'what the CDN serves — in that case run <code>npm run sri</code> and update the tags.');
+      var dep = cdn[j];
+      var okLoad = await load(dep.url, dep.cors);
+
+      if (!okLoad) {
+        if (dep.blocking) essentialDown++;
+        add('fail', dep.name + ' did not load', dep.url,
+          'Usually an ad blocker, a VPN, or a network that blocks this domain.' +
+          (dep.cors ? ' It can also mean the <code>integrity="…"</code> hash in the page no longer ' +
+                      'matches what the CDN serves — run <code>npm run sri</code> and update the tags.' : '') +
+          (dep.blocking ? '' : '<br>This one only affects how the app <i>looks</i>; sign-in still works.'));
+        continue;
       }
+
+      if (dep.glob && typeof window[dep.glob] === 'undefined') {
+        // Downloaded and ran, but did not publish the global we expected. Worth
+        // flagging, but not the same thing as being blocked.
+        add('warn', dep.name + ' loaded but did not initialise',
+          'The file downloaded, but window.' + dep.glob + ' is undefined.',
+          'Often a browser extension interfering. Try a private window with extensions off.');
+        continue;
+      }
+
+      add('pass', dep.name + ' reachable');
     }
 
-    if (cdnDown) {
-      finish();
+    // Only stop if the checks below cannot run without it.
+    if (essentialDown) {
+      add('warn', 'Skipping the sign-in checks', 'They need the Firebase SDK, which did not load.');
       return;
     }
 
@@ -191,7 +233,6 @@
       add('pass', 'Firebase initialised', 'project: ' + CFG.projectId);
     } catch (e) {
       add('fail', 'Firebase could not initialise', e.message);
-      finish();
       return;
     }
 
@@ -223,8 +264,8 @@
 
     // 5b — is this site's domain authorised for sign-in?
     try {
-      var cfgRes = await fetch('https://identitytoolkit.googleapis.com/v1/projects?key=' +
-        encodeURIComponent(FIREBASE_API_KEY));
+      var cfgRes = await fetchWithTimeout('https://identitytoolkit.googleapis.com/v1/projects?key=' +
+        encodeURIComponent(FIREBASE_API_KEY), {}, 12000);
       var cfg = await cfgRes.json();
       var domains = (cfg && cfg.authorizedDomains) || [];
       if (domains.indexOf(location.hostname) > -1) {
@@ -247,13 +288,13 @@
     // fixed order — the provider and the SMS region policy are both evaluated
     // before the captcha is. So a captcha complaint is the success signal.
     try {
-      var smsRes = await fetch(
+      var smsRes = await fetchWithTimeout(
         'https://identitytoolkit.googleapis.com/v1/accounts:sendVerificationCode?key=' +
         encodeURIComponent(FIREBASE_API_KEY), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phoneNumber: '+919000000001', recaptchaToken: 'diagnostics-probe' })
-        });
+        }, 15000);
       var smsBody = await smsRes.json();
       var smsMsg = (smsBody && smsBody.error && smsBody.error.message) || '';
 
@@ -309,7 +350,15 @@
       } catch (e3) { /* not fatal */ }
     }
 
-    finish();
+   } catch (fatal) {
+      // A check threw something unexpected. Say so rather than leaving the page
+      // silently half-finished.
+      add('fail', 'Diagnostics stopped early',
+        (fatal && fatal.message) || String(fatal),
+        'This is a fault in the diagnostics page itself, not necessarily in the app.');
+   } finally {
+      finish();
+   }
   })();
 
   function finish() {
