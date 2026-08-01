@@ -1,14 +1,14 @@
-# BrewOps — security setup
+# BrewOps — security model
 
-**Read this before deploying.** The app in this repository expects a Cloud
-Function and a set of Firestore rules that do not exist in your Firebase project
-yet. Until you complete steps 1–3, **nobody will be able to log in.**
+> **Setting up?** [SETUP.md](SETUP.md) is the click-by-click version.
+> This page explains what is protecting what, and why.
+
+Until the Cloud Functions and Firestore rules are deployed, **nobody can sign
+in.** That is deliberate: there is no fallback path that works without them.
 
 ---
 
-## What changed and why
-
-The previous version had no authentication at all.
+## What the app used to do
 
 `index.html` compared the PIN in plain JavaScript:
 
@@ -22,110 +22,127 @@ Three consequences:
 1. Both PINs were readable by anyone via **View Source**.
 2. The check could be skipped entirely by typing `…/owner.html` in the address
    bar — there was no session to check.
-3. Because nothing ever called `firebase.auth()`, your Firestore rules had to be
-   in open mode for the app to function. The project id and web API key are
-   public (they must be, they ship in the page), so **anyone on the internet
+3. Because nothing ever called `firebase.auth()`, the Firestore rules had to be
+   in open mode for the app to work at all. The project id and web API key are
+   public (they must be — they ship in the page), so **anyone on the internet
    could read, rewrite or delete every purchase order, supplier phone number,
-   cost price and recipe** with a few lines of script.
+   cost price and recipe.**
 
-The `scanInvoice` callable was also unauthenticated, so a stranger could run up
-your AI bill.
-
-Now: the PIN is verified server-side against a scrypt hash, login attempts are
-rate-limited, a successful login returns a Firebase session carrying a `role`
-claim, and `firestore.rules` enforces what each role may touch. The client-side
-guard in each page is convenience; **the rules are the actual security boundary.**
+`170117` and `1234` were served in page source and committed to a public
+repository. Treat both as public knowledge. Neither is used any more.
 
 ---
 
-## Assume the old PINs are compromised
+## Who can get in now
 
-`170117` and `1234` were committed to a public repository and served in page
-source. Treat them as public knowledge. **Choose new PINs in step 1** — do not
-re-use either of them.
+| | How they are identified | How they are added |
+|---|---|---|
+| **Owner** | The number in `OWNER_PHONE`, set at deploy time | Cannot be added, changed or granted from inside the app |
+| **Staff** | Their own mobile number | Invite-only — the owner adds the number first |
+| **Everyone else** | — | Refused, even with a valid SMS code |
 
-Also worth knowing: `170117` reads like a date and `1234` is the single most
-guessed PIN in existence. Pick something without a personal meaning, and make
-the owner PIN at least 6 digits.
+Sign-in is two-stage by design:
 
----
+- **First time, new device, or forgotten PIN** → mobile number + SMS one-time
+  code. Firebase Phone Authentication sends the message and runs the anti-abuse
+  checks; this app never sees or stores a code.
+- **Every day after that** → mobile number + a PIN the person chose themselves.
+  No SMS, no cost, no waiting.
 
-## 1. Set the PINs
+PINs are stored as **scrypt hashes** (N=16384) in `_staffSecrets`, a collection
+no client can read — not staff, not the owner. Verification happens only inside
+`pinSignIn`. A PIN cannot be recovered, only replaced.
 
-Generate a hash for each role. The PIN itself is never stored anywhere.
+`pinSignIn` re-derives the role from current data on every call rather than
+trusting the token, which is what makes **Remove** take effect immediately
+rather than whenever a cached session happens to expire.
 
-```bash
-cd functions
-npm install
+### Rate limiting
 
-node scripts/hash-pin.js 481902     # your new OWNER pin
-node scripts/hash-pin.js 730514     # your new STAFF pin
-```
-
-Each prints one line like `9f2c…:4a7b…`. Store them as Firebase secrets:
-
-```bash
-firebase functions:secrets:set OWNER_PIN_HASH   # paste the owner line
-firebase functions:secrets:set STAFF_PIN_HASH   # paste the staff line
-```
-
-Do not commit these values. `.gitignore` already excludes `.env` files.
-
-To change a PIN later, generate a new hash and re-run `functions:secrets:set`.
-
-## 2. Deploy the login function
-
-> **Deploy by name.** Your existing `scanInvoice` function's source is not in
-> this repository. A bare `firebase deploy --only functions` would delete it.
-
-```bash
-firebase deploy --only functions:verifyPin
-```
-
-## 3. Publish the Firestore rules
-
-```bash
-firebase deploy --only firestore:rules
-```
-
-Then confirm in the Firebase console under **Firestore → Rules** that the
-published rules match `firestore.rules`, and that the "open until" warning
-banner is gone.
-
-## 4. Verify
-
-- [ ] Open the app in a private window. You get the PIN screen.
-- [ ] Type `…/owner.html` directly. You are bounced back to the login screen.
-- [ ] Sign in with the staff PIN, then type `…/owner.html`. Still bounced.
-- [ ] Sign in with the owner PIN. The dashboard loads.
-- [ ] Enter a wrong PIN nine times. The ninth is refused with a lockout message.
-- [ ] In the browser console on the login page, run:
-      `firebase.firestore().collection('pos').get().then(s => console.log(s.size))`
-      — it must fail with `permission-denied`.
+Eight wrong PINs for the same (network address + number) inside 15 minutes
+triggers a 15-minute lockout, tracked in `_authThrottle`. An unknown number and
+a wrong PIN return the identical message, so the login screen cannot be used to
+discover who works at the shop.
 
 ---
 
-## 5. Still to do (not done for you)
+## What each role may touch
 
-**Harden `scanInvoice`.** It currently accepts calls from anyone. Move its source
-into `functions/`, then add the guard:
+Enforced by `firestore.rules` — the database refuses the write regardless of
+what the page offers.
+
+| | Owner | Staff |
+|---|---|---|
+| Raise material requests | ✓ | ✓ |
+| Read the recipe book | ✓ | ✓ |
+| **Add** a recipe | ✓ | ✓ (stamped with their uid) |
+| **Edit or delete** a recipe | ✓ | ✗ — including their own |
+| Book in a delivery against an approved PO | ✓ | ✓ status/received lines only |
+| Teach the invoice scanner an alias | ✓ | ✓ |
+| Cost prices, vendors, catalogue, prep rules | ✓ | ✗ |
+| Create, amend, cancel POs | ✓ | ✗ |
+| Add or remove team members | ✓ (via function) | ✗ |
+| Read another person's team record | ✓ | ✗ |
+| Read any PIN hash | ✗ | ✗ |
+
+`staffMembers` is **read-only to every client**. Membership changes go through
+`inviteStaff` and `setStaffStatus`, so a staff member cannot invite themselves
+or flip their own status back to active after being removed.
+
+**40 automated tests** assert all of this against the real Firestore rules
+engine: `npm run test:rules`.
+
+---
+
+## Deploying
+
+```bash
+cd functions && npm install && cd ..
+npm run deploy:auth     # prompts for OWNER_PHONE on the first run
+npm run deploy:rules
+```
+
+`deploy:auth` names each function explicitly. A bare
+`firebase deploy --only functions` would delete `scanInvoice`, whose source is
+not in this repository.
+
+Phone sign-in must also be enabled once in the Firebase console
+(**Authentication → Sign-in method → Phone**), and the site's domain added under
+**Authentication → Settings → Authorized domains**.
+
+### Verify
+
+- [ ] A private window shows the sign-in screen.
+- [ ] Typing `…/owner.html` directly bounces back to sign-in.
+- [ ] A staff session typing `…/owner.html` still bounces.
+- [ ] An uninvited number is refused after a valid SMS code.
+- [ ] `/diagnostics.html` reports *Database correctly refuses unauthenticated
+      access*.
+
+---
+
+## Still to do
+
+**Harden `scanInvoice`.** It currently accepts calls from anyone on the
+internet, so a stranger can run up your AI bill. Move its source into
+`functions/`, then add two lines:
 
 ```js
 const { requireRole } = require('./lib/auth-guard');
 
 exports.scanInvoice = functions.https.onCall(async (data, context) => {
-  requireRole(context, ['owner', 'staff']);   // <- add this line
-  // ...your existing implementation...
+  requireRole(context, ['owner', 'staff']);   // <- add this
+  // ...existing implementation...
 });
 ```
 
 Once its source lives here, `firebase deploy --only functions` becomes safe.
 
-**Turn on App Check** (Firebase console → App Check, reCAPTCHA v3 provider) to
-stop scripted abuse of `verifyPin` and `scanInvoice` from outside your app.
+**Turn on App Check** (console → App Check, reCAPTCHA v3) to stop scripted abuse
+of the callables from outside your app.
 
-**Set a budget alert** on the Google Cloud project so a runaway scan loop shows
-up as an email rather than a bill.
+**Set a budget alert** on the Google Cloud project so a runaway scan or SMS loop
+arrives as an email rather than a bill.
 
 ---
 
@@ -133,13 +150,14 @@ up as an email rather than a bill.
 
 | Risk | Status |
 |---|---|
-| Tailwind Play CDN (`cdn.tailwindcss.com/3.4.16`) has no integrity hash | The Play CDN is not published to npm, so a hash cannot be pinned offline. Run `npm run sri` on a networked machine to add one, or move to a prebuilt stylesheet. |
+| Tailwind Play CDN has no integrity hash | The Play CDN is not published to npm, so a hash cannot be pinned offline. Run `npm run sri` on a networked machine to add one, or move to a prebuilt stylesheet. |
 | CSP allows `'unsafe-eval'` | Required by `@babel/standalone`, which compiles the JSX in the browser. Removing it means adding a build step. |
-| Two shared role accounts, not per-person logins | Adequate for a two-role shop, but there is no per-staff audit trail. `firestore.rules` keys off the `role` claim, not the uid, so real user accounts can be introduced without touching the rules. |
+| SMS costs money | Only on first registration, a new device, or a forgotten PIN. Daily usage is PIN-only. |
 | Sessions last for the browser tab, plus a 30-minute inactivity timeout | Tune `IDLE_LOGOUT_MS` in `assets/tcm-core.js`. |
+| A staff member keeps read access to prices they memorised | Nothing technical fixes this; **Remove** cuts off future access immediately. |
 
-## Reporting a problem
+## If you suspect a problem
 
-If you think data has been accessed improperly, rotate both PINs (step 1),
-redeploy `verifyPin`, and check **Firestore → Usage** in the console for read
-spikes that do not match shop hours.
+Remove the person in **Team & Access** — that revokes their sessions and deletes
+their PIN straight away. Then check **Firestore → Usage** in the console for
+read spikes that do not match shop hours.

@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrewOps - Owner Command Center</title>
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
+
+    <!-- Must load first and must be same-origin: this is what reports a
+         failure when one of the CDN scripts below never arrives. -->
+    <script src="assets/tcm-boot.js"></script>
 
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="assets/tcm-theme.js"></script>
@@ -40,12 +44,6 @@
             crossorigin="anonymous"></script>
 
     <script src="assets/tcm-core.js"></script>
-    <script>
-        // Safe replacement for the old crash reporter, which interpolated the
-        // raw error message into document.body.innerHTML — a script-injection
-        // sink. TCM.installCrashHandler writes with textContent instead.
-        TCM.installCrashHandler();
-    </script>
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -113,6 +111,162 @@
 
         const compressImage = TCM.compressImage;
 
+        /**
+         * Team & Access.
+         *
+         * Staff are invite-only: a mobile number has to appear in this list
+         * before that person can register. Someone who verifies an uninvited
+         * number is refused by claimRole, so there is no way to self-enrol.
+         */
+        function TeamView({ team, showToast, confirmAction }) {
+            const [name, setName] = useState('');
+            const [phone, setPhone] = useState('');
+            const [busy, setBusy] = useState(false);
+
+            const members = (team || []).filter(m => m.role !== 'owner');
+            const waiting = members.filter(m => m.status === 'invited');
+            const active = members.filter(m => m.status === 'active');
+            const removed = members.filter(m => m.status === 'revoked');
+
+            const appLink = window.location.origin + window.location.pathname.replace(/owner\.html$/, 'index.html');
+
+            const invite = async () => {
+                const digits = phone.replace(/\D/g, '');
+                if (!name.trim()) return showToast('Give them a name.', 'error');
+                if (digits.length < 10) return showToast('Enter a 10-digit mobile number.', 'error');
+
+                setBusy(true);
+                try {
+                    await TCM.inviteStaff(digits, name.trim());
+                    showToast(`${name.trim()} can now register.`, 'success');
+                    // Send them the link over WhatsApp, the same channel POs use.
+                    const msg = `Hello ${name.trim()},\n\nYou have been added to *TCM BrewOps*.\n\nOpen ${appLink} and sign in with this mobile number. You will get a one-time code by SMS, then you can set your own PIN.\n\n— The Caffeine Ministry`;
+                    window.open('https://wa.me/' + TCM.normalizePhone(digits) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+                    setName(''); setPhone('');
+                } catch (err) {
+                    showToast(err.message || 'Could not add them.', 'error');
+                } finally {
+                    setBusy(false);
+                }
+            };
+
+            const changeStatus = (member, status, question) => confirmAction(question, async () => {
+                try {
+                    await TCM.setStaffStatus(member.phoneKey, status);
+                    showToast('Updated.', 'success');
+                } catch (err) {
+                    showToast(err.message || 'Could not update.', 'error');
+                }
+            });
+
+            const Row = ({ member, children, tone }) => (
+                <div className={`flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 ${tone || ''}`}>
+                    <div className="flex flex-col truncate pr-2">
+                        <span className="text-sm font-bold text-victorian">{member.name || 'Unnamed'}</span>
+                        <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">
+                            {member.phone || ('+91 ' + (member.phoneKey || ''))}
+                            {member.hasPin && <span className="ml-2 text-vintageGreen">PIN set</span>}
+                        </span>
+                    </div>
+                    <div className="flex gap-2 shrink-0">{children}</div>
+                </div>
+            );
+
+            return (
+                <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
+                            <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-2 border-b border-brandBrown/20 pb-3">Invite a team member</h3>
+                            <p className="text-[11px] text-gray-600 leading-relaxed mb-5">
+                                Only a number you add here can register. They sign in with an SMS code once,
+                                then choose their own PIN.
+                            </p>
+
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Name</label>
+                            <input type="text" value={name} onChange={e => setName(e.target.value)}
+                                   placeholder="e.g. Rahul"
+                                   className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner mb-4 focus:ring-2 focus:ring-brandBrown/50" />
+
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Mobile number</label>
+                            <div className="flex items-center gap-2 mb-5">
+                                <span className="px-3 py-3 rounded-xl bg-paper border border-gray-200 text-victorian font-bold text-sm">+91</span>
+                                <input type="tel" inputMode="numeric" maxLength="14" value={phone}
+                                       onChange={e => setPhone(e.target.value)} placeholder="98765 43210"
+                                       className="flex-1 min-w-0 p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner font-mono tracking-wider focus:ring-2 focus:ring-brandBrown/50" />
+                            </div>
+
+                            <button onClick={invite} disabled={busy}
+                                    className="w-full bg-brandBrown text-white font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-brandLightBrown transition-all disabled:opacity-60">
+                                {busy ? 'Adding…' : 'Add & send invite on WhatsApp'}
+                            </button>
+                        </div>
+
+                        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant border border-brandBrown/20">
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">What staff can do</p>
+                            <ul className="text-[11px] text-gray-700 space-y-1.5 leading-relaxed">
+                                <li>✓ Raise material requests</li>
+                                <li>✓ Add new recipes and read the whole book</li>
+                                <li>✓ Book in deliveries against an open PO</li>
+                                <li className="text-danger">✗ Edit or delete any recipe</li>
+                                <li className="text-danger">✗ See or change cost prices, vendors and POs</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="lg:col-span-1 space-y-6">
+                        {waiting.length > 0 && (
+                            <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-antique/40">
+                                <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-antique/30 pb-3">
+                                    Invited — not registered yet ({waiting.length})
+                                </h3>
+                                <div className="bg-paper/50 border border-brandBrown/20 rounded-xl">
+                                    {waiting.map(m => (
+                                        <Row key={m.phoneKey} member={m}>
+                                            <button onClick={() => changeStatus(m, 'revoked', `Cancel the invite for ${m.name || 'this number'}?`)}
+                                                    className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button>
+                                        </Row>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
+                            <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-brandBrown/20 pb-3">
+                                Active staff ({active.length})
+                            </h3>
+                            <div className="bg-paper/50 border border-brandBrown/20 rounded-xl">
+                                {active.length === 0
+                                    ? <p className="text-center text-xs py-6 text-gray-500 italic">Nobody has registered yet.</p>
+                                    : active.map(m => (
+                                        <Row key={m.phoneKey} member={m}>
+                                            <button onClick={() => changeStatus(m, 'revoked', `Remove ${m.name || 'this person'}? They will be signed out everywhere and their PIN deleted.`)}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-danger bg-dangerLight px-3 py-2 rounded-lg hover:bg-danger hover:text-white transition-colors">Remove</button>
+                                        </Row>
+                                    ))
+                                }
+                            </div>
+                        </div>
+
+                        {removed.length > 0 && (
+                            <div className="bg-white/60 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-gray-200">
+                                <h3 className="font-bold text-gray-500 text-xs uppercase tracking-widest mb-4 border-b border-gray-200 pb-3">
+                                    Removed ({removed.length})
+                                </h3>
+                                <div className="bg-paper/40 border border-gray-200 rounded-xl">
+                                    {removed.map(m => (
+                                        <Row key={m.phoneKey} member={m} tone="opacity-70">
+                                            <button onClick={() => changeStatus(m, 'invited', `Let ${m.name || 'them'} register again?`)}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-vintageGreen bg-vintageGreen/10 px-3 py-2 rounded-lg hover:bg-vintageGreen hover:text-white transition-colors">Restore</button>
+                                        </Row>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
         // Renders the reason a line could not be costed instead of showing a
         // confident ₹0.00. Silent zeroes were the most misleading thing in the
         // costing screen: an unpriced item and a free item looked identical.
@@ -147,6 +301,7 @@
                 { id: 'conversions', label: 'Prep Kitchen Engine' },
                 { id: 'vendors', label: 'Vendor Directory' },
                 { id: 'inventory', label: 'Raw Material Master' },
+                { id: 'team', label: 'Team & Access' },
                 { id: 'workbench', label: "Brewster's Workbench" }
             ];
 
@@ -227,7 +382,7 @@
             );
         }
 
-        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, aliases, updateAlias, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
+        function OwnerView({ requests, pos, onCreateCombinedPO, onRemoveRequestItem, onDelete, onResend, suppliers, setSuppliers, addSupplier, editSupplier, deleteSupplier, inventory, prepItems, ownerPhone, recipes, units, ownerTab, setOwnerTab, prices, aliases, updateAlias, team, compressImage, showToast, confirmAction, Icons, db, deleteRecipe }) {
             const activePOs = (pos || []).filter(po => po.status === 'Approved'); const deliveredPOs = (pos || []).filter(po => po.status === 'Delivered');
             
             const [selectedItems, setSelectedItems] = useState([]); const [selectedVendor, setSelectedVendor] = useState(''); const [dbCategory, setDbCategory] = useState('');
@@ -483,6 +638,8 @@
                     
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
+                    {ownerTab === 'team' && <TeamView team={team} showToast={showToast} confirmAction={confirmAction} />}
+
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
                             <div className="flex h-[700px] rounded-3xl overflow-hidden shadow-elegant border-2 border-brandBrown/30 relative bg-paper mb-10">
@@ -723,7 +880,7 @@
                                             </div>
                                             
                                             <div className="p-6">
-                                                <div className="flex flex-wrap gap-2 mb-6"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span>{viewingRecipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2.5 py-1 rounded-lg shadow-sm">Yield Output: {viewingRecipe.yieldQty || 0} {viewingRecipe.yieldUnit || ''}</span>}</div>
+                                                <div className="flex flex-wrap gap-2 mb-6"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span>{viewingRecipe.category === 'Batch Prep' && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-victorian text-antique border border-antique/20 px-2.5 py-1 rounded-lg shadow-sm">Yield Output: {viewingRecipe.yieldQty || 0} {viewingRecipe.yieldUnit || ''}</span>}{viewingRecipe.createdByName && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-vintageGreen/10 text-vintageGreen border border-vintageGreen/30 px-2.5 py-1 rounded-lg shadow-sm">Added by {viewingRecipe.createdByName}</span>}</div>
                                                 
                                                 <div className="bg-white/60 p-4 rounded-xl border border-brandBrown/20 shadow-sm mb-6">
                                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Prepped Workspace Composition</p>
@@ -1088,6 +1245,7 @@
             const [recipes, setRecipes] = useState([]); 
             const [prices, setPrices] = useState({}); 
             const [aliases, setAliases] = useState({});
+            const [team, setTeam] = useState([]);
             
             const [toast, setToast] = useState(null); 
             const [confirmDialog, setConfirmDialog] = useState(null);
@@ -1106,6 +1264,7 @@
                 let unsubReqs = () => {}; 
                 let unsubPOs = () => {}; 
                 let unsubRecipes = () => {};
+                let unsubTeam = () => {};
                 
                 const initializeDB = async () => {
                     const settingsRef = db.collection('settings').doc('main'); 
@@ -1166,6 +1325,15 @@
                         setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''))));
                     }, err => { console.error(err); showToast("Lost connection to the recipe book.", "error"); });
 
+                    // Team directory. Only the owner can read the whole
+                    // collection; the rules deny every client write, so members
+                    // are added and removed through Cloud Functions alone.
+                    unsubTeam = db.collection('staffMembers').onSnapshot(snap => {
+                        const rows = [];
+                        snap.forEach(d => rows.push(d.data()));
+                        setTeam(rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))));
+                    }, err => { console.error(err); });
+
                     setLoading(false);
                 };
                 
@@ -1174,7 +1342,7 @@
                     setLoading(false);
                     showToast("Could not reach the database. Check your connection and sign in again.", "error");
                 });
-                return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
+                return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); unsubTeam(); };
             }, []);
 
             const updateAlias = (rawInvoiceName, dbItemName) => { 
@@ -1292,7 +1460,7 @@
                     {confirmDialog && ( <div className="fixed inset-0 bg-victorian/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100] animate-fade-in"> <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30 text-center"> <h3 className="font-serif font-bold text-xl text-victorian mb-2">Are you sure?</h3> <p className="text-sm text-gray-600 mb-6">{confirmDialog.message}</p> <div className="flex space-x-3"> <button onClick={() => setConfirmDialog(null)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-gray-50 transition-colors">Cancel</button> <button onClick={confirmDialog.onConfirm} className="w-1/2 bg-danger text-white font-bold py-3 text-xs uppercase tracking-widest rounded-xl hover:bg-danger/90 transition-colors shadow-md">Confirm</button> </div> </div> </div> )}
                     
                     <DashboardLayout activeTab={ownerTab} setActiveTab={setOwnerTab}>
-                        <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile Number(s) (comma separated for multiple):"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile Number(s) (comma separated for multiple):",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
+                        <OwnerView requests={requests} pos={pos} onCreateCombinedPO={createCombinedPO} onRemoveRequestItem={removeRequestItem} onDelete={deletePO} onResend={sendWhatsApp} suppliers={suppliers} setSuppliers={setSuppliers} addSupplier={()=>{const n = window.prompt("Vendor Name:"); if(n) {const p = window.prompt("Mobile Number(s) (comma separated for multiple):"); db.collection('settings').doc('main').update({suppliers:[...suppliers,{name:n.trim(),phone:p?p.trim():""}]});showToast("Added", "success");}}} editSupplier={(old)=>{const v=suppliers.find(s=>s.name===old); if(v){const n=window.prompt("Name:",v.name); if(n){const p=window.prompt("Mobile Number(s) (comma separated for multiple):",v.phone); db.collection('settings').doc('main').update({suppliers:suppliers.map(s=>s.name===old?{name:n.trim(),phone:p?p.trim():""}:s)});}}}} deleteSupplier={(n)=>confirmAction(`Delete vendor?`, ()=>db.collection('settings').doc('main').update({suppliers:suppliers.filter(s=>s.name!==n)}))} inventory={inventory} prepItems={prepItems} ownerPhone={ownerPhone} recipes={recipes} units={UNITS} team={team} ownerTab={ownerTab} setOwnerTab={setOwnerTab} prices={prices} aliases={aliases} updateAlias={updateAlias} compressImage={compressImage} showToast={showToast} confirmAction={confirmAction} Icons={Icons} db={db} deleteRecipe={(id) => { confirmAction("Delete this recipe?", () => { db.collection('recipes').doc(id).delete(); showToast("Recipe deleted", "info"); }); }} />
                     </DashboardLayout>
                 </React.Fragment>
             );

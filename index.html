@@ -6,10 +6,14 @@
     <title>TCM BrewOps — Sign In</title>
 
     <!-- Defence in depth for hosts that ignore firebase.json headers (e.g. GitHub Pages). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://www.gstatic.com https://www.google.com; frame-src https://www.google.com https://www.recaptcha.net https://tcm-orders.firebaseapp.com; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
+
+    <!-- Must load first and must be same-origin: this is what reports a
+         failure when one of the CDN scripts below never arrives. -->
+    <script src="assets/tcm-boot.js"></script>
 
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="assets/tcm-theme.js"></script>
@@ -49,30 +53,100 @@
     <div class="min-h-screen flex justify-center items-center relative bg-[#FAF8F5]">
         <div class="absolute inset-0 bg-theme opacity-55 pointer-events-none z-0"></div>
 
-        <div class="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-card mt-10">
-            <div class="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
+        <div class="relative z-10 w-[90%] max-w-[380px] min-h-[600px] sm:min-h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-card mt-10">
+            <div class="flex-1 flex flex-col justify-end px-7 pb-14 sm:pb-20">
 
-                <form id="loginForm" autocomplete="off" novalidate>
-                    <div class="mb-5">
-                        <label for="pinInput" class="sr-only">Access PIN</label>
-                        <input type="password" id="pinInput" name="pin" autofocus required
-                               inputmode="numeric" pattern="[0-9]*" maxlength="12"
-                               autocomplete="one-time-code" enterkeyhint="go"
-                               aria-describedby="errorMsg"
-                               placeholder="••••••"
-                               class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian disabled:opacity-50" />
+                <!-- ============ STEP 1: mobile number ============ -->
+                <form id="stepPhone" autocomplete="off" novalidate>
+                    <label for="phoneInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Mobile number</label>
+                    <div class="flex items-center gap-2 mb-4">
+                        <span class="px-3 py-4 rounded-xl bg-white/70 border-2 border-antique/60 text-victorian font-bold text-sm">+91</span>
+                        <input type="tel" id="phoneInput" name="phone" required autofocus
+                               inputmode="numeric" autocomplete="tel-national" maxlength="14" enterkeyhint="next"
+                               placeholder="98765 43210"
+                               class="flex-1 min-w-0 p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-xl tracking-widest font-mono bg-transparent text-victorian disabled:opacity-50" />
                     </div>
-
-                    <button type="submit" id="loginBtn"
+                    <button type="submit" id="phoneBtn"
                             class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
-                        Login
+                        Continue
                     </button>
-
-                    <p id="errorMsg" role="alert" aria-live="polite"
-                       class="text-danger text-center mt-3 text-xs font-bold uppercase tracking-widest min-h-[1rem]" hidden></p>
                 </form>
 
-                <div class="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Security Protocol</div>
+                <!-- ============ STEP 2: PIN (returning user) ============ -->
+                <form id="stepPin" autocomplete="off" novalidate hidden>
+                    <p id="pinWho" class="text-center text-[11px] font-bold text-victorian/70 tracking-wide mb-3"></p>
+                    <label for="pinInput" class="sr-only">PIN</label>
+                    <input type="password" id="pinInput" name="pin" required
+                           inputmode="numeric" maxlength="8" autocomplete="current-password" enterkeyhint="go"
+                           placeholder="••••"
+                           class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian disabled:opacity-50 mb-4" />
+                    <button type="submit" id="pinBtn"
+                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Sign in
+                    </button>
+                    <button type="button" id="useOtpBtn"
+                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
+                        Forgot PIN? Use SMS code
+                    </button>
+                </form>
+
+                <!-- ============ STEP 3: OTP ============ -->
+                <form id="stepOtp" autocomplete="off" novalidate hidden>
+                    <p id="otpSentTo" class="text-center text-[11px] font-bold text-victorian/70 tracking-wide mb-3"></p>
+                    <label for="otpInput" class="sr-only">SMS code</label>
+                    <input type="text" id="otpInput" name="otp" required
+                           inputmode="numeric" maxlength="6" autocomplete="one-time-code" enterkeyhint="go"
+                           placeholder="••••••"
+                           class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-2xl tracking-[0.5em] font-mono bg-transparent text-victorian disabled:opacity-50 mb-4" />
+                    <button type="submit" id="otpBtn"
+                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Verify
+                    </button>
+                    <button type="button" id="backBtn"
+                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
+                        Change number
+                    </button>
+                </form>
+
+                <!-- ============ STEP 4: choose a PIN ============ -->
+                <form id="stepNewPin" autocomplete="off" novalidate hidden>
+                    <p class="text-center text-[11px] font-bold text-vintageGreen tracking-wide mb-1">Verified ✓</p>
+                    <p class="text-center text-[11px] text-victorian/70 leading-relaxed mb-4">
+                        Choose a PIN so you can sign in without waiting for an SMS next time.
+                    </p>
+                    <label for="newPinInput" class="sr-only">New PIN</label>
+                    <input type="password" id="newPinInput" required
+                           inputmode="numeric" maxlength="8" autocomplete="new-password"
+                           placeholder="New PIN"
+                           class="w-full p-3.5 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-2xl tracking-[0.4em] font-mono bg-transparent text-victorian mb-3" />
+                    <label for="newPinConfirm" class="sr-only">Repeat PIN</label>
+                    <input type="password" id="newPinConfirm" required
+                           inputmode="numeric" maxlength="8" autocomplete="new-password" enterkeyhint="go"
+                           placeholder="Repeat PIN"
+                           class="w-full p-3.5 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-2xl tracking-[0.4em] font-mono bg-transparent text-victorian mb-4" />
+                    <button type="submit" id="newPinBtn"
+                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Save PIN &amp; continue
+                    </button>
+                    <button type="button" id="skipPinBtn"
+                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-victorian/50 hover:underline bg-transparent border-0 cursor-pointer">
+                        Skip for now
+                    </button>
+                </form>
+
+                <p id="errorMsg" role="alert" aria-live="polite"
+                   class="text-danger text-center mt-4 text-[11px] font-bold uppercase tracking-wide leading-relaxed min-h-[1rem]" hidden></p>
+
+                <div id="setupHelp" hidden
+                     class="mt-3 text-[11px] leading-relaxed text-center text-victorian/80 bg-white/70 border border-brandBrown/25 rounded-xl px-3 py-2.5">
+                    The one-time setup has not been run, so no owner number is registered yet.
+                    <a href="diagnostics.html" class="block mt-1.5 font-bold text-brandBrown underline">Run diagnostics</a>
+                </div>
+
+                <!-- Firebase attaches the invisible reCAPTCHA challenge here. -->
+                <div id="recaptcha"></div>
+
+                <div class="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">The Caffeine Ministry</div>
             </div>
         </div>
     </div>
@@ -82,13 +156,35 @@
     (function () {
         'use strict';
 
-        var form   = document.getElementById('loginForm');
-        var input  = document.getElementById('pinInput');
-        var button = document.getElementById('loginBtn');
-        var error  = document.getElementById('errorMsg');
+        var steps = {
+            phone:  document.getElementById('stepPhone'),
+            pin:    document.getElementById('stepPin'),
+            otp:    document.getElementById('stepOtp'),
+            newPin: document.getElementById('stepNewPin')
+        };
 
-        function landingFor(role) {
-            return role === 'owner' ? 'owner.html' : 'staff.html';
+        var phoneInput  = document.getElementById('phoneInput');
+        var pinInput    = document.getElementById('pinInput');
+        var otpInput    = document.getElementById('otpInput');
+        var newPin      = document.getElementById('newPinInput');
+        var newPinAgain = document.getElementById('newPinConfirm');
+        var error       = document.getElementById('errorMsg');
+
+        var phone = '';
+
+        // ---------------------------------------------------------------- ui
+        function show(name) {
+            Object.keys(steps).forEach(function (k) { steps[k].hidden = (k !== name); });
+            clearError();
+            var first = steps[name].querySelector('input');
+            if (first) setTimeout(function () { first.focus(); }, 50);
+        }
+
+        function clearError() {
+            error.hidden = true;
+            error.textContent = '';
+            var help = document.getElementById('setupHelp');
+            if (help) help.hidden = true;
         }
 
         function showError(message) {
@@ -96,18 +192,232 @@
             error.hidden = false;
         }
 
-        function clearError() {
-            error.hidden = true;
-            error.textContent = '';
+        function showSetupNeeded() {
+            showError('Login service not set up yet');
+            var help = document.getElementById('setupHelp');
+            if (help) help.hidden = false;
         }
 
-        function setBusy(busy) {
-            button.disabled = busy;
-            input.disabled = busy;
-            button.textContent = busy ? 'Verifying…' : 'Login';
+        function busy(button, isBusy, label) {
+            button.disabled = isBusy;
+            button.dataset.label = button.dataset.label || button.textContent;
+            button.textContent = isBusy ? (label || 'Please wait…') : button.dataset.label;
         }
 
-        // Already holding a valid session? Skip the PIN and go straight through.
+        function prettyPhone(p) {
+            var d = String(p).replace(/\D/g, '').slice(-10);
+            return '+91 ' + d.slice(0, 5) + ' ' + d.slice(5);
+        }
+
+        function landingFor(role) { return role === 'owner' ? 'owner.html' : 'staff.html'; }
+
+        function go(role) {
+            TCM.rememberPhone(phone);
+            window.location.replace(landingFor(role));
+        }
+
+        /**
+         * Turn a Firebase/callable error into something a barista can act on.
+         * Every branch here corresponds to a real state the app can be in.
+         */
+        function explain(err) {
+            var code = (err && err.code) ? String(err.code) : '';
+            var msg  = (err && err.message) ? String(err.message) : '';
+
+            if (code === 'functions/not-found' || code === 'functions/internal' ||
+                code === 'functions/unavailable' || code === 'functions/unimplemented') {
+                return showSetupNeeded();
+            }
+            if (code === 'functions/resource-exhausted') return showError(msg);
+            if (code === 'functions/failed-precondition') return showError(msg);
+            if (code === 'functions/permission-denied')  return showError(msg);
+
+            if (code === 'auth/invalid-phone-number')     return showError('That number does not look right');
+            if (code === 'auth/invalid-verification-code') return showError('That code is not correct');
+            if (code === 'auth/code-expired')             return showError('That code has expired — request a new one');
+            if (code === 'auth/too-many-requests')        return showError('Too many attempts. Try again later');
+            if (code === 'auth/quota-exceeded')           return showError('SMS limit reached for today');
+            if (code === 'auth/operation-not-allowed') {
+                return showError('Phone sign-in is not switched on in Firebase yet');
+            }
+            if (code === 'auth/captcha-check-failed' || code === 'auth/invalid-app-credential') {
+                return showError('Security check failed. Reload the page and try again');
+            }
+            if (code === 'auth/network-request-failed') {
+                return showError('No internet connection');
+            }
+            if (code === 'auth/billing-not-enabled') {
+                return showError('SMS sign-in needs the Blaze plan on this Firebase project');
+            }
+            // What you actually get when the reCAPTCHA check cannot load: an ad
+            // blocker, a captive wifi portal, or — most often on a fresh setup —
+            // the site's domain missing from Firebase's authorized domains list.
+            if (code === 'auth/internal-error' || code === 'auth/argument-error') {
+                return showError('Security check could not load. Check this site is listed under Authorized domains in Firebase, then reload');
+            }
+
+            // Never show a raw "Firebase: … (auth/xyz)" string to a barista.
+            if (!msg || /^Firebase:/.test(msg)) {
+                return showError('Something went wrong. Reload and try again' + (code ? ' (' + code + ')' : ''));
+            }
+            return showError(msg);
+        }
+
+        // ------------------------------------------------------- step 1: phone
+        steps.phone.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+
+            var digits = phoneInput.value.replace(/\D/g, '');
+            if (digits.length < 10) return showError('Enter your 10-digit mobile number');
+
+            phone = TCM.toE164(digits);
+
+            // Someone who has already set a PIN on this device goes straight to
+            // it; everyone else gets an SMS code. Nothing here reveals whether a
+            // number is registered — the branch is based on this device only.
+            if (TCM.phoneKey(TCM.lastPhone()) === TCM.phoneKey(phone)) {
+                document.getElementById('pinWho').textContent = prettyPhone(phone);
+                show('pin');
+            } else {
+                requestOtp();
+            }
+        });
+
+        function requestOtp() {
+            var btn = document.getElementById('phoneBtn');
+            busy(btn, true, 'Sending code…');
+
+            TCM.sendOtp(phone, 'recaptcha')
+                .then(function () {
+                    busy(btn, false);
+                    document.getElementById('otpSentTo').textContent = 'Code sent to ' + prettyPhone(phone);
+                    show('otp');
+                })
+                .catch(function (err) {
+                    busy(btn, false);
+                    show('phone');
+                    explain(err);
+                });
+        }
+
+        // --------------------------------------------------------- step 2: PIN
+        steps.pin.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+
+            var pin = pinInput.value.trim();
+            if (!/^\d{4,8}$/.test(pin)) return showError('Enter your PIN');
+
+            var btn = document.getElementById('pinBtn');
+            busy(btn, true, 'Signing in…');
+
+            TCM.signInWithPin(phone, pin)
+                .then(function (role) {
+                    if (role !== 'owner' && role !== 'staff') throw new Error('unknown-role');
+                    go(role);
+                })
+                .catch(function (err) {
+                    busy(btn, false);
+                    pinInput.value = '';
+                    pinInput.focus();
+                    // No PIN on record for this number: fall through to SMS.
+                    if (err && err.code === 'functions/failed-precondition') {
+                        showError(err.message);
+                        return requestOtp();
+                    }
+                    explain(err);
+                });
+        });
+
+        document.getElementById('useOtpBtn').addEventListener('click', function () {
+            clearError();
+            requestOtp();
+        });
+
+        // --------------------------------------------------------- step 3: OTP
+        steps.otp.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+
+            var code = otpInput.value.trim();
+            if (!/^\d{4,8}$/.test(code)) return showError('Enter the code from the SMS');
+
+            var btn = document.getElementById('otpBtn');
+            busy(btn, true, 'Verifying…');
+
+            TCM.confirmOtp(code)
+                .then(function (result) {
+                    busy(btn, false);
+                    if (result.role !== 'owner' && result.role !== 'staff') {
+                        return showError('This number is not on the team yet');
+                    }
+                    TCM.rememberPhone(phone);
+                    // First time on this device, or no PIN yet: offer to set one.
+                    if (!result.hasPin) {
+                        pendingRole = result.role;
+                        return show('newPin');
+                    }
+                    go(result.role);
+                })
+                .catch(function (err) {
+                    busy(btn, false);
+                    otpInput.value = '';
+                    otpInput.focus();
+                    explain(err);
+                });
+        });
+
+        document.getElementById('backBtn').addEventListener('click', function () {
+            TCM.resetRecaptcha();
+            phoneInput.value = '';
+            show('phone');
+        });
+
+        // ----------------------------------------------------- step 4: new PIN
+        var pendingRole = null;
+
+        steps.newPin.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+
+            var a = newPin.value.trim(), b = newPinAgain.value.trim();
+            if (!/^\d{4,8}$/.test(a)) return showError('Choose 4 to 8 digits');
+            if (a !== b) {
+                newPinAgain.value = '';
+                newPinAgain.focus();
+                return showError('The two PINs do not match');
+            }
+
+            var btn = document.getElementById('newPinBtn');
+            busy(btn, true, 'Saving…');
+
+            TCM.setPin(a)
+                .then(function () {
+                    // setPin revokes existing sessions, so sign in again with the
+                    // PIN that was just stored. This also proves it works.
+                    return TCM.signInWithPin(phone, a);
+                })
+                .then(function (role) { go(role || pendingRole); })
+                .catch(function (err) {
+                    busy(btn, false);
+                    newPin.value = ''; newPinAgain.value = '';
+                    newPin.focus();
+                    explain(err);
+                });
+        });
+
+        document.getElementById('skipPinBtn').addEventListener('click', function () {
+            if (pendingRole) go(pendingRole);
+        });
+
+        // ------------------------------------------------------------ start-up
+        var prefill = TCM.lastPhone();
+        if (prefill) {
+            phoneInput.value = String(prefill).replace(/\D/g, '').slice(-10);
+        }
+
+        // A live session skips the whole screen.
         TCM.auth.onAuthStateChanged(function (user) {
             if (!user) return;
             user.getIdTokenResult().then(function (tok) {
@@ -115,49 +425,7 @@
                 if (role === 'owner' || role === 'staff') {
                     window.location.replace(landingFor(role));
                 }
-            }).catch(function () { /* stay on the login screen */ });
-        });
-
-        form.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-
-            var pin = input.value.trim();
-            if (!/^\d{4,12}$/.test(pin)) {
-                showError('Enter your numeric PIN');
-                input.value = '';
-                input.focus();
-                return;
-            }
-
-            setBusy(true);
-
-            // The PIN is checked by the verifyPin Cloud Function against a hash
-            // that never reaches the browser. Nothing here can be read from View
-            // Source, and repeated guesses are rate-limited server-side.
-            TCM.signInWithPin(pin)
-                .then(function (role) {
-                    if (role !== 'owner' && role !== 'staff') {
-                        throw new Error('unknown-role');
-                    }
-                    window.location.replace(landingFor(role));
-                })
-                .catch(function (err) {
-                    setBusy(false);
-                    input.value = '';
-                    input.focus();
-
-                    if (err && err.code === 'functions/resource-exhausted') {
-                        showError(err.message || 'Too many attempts. Try again later.');
-                    } else if (err && (err.code === 'functions/permission-denied' ||
-                                       err.code === 'functions/invalid-argument')) {
-                        showError('Terminal denied');
-                    } else if (err && err.code === 'functions/not-found') {
-                        showError('Login service not deployed — see SECURITY.md');
-                    } else {
-                        showError('Cannot reach the security terminal');
-                    }
-                });
+            }).catch(function () { /* stay on the sign-in screen */ });
         });
 
         TCM.registerServiceWorker();

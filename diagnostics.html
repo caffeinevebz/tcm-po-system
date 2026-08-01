@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BrewOps — Diagnostics</title>
+<meta name="robots" content="noindex, nofollow">
+<style>
+  /* Deliberately self-contained: no Tailwind, no CDN, no assets. This page has
+     to work when everything it is diagnosing is broken. */
+  :root { color-scheme: light; }
+  body { margin:0; padding:24px; background:#FAF8F5; color:#132A1B;
+         font-family:system-ui,-apple-system,"Segoe UI",sans-serif; line-height:1.5; }
+  main { max-width:760px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  p.sub { margin:0 0 24px; color:#6b6154; font-size:14px; }
+  .row { display:flex; gap:12px; padding:13px 16px; border:1px solid #e7e0d6;
+         border-radius:11px; margin-bottom:9px; background:#fff; align-items:flex-start; }
+  .badge { flex:0 0 auto; font-size:11px; font-weight:800; letter-spacing:.09em;
+           text-transform:uppercase; padding:3px 9px; border-radius:6px; margin-top:2px; }
+  .pass { background:#e8f0e0; color:#3c4f18; }
+  .fail { background:#FCE8E8; color:#8B2626; }
+  .warn { background:#FBF0D9; color:#7a5c12; }
+  .test { background:#eee; color:#555; }
+  .body { flex:1 1 auto; min-width:0; }
+  .name { font-weight:650; font-size:14px; }
+  .detail { font-size:13px; color:#6b6154; margin-top:3px; word-break:break-word; }
+  .fix { font-size:13px; margin-top:7px; padding:9px 11px; background:#FAF8F5;
+         border-left:3px solid #8b5e3c; border-radius:0 7px 7px 0; }
+  code { background:#f2ede6; padding:1px 5px; border-radius:4px;
+         font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12px; }
+  #summary { padding:15px 18px; border-radius:11px; margin-bottom:20px; font-size:14px; font-weight:600; }
+  button { margin-top:18px; padding:11px 20px; border:0; border-radius:10px; background:#8b5e3c;
+           color:#fff; font-weight:700; font-size:12px; letter-spacing:.11em;
+           text-transform:uppercase; cursor:pointer; }
+  a { color:#8b5e3c; }
+</style>
+</head>
+<body>
+<main>
+  <h1>BrewOps diagnostics</h1>
+  <p class="sub">Checks each part of the app in order and reports the first thing that is broken.</p>
+  <div id="summary" class="warn">Running checks…</div>
+  <div id="results"></div>
+  <button onclick="location.reload()">Run again</button>
+  <p style="margin-top:22px;font-size:13px;">
+    Setup instructions are in <a href="SECURITY.md">SECURITY.md</a>.
+  </p>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var results = document.getElementById('results');
+  var summary = document.getElementById('summary');
+  var failures = 0, warnings = 0;
+
+  function add(status, name, detail, fix) {
+    if (status === 'fail') failures++;
+    if (status === 'warn') warnings++;
+
+    var row = document.createElement('div');
+    row.className = 'row';
+
+    var badge = document.createElement('span');
+    badge.className = 'badge ' + status;
+    badge.textContent = status === 'pass' ? 'ok' : status;
+    row.appendChild(badge);
+
+    var body = document.createElement('div');
+    body.className = 'body';
+
+    var n = document.createElement('div');
+    n.className = 'name';
+    n.textContent = name;
+    body.appendChild(n);
+
+    if (detail) {
+      var d = document.createElement('div');
+      d.className = 'detail';
+      d.textContent = detail;
+      body.appendChild(d);
+    }
+    if (fix) {
+      var f = document.createElement('div');
+      f.className = 'fix';
+      f.innerHTML = fix;   // fixed, developer-authored strings only
+      body.appendChild(f);
+    }
+
+    row.appendChild(body);
+    results.appendChild(row);
+  }
+
+  function load(src) {
+    return new Promise(function (resolve) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.crossOrigin = 'anonymous';
+      s.onload = function () { resolve(true); };
+      s.onerror = function () { resolve(false); };
+      document.head.appendChild(s);
+      setTimeout(function () { resolve(false); }, 15000);
+    });
+  }
+
+  var CFG = {
+    projectId: 'tcm-orders',
+    // Callable functions live in the project's default region. If you deploy to
+    // another region, change this and the matching line in assets/tcm-core.js.
+    region: 'us-central1'
+  };
+
+  (async function run() {
+
+    // 1 — is this page being served over http(s), not file:// ?
+    if (location.protocol === 'file:') {
+      add('fail', 'Page opened from the file system',
+        'Address starts with file:// — Firebase sign-in cannot work this way.',
+        'Open the app through its web address instead of double-clicking the HTML file. ' +
+        'To test locally, run <code>npx serve .</code> and open <code>http://localhost:3000</code>.');
+    } else if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      add('warn', 'Not served over HTTPS', location.protocol + '//' + location.host,
+        'Sign-in and service workers require HTTPS on a real domain.');
+    } else {
+      add('pass', 'Page is served correctly', location.origin);
+    }
+
+    // 2 — same-origin app files
+    var localFiles = ['assets/tcm-boot.js', 'assets/tcm-theme.js', 'assets/tcm-core.js'];
+    var missing = [];
+    for (var i = 0; i < localFiles.length; i++) {
+      try {
+        var r = await fetch(localFiles[i], { cache: 'no-store' });
+        if (!r.ok) missing.push(localFiles[i] + ' (HTTP ' + r.status + ')');
+      } catch (e) { missing.push(localFiles[i] + ' (' + e.message + ')'); }
+    }
+    if (missing.length) {
+      add('fail', 'App files missing from this site', missing.join(', '),
+        'The <code>assets/</code> folder did not get uploaded. Re-upload the whole project, ' +
+        'keeping the folder structure intact.');
+    } else {
+      add('pass', 'App files present', 'assets/tcm-boot.js, tcm-theme.js, tcm-core.js');
+    }
+
+    // 3 — CDN scripts (this is what SRI or an ad blocker breaks)
+    var cdn = [
+      { name: 'Firebase app SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js', glob: 'firebase' },
+      { name: 'Firebase auth SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js', glob: null },
+      { name: 'Firebase functions SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js', glob: null },
+      { name: 'Firebase firestore SDK', url: 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js', glob: null },
+      { name: 'React', url: 'https://unpkg.com/react@18.3.1/umd/react.production.min.js', glob: 'React' },
+      { name: 'Babel (JSX compiler)', url: 'https://unpkg.com/@babel/standalone@7.23.6/babel.min.js', glob: 'Babel' },
+      { name: 'Tailwind CSS', url: 'https://cdn.tailwindcss.com/3.4.16', glob: 'tailwind' }
+    ];
+
+    var cdnDown = 0;
+    for (var j = 0; j < cdn.length; j++) {
+      var okLoad = await load(cdn[j].url);
+      if (okLoad && (!cdn[j].glob || typeof window[cdn[j].glob] !== 'undefined')) {
+        add('pass', cdn[j].name + ' reachable');
+      } else {
+        cdnDown++;
+        add('fail', cdn[j].name + ' did not load', cdn[j].url,
+          'Usually an ad blocker, a VPN, or a network that blocks this domain. ' +
+          'It can also mean the <code>integrity="…"</code> hash in the page no longer matches ' +
+          'what the CDN serves — in that case run <code>npm run sri</code> and update the tags.');
+      }
+    }
+
+    if (cdnDown) {
+      finish();
+      return;
+    }
+
+    // 4 — Firebase initialises
+    try {
+      if (!firebase.apps.length) {
+        firebase.initializeApp({
+          apiKey: 'AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE',
+          authDomain: 'tcm-orders.firebaseapp.com',
+          projectId: CFG.projectId,
+          storageBucket: 'tcm-orders.firebasestorage.app',
+          messagingSenderId: '994764639663',
+          appId: '1:994764639663:web:2b0a682f2cb1001d37335a'
+        });
+      }
+      add('pass', 'Firebase initialised', 'project: ' + CFG.projectId);
+    } catch (e) {
+      add('fail', 'Firebase could not initialise', e.message);
+      finish();
+      return;
+    }
+
+    // 5 — are the auth functions deployed?
+    // A deliberately malformed request is sent. "invalid-argument" is the
+    // SUCCESS signal: it proves the function exists and validated the input.
+    // It is also cheap — it returns before touching the login throttle.
+    try {
+      await firebase.functions().httpsCallable('pinSignIn')({ phone: '', pin: '' });
+      add('warn', 'Login service answered oddly', 'pinSignIn accepted an empty request.');
+    } catch (err) {
+      var code = err && err.code ? String(err.code) : '';
+      if (code.indexOf('invalid-argument') > -1) {
+        add('pass', 'Login service is deployed', 'pinSignIn responded: ' + code);
+      } else if (code.indexOf('not-found') > -1 || code.indexOf('internal') > -1 || code.indexOf('unimplemented') > -1) {
+        add('fail', 'Login functions are NOT deployed', 'pinSignIn responded: ' + (code || err.message),
+          'This is the usual reason nobody can sign in. From the project folder:<br>' +
+          '<code>cd functions &amp;&amp; npm install</code><br>' +
+          '<code>npm run deploy:auth</code><br>' +
+          'The first deploy asks for your owner mobile number. See SETUP.md.');
+      } else if (code.indexOf('unauthenticated') > -1) {
+        add('fail', 'Login service rejected the call as unauthenticated', err.message,
+          'If you enabled App Check, register this site as an approved app.');
+      } else {
+        add('warn', 'Could not confirm the login service', (code || '') + ' ' + (err.message || ''),
+          'Check the functions are deployed in region <code>' + CFG.region + '</code>.');
+      }
+    }
+
+    // 5b — is Phone sign-in switched on for the project?
+    // There is no way to test this without actually sending an SMS, so it is
+    // flagged for a human to confirm once.
+    add('warn', 'Confirm Phone sign-in is switched on (one-time check)',
+      'Firebase console \u2192 Authentication \u2192 Sign-in method \u2192 Phone \u2192 Enable.',
+      'Also add this site\u2019s domain under <b>Authentication \u2192 Settings \u2192 Authorized domains</b>, ' +
+      'or the SMS step fails with <code>auth/captcha-check-failed</code>.');
+
+    // 6 — are the Firestore rules published?
+    // Unauthenticated reads MUST be denied. Success here means the database is
+    // still world-readable.
+    try {
+      await firebase.firestore().collection('pos').limit(1).get();
+      add('fail', 'Database is readable WITHOUT signing in',
+        'An unauthenticated read of /pos succeeded.',
+        'Your security rules are not published. Anyone on the internet can read and delete ' +
+        'your purchase orders and prices right now. Run <code>firebase deploy --only firestore:rules</code>.');
+    } catch (e2) {
+      if (String(e2.code || e2.message).indexOf('permission-denied') > -1) {
+        add('pass', 'Database correctly refuses unauthenticated access');
+      } else {
+        add('warn', 'Could not test the database rules', e2.message || String(e2));
+      }
+    }
+
+    // 7 — a stale service worker can pin an old copy of the app
+    if ('serviceWorker' in navigator) {
+      try {
+        var regs = await navigator.serviceWorker.getRegistrations();
+        if (!regs.length) add('pass', 'No stale service worker');
+        else add('warn', 'A service worker is installed', regs.length + ' registration(s)',
+          'If the app looks like an old version, click below to clear it, then reload. ' +
+          '<button id="swclear" style="margin:8px 0 0">Clear cached app</button>');
+      } catch (e3) { /* not fatal */ }
+    }
+
+    finish();
+  })();
+
+  function finish() {
+    if (failures > 0) {
+      summary.className = 'fail';
+      summary.textContent = failures + ' problem' + (failures > 1 ? 's' : '') +
+        ' found. Fix the red items below, top to bottom.';
+    } else if (warnings > 0) {
+      summary.className = 'warn';
+      summary.textContent = 'No blocking problems. ' + warnings + ' thing(s) worth a look.';
+    } else {
+      summary.className = 'pass';
+      summary.textContent = 'Everything checks out — the app should work. If you still cannot sign in, the PIN itself is wrong.';
+    }
+
+    var btn = document.getElementById('swclear');
+    if (btn) {
+      btn.onclick = async function () {
+        var regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(function (r) { return r.unregister(); }));
+        if (window.caches) {
+          var keys = await caches.keys();
+          await Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        }
+        btn.textContent = 'Cleared — reloading…';
+        setTimeout(function () { location.reload(); }, 700);
+      };
+    }
+  }
+})();
+</script>
+</body>
+</html>

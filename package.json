@@ -9,9 +9,8 @@
     "sri": "node tools/sri.mjs",
     "sri:check": "node tools/sri.mjs --check",
     "images": "node tools/optimize-images.mjs",
-    "hash-pin": "node functions/scripts/hash-pin.js",
     "deploy:rules": "firebase deploy --only firestore:rules",
-    "deploy:auth": "firebase deploy --only functions:verifyPin",
+    "deploy:auth": "firebase deploy --only functions:claimRole,functions:pinSignIn,functions:setPin,functions:setStaffStatus,functions:inviteStaff",
     "test:rules": "firebase emulators:exec --only firestore \"node tools/test-rules.mjs\""
   },
   "devDependencies": {
