@@ -6,9 +6,11 @@ Purchase orders, raw-material inventory, recipe management and food costing for
 A PIN-protected web app with two terminals — an owner command centre and a staff
 terminal — backed by Firebase (Firestore + Cloud Functions).
 
-> **Deploying for the first time after the security update?**
-> Read **[SECURITY.md](SECURITY.md)** first. Login will not work until the
-> `verifyPin` function and the Firestore rules are deployed.
+> **Seeing "Login service not set up yet"?**
+> Follow **[SETUP.md](SETUP.md)** — a ten-minute, browser-only walkthrough.
+> The security rationale and the technical detail are in
+> **[SECURITY.md](SECURITY.md)**. Login will not work until the `verifyPin`
+> function and the Firestore rules are deployed.
 
 ---
 
@@ -54,9 +56,11 @@ uploaded.
 ├── staff.html              Staff terminal
 ├── sw.js                   Service worker (static assets only)
 ├── manifest.json           PWA manifest
+├── diagnostics.html        Self-check page: reports exactly what is broken
 ├── firestore.rules         Role-based database rules  ← the security boundary
 ├── firebase.json           Rules, functions and hosting headers
 ├── assets/
+│   ├── tcm-boot.js         Load guard; reports missing dependencies
 │   ├── tcm-core.js         Firebase handles, unit maths, costing, ids, auth
 │   ├── tcm-theme.js        Shared Tailwind theme
 │   └── *.jpg, *.png        Web-sized image derivatives

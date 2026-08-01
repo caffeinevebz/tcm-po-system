@@ -4,6 +4,10 @@
 Function and a set of Firestore rules that do not exist in your Firebase project
 yet. Until you complete steps 1–3, **nobody will be able to log in.**
 
+> Not comfortable with a terminal, or nothing installed locally?
+> **[SETUP.md](SETUP.md)** walks through the same thing click-by-click in a
+> browser using Google Cloud Shell — no software to install.
+
 ---
 
 ## What changed and why
