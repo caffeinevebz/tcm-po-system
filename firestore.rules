@@ -1,0 +1,121 @@
+rules_version = '2';
+
+// =============================================================================
+// TCM BrewOps — Firestore security rules
+// -----------------------------------------------------------------------------
+// Before these rules existed the database had to be in open mode (`if true`) for
+// the app to work at all, because nothing ever signed in. The project id and web
+// API key are visible in page source, so open mode meant anyone on the internet
+// could read every purchase order, supplier phone number and cost price — and
+// delete them.
+//
+// Access is now keyed off the `role` claim minted by the verifyPin Cloud
+// Function. Publish with:
+//
+//     firebase deploy --only firestore:rules
+//
+// Verify in the console afterwards (Firestore -> Rules): an unauthenticated read
+// of /pos must be denied.
+// =============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- role helpers -------------------------------------------------------
+    function role() {
+      return request.auth != null ? request.auth.token.get('role', '') : '';
+    }
+    function isOwner()  { return role() == 'owner'; }
+    function isStaff()  { return role() == 'staff'; }
+    function signedIn() { return isOwner() || isStaff(); }
+
+    // Keys this write is adding, removing or changing. Only valid inside an
+    // `allow update` rule, where `resource` is the stored document.
+    //
+    // Note: Firestore evaluates rules twice — once optimistically before the
+    // document is fetched, then again with real data. diff() raises an
+    // "evaluation error" in that first pass, which shows up in emulator and
+    // console logs even though the write is decided correctly by the second
+    // pass. This is expected for any diff()-based rule, not a misconfiguration.
+    function touched() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // --- shared settings document ------------------------------------------
+    // Holds the raw-material catalogue, vendor list, master prices, prep rules,
+    // the PO counter and the invoice-scanner aliases.
+    match /settings/main {
+      allow read: if signedIn();
+
+      // The owner administers the catalogue and pricing.
+      allow create, update: if isOwner();
+
+      // Staff need exactly one thing: to teach the scanner that an invoice line
+      // maps to a catalogue item. Nothing else in this document is writable by
+      // them — in particular not `prices`.
+      allow update: if isStaff() && touched().hasOnly(['aliases']);
+
+      allow delete: if false;
+    }
+
+    // --- staff material requests -------------------------------------------
+    match /requests/{requestId} {
+      function validRequest(d) {
+        return d.keys().hasAll(['id', 'items'])
+            && d.id is string
+            && d.items is list
+            && d.items.size() > 0
+            && d.items.size() <= 200;
+      }
+
+      allow read:   if signedIn();
+      allow create: if signedIn() && validRequest(request.resource.data);
+
+      // The owner triages requests into POs; staff cannot rewrite a submitted
+      // request or delete someone else's.
+      allow update, delete: if isOwner();
+    }
+
+    // --- purchase orders ----------------------------------------------------
+    match /pos/{poId} {
+      // Raising and cancelling POs is an owner action. Note that the PO number
+      // is allocated inside a transaction on settings/main, which staff cannot
+      // write, so staff could not forge a well-formed PO id even if allowed.
+      allow read:   if signedIn();
+      allow create: if isOwner();
+      allow delete: if isOwner();
+
+      // Owner may correct anything (invoice audit, price correction).
+      allow update: if isOwner();
+
+      // Staff may only book in a delivery against an already-approved PO: mark
+      // it Delivered and attach what actually arrived. They cannot reopen a PO,
+      // change the ordered lines, or reassign the supplier.
+      allow update: if isStaff()
+                    && touched().hasOnly(['status', 'receivedItems', 'deliveryDate'])
+                    && request.resource.data.status == 'Delivered'
+                    && resource.data.status == 'Approved'
+                    && request.resource.data.receivedItems is list;
+    }
+
+    // --- recipe book --------------------------------------------------------
+    match /recipes/{recipeId} {
+      // Staff read recipes at the bar; only the owner authors or edits them.
+      allow read: if signedIn();
+      allow create, update, delete: if isOwner();
+    }
+
+    // --- login throttling ---------------------------------------------------
+    // Written by the verifyPin function through the Admin SDK, which bypasses
+    // these rules. No client should ever touch it.
+    match /_authThrottle/{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- default deny -------------------------------------------------------
+    // Anything not named above is closed, including collections added later.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

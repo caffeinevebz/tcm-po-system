@@ -3,49 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TCM BrewOps - Security Terminal</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>TCM BrewOps — Sign In</title>
+
+    <!-- Defence in depth for hosts that ignore firebase.json headers (e.g. GitHub Pages). -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#132A1B">
+
+    <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+    <script src="assets/tcm-theme.js"></script>
+
+    <!-- Pinned versions + Subresource Integrity: if a CDN ever serves altered
+         bytes, the browser refuses to run them instead of handing an attacker
+         the session. Regenerate with `npm run sri` after any version bump. -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"
+            integrity="sha384-ajMUFBUFMCyjh8uxJg6bkGcKe9RTolyjwbxB3yES0QQMenP3Oztj/W9vA2SJPcIh"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"
+            integrity="sha384-xD1t9dGSVKobUztxDkv6xUI0H4AnFz0NxwlgDJJ7FDlblG9xxr1Z9iauCZuJYj6p"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"
+            integrity="sha384-XMIl1b2Ez9tKAM0R5q67/iLdfnlLBl9kfo40X5WMtCPb+3OLplrjnOxZTYCg1SKY"
+            crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"
+            integrity="sha384-Cn425IPPqYFT0+lUg71+39dOh8zj/Ebpl97FkjUqrd+P37HLlysOYDvdw+N7tPuj"
+            crossorigin="anonymous"></script>
+
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link rel="icon" href="TCM BrewOps icon.jpg?v=3">
-    <script>
-        tailwind.config = { theme: { extend: { colors: { brandBrown: '#8b5e3c', antique: '#D4AF37', victorian: '#132A1B' }, fontFamily: { poppins: ['"Poppins"', 'sans-serif'] } } } }
-    </script>
+    <link rel="icon" href="assets/favicon.png">
+    <link rel="manifest" href="manifest.json">
+
     <style>
         body { background-color: #FAF8F5; margin: 0; }
-        .bg-theme { background-image: url('DSC_8010.jpg'); background-size: cover; background-position: center; }
-        .bg-card { background-image: url('Login Tab.jpg'); background-size: cover; background-position: center; }
+        /* Optimised derivatives: the originals behind these were 5.7 MB and
+           440 KB, downloaded before the login form could even paint. */
+        .bg-theme { background-image: url('assets/bg-login.jpg'); background-size: cover; background-position: center; }
+        .bg-card  { background-image: url('assets/login-card.jpg'); background-size: cover; background-position: center; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+        [hidden] { display: none !important; }
     </style>
 </head>
 <body>
     <div class="min-h-screen flex justify-center items-center relative bg-[#FAF8F5]">
         <div class="absolute inset-0 bg-theme opacity-55 pointer-events-none z-0"></div>
+
         <div class="relative z-10 w-[90%] max-w-[380px] h-[600px] sm:h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-card mt-10">
             <div class="flex-1 flex flex-col justify-end px-8 pb-20 sm:pb-28">
-                <form id="loginForm">
+
+                <form id="loginForm" autocomplete="off" novalidate>
                     <div class="mb-5">
-                        <input type="password" id="pinInput" autofocus placeholder="••••••" class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian" />
+                        <label for="pinInput" class="sr-only">Access PIN</label>
+                        <input type="password" id="pinInput" name="pin" autofocus required
+                               inputmode="numeric" pattern="[0-9]*" maxlength="12"
+                               autocomplete="one-time-code" enterkeyhint="go"
+                               aria-describedby="errorMsg"
+                               placeholder="••••••"
+                               class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian disabled:opacity-50" />
                     </div>
-                    <button type="submit" class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md">Login</button>
-                    <p id="errorMsg" class="text-red-600 text-center mt-3 text-xs font-bold uppercase tracking-widest hidden">Terminal Denied</p>
+
+                    <button type="submit" id="loginBtn"
+                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Login
+                    </button>
+
+                    <p id="errorMsg" role="alert" aria-live="polite"
+                       class="text-danger text-center mt-3 text-xs font-bold uppercase tracking-widest min-h-[1rem]" hidden></p>
                 </form>
+
                 <div class="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Security Protocol</div>
             </div>
         </div>
     </div>
 
+    <script src="assets/tcm-core.js"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const pin = document.getElementById('pinInput').value;
-            if (pin === '170117') {
-                window.location.href = 'owner.html';
-            } else if (pin === '1234') {
-                window.location.href = 'staff.html';
-            } else {
-                document.getElementById('errorMsg').classList.remove('hidden');
-                document.getElementById('pinInput').value = '';
-            }
+    (function () {
+        'use strict';
+
+        var form   = document.getElementById('loginForm');
+        var input  = document.getElementById('pinInput');
+        var button = document.getElementById('loginBtn');
+        var error  = document.getElementById('errorMsg');
+
+        function landingFor(role) {
+            return role === 'owner' ? 'owner.html' : 'staff.html';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.hidden = false;
+        }
+
+        function clearError() {
+            error.hidden = true;
+            error.textContent = '';
+        }
+
+        function setBusy(busy) {
+            button.disabled = busy;
+            input.disabled = busy;
+            button.textContent = busy ? 'Verifying…' : 'Login';
+        }
+
+        // Already holding a valid session? Skip the PIN and go straight through.
+        TCM.auth.onAuthStateChanged(function (user) {
+            if (!user) return;
+            user.getIdTokenResult().then(function (tok) {
+                var role = tok.claims && tok.claims.role;
+                if (role === 'owner' || role === 'staff') {
+                    window.location.replace(landingFor(role));
+                }
+            }).catch(function () { /* stay on the login screen */ });
         });
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+
+            var pin = input.value.trim();
+            if (!/^\d{4,12}$/.test(pin)) {
+                showError('Enter your numeric PIN');
+                input.value = '';
+                input.focus();
+                return;
+            }
+
+            setBusy(true);
+
+            // The PIN is checked by the verifyPin Cloud Function against a hash
+            // that never reaches the browser. Nothing here can be read from View
+            // Source, and repeated guesses are rate-limited server-side.
+            TCM.signInWithPin(pin)
+                .then(function (role) {
+                    if (role !== 'owner' && role !== 'staff') {
+                        throw new Error('unknown-role');
+                    }
+                    window.location.replace(landingFor(role));
+                })
+                .catch(function (err) {
+                    setBusy(false);
+                    input.value = '';
+                    input.focus();
+
+                    if (err && err.code === 'functions/resource-exhausted') {
+                        showError(err.message || 'Too many attempts. Try again later.');
+                    } else if (err && (err.code === 'functions/permission-denied' ||
+                                       err.code === 'functions/invalid-argument')) {
+                        showError('Terminal denied');
+                    } else if (err && err.code === 'functions/not-found') {
+                        showError('Login service not deployed — see SECURITY.md');
+                    } else {
+                        showError('Cannot reach the security terminal');
+                    }
+                });
+        });
+
+        TCM.registerServiceWorker();
+    })();
     </script>
 </body>
 </html>

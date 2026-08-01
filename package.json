@@ -1,0 +1,22 @@
+{
+  "name": "tcm-brewops",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Purchase order, inventory, recipe and food-cost management for The Caffeine Ministry",
+  "scripts": {
+    "test": "node tools/test-costing.mjs",
+    "sri": "node tools/sri.mjs",
+    "sri:check": "node tools/sri.mjs --check",
+    "images": "node tools/optimize-images.mjs",
+    "hash-pin": "node functions/scripts/hash-pin.js",
+    "deploy:rules": "firebase deploy --only firestore:rules",
+    "deploy:auth": "firebase deploy --only functions:verifyPin",
+    "test:rules": "firebase emulators:exec --only firestore \"node tools/test-rules.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^4.0.1",
+    "firebase": "^11.0.0",
+    "sharp": "^0.33.5"
+  }
+}

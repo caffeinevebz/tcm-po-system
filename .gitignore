@@ -1,0 +1,15 @@
+node_modules/
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Secrets — PIN hashes and service accounts must never be committed.
+.env
+.env.*
+functions/.env
+functions/.env.*
+*serviceAccount*.json
+
+.DS_Store
+Thumbs.db
