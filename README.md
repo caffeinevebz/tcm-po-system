@@ -3,14 +3,16 @@
 Purchase orders, raw-material inventory, recipe management and food costing for
 **The Caffeine Ministry**, Jodhpur.
 
-A PIN-protected web app with two terminals — an owner command centre and a staff
-terminal — backed by Firebase (Firestore + Cloud Functions).
+Two terminals — an owner command centre and a staff terminal — backed by
+Firebase (Firestore + Cloud Functions).
 
-> **Seeing "Login service not set up yet"?**
+**Signing in:** the owner is one fixed mobile number. Staff are invite-only —
+the owner adds a number, that person registers with an SMS code, then sets their
+own PIN. Day to day it is just number + PIN, no SMS.
+
+> **First time, or seeing "Login service not set up yet"?**
 > Follow **[SETUP.md](SETUP.md)** — a ten-minute, browser-only walkthrough.
-> The security rationale and the technical detail are in
-> **[SECURITY.md](SECURITY.md)**. Login will not work until the `verifyPin`
-> function and the Firestore rules are deployed.
+> The security model is explained in **[SECURITY.md](SECURITY.md)**.
 
 ---
 
@@ -25,14 +27,15 @@ terminal — backed by Firebase (Firestore + Cloud Functions).
   (e.g. 18 gms of beans → one 30 ml espresso shot)
 - **Vendor Directory** — suppliers and their WhatsApp numbers
 - **Raw Material Master** — the catalogue plus the master price book (with GST)
+- **Team & Access** — invite staff by mobile number, and remove them
 
 ### `staff.html` — Staff Terminal
 - Draft material requests from the catalogue and send them to the owner
 - Book in deliveries against an open PO, with AI invoice scanning
-- Read-only access to the recipe book
+- Read the whole recipe book, and **add** new recipes
+- Cannot edit or delete any recipe, and never sees cost prices
 
-The owner PIN also opens the staff terminal; the staff PIN does not open the
-owner terminal.
+The owner can also use the staff terminal; staff cannot open the owner terminal.
 
 ---
 
@@ -43,7 +46,7 @@ owner terminal.
 | UI | React 18 (UMD) with JSX compiled in the browser by Babel Standalone |
 | Styling | Tailwind Play CDN + a shared theme in `assets/tcm-theme.js` |
 | Data | Cloud Firestore (live `onSnapshot` listeners) |
-| Auth | PIN → `verifyPin` Cloud Function → Firebase custom token with a `role` claim |
+| Auth | Phone + OTP (Firebase Phone Auth) to register, then number + PIN. `role` custom claim set server-side |
 | Invoice OCR | `scanInvoice` callable Cloud Function |
 | Hosting | Any static host (Firebase Hosting config included) |
 
@@ -65,9 +68,8 @@ uploaded.
 │   ├── tcm-theme.js        Shared Tailwind theme
 │   └── *.jpg, *.png        Web-sized image derivatives
 ├── functions/
-│   ├── index.js            verifyPin (server-side PIN check + rate limiting)
-│   ├── lib/auth-guard.js   requireRole() for other callables
-│   └── scripts/hash-pin.js PIN hash generator
+│   ├── index.js            invite, role assignment, PIN sign-in, rate limiting
+│   └── lib/auth-guard.js   requireRole() for other callables
 └── tools/
     ├── test-costing.mjs    Unit tests for the costing engine
     ├── test-rules.mjs      Security tests for firestore.rules
@@ -85,7 +87,8 @@ Shared by all three pages so the two terminals cannot drift apart. It owns:
 - **Costing** — recipe explosion through batch preps and prep rules, with cycle
   detection, and per-line reasons when something cannot be costed
 - **Id allocation** — transactional PO numbers, collision-resistant request ids
-- **Auth** — `signInWithPin`, `guard(role)`, inactivity logout
+- **Auth** — `sendOtp` / `confirmOtp`, `setPin`, `signInWithPin`, `guard(role)`,
+  inactivity logout
 
 ---
 
@@ -102,6 +105,9 @@ Shared by all three pages so the two terminals cannot drift apart. It owns:
 | `poCounter` | `{ month, count }` — allocated transactionally |
 | `aliases` | Invoice line text → catalogue item name, taught by the scanner |
 | `ownerPhone` | Where staff request alerts are sent |
+
+**`staffMembers/{phoneKey}`** — the team, keyed by the last 10 digits of the
+mobile number. Read-only to clients; written only by Cloud Functions.
 
 **`requests/{id}`** — staff material requests awaiting triage.
 **`pos/{id}`** — purchase orders (`Approved` → `Delivered`). The document id is
@@ -139,8 +145,8 @@ converted to the purchase unit — the app says so and marks the total
 Run the tests for the engine:
 
 ```bash
-npm test          # costing, unit conversion, id allocation  (23 tests)
-npm run test:rules  # firestore.rules security boundary      (29 tests, needs Java)
+npm test            # costing, unit conversion, id allocation  (23 tests)
+npm run test:rules  # firestore.rules access boundary         (40 tests, needs Java)
 ```
 
 ---
@@ -192,4 +198,5 @@ Rules and functions deploy separately — see [SECURITY.md](SECURITY.md).
 - **Count units** (`Piece`, `Jar`, `Pkt`, `Carton`, `Tin`, `Bottle`, `bunch`) do
   not convert between each other, because no pack size is recorded. Price such
   items in the same unit the recipes use.
-- Two shared role logins, so there is no per-staff audit trail.
+- **Recipes are add-only for staff.** A mistake in a staff-written recipe has to
+  be corrected by the owner.

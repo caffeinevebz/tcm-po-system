@@ -119,6 +119,28 @@
             const [activeRecipeTab, setActiveRecipeTab] = useState('All');
             const [viewingRecipe, setViewingRecipe] = useState(null);
 
+            // Who is signed in — used to stamp requests, receipts and recipes so
+            // the owner can see who did what.
+            const [me, setMe] = useState({ name: '', uid: '' });
+
+            // Recipe authoring. Staff may ADD to the book but never edit it, so
+            // there is no edit path here at all — the Firestore rules refuse an
+            // update from a staff token regardless of what the UI offers.
+            const [isBuilding, setIsBuilding] = useState(false);
+            const [savingRecipe, setSavingRecipe] = useState(false);
+            const [rName, setRName] = useState('');
+            const [rCat, setRCat] = useState(RECIPE_CATEGORIES[0]);
+            const [rYieldQty, setRYieldQty] = useState('');
+            const [rYieldUnit, setRYieldUnit] = useState('ml');
+            const [rInstructions, setRInstructions] = useState('');
+            const [rCart, setRCart] = useState([]);
+            const [ingSearch, setIngSearch] = useState('');
+            const [showIngModal, setShowIngModal] = useState(false);
+            const [ingName, setIngName] = useState('');
+            const [ingQty, setIngQty] = useState('');
+            const [ingUnit, setIngUnit] = useState('gms');
+            const [ingCustom, setIngCustom] = useState(false);
+
             const [showAddModal, setShowAddModal] = useState(false); 
             const [modalItemName, setModalItemName] = useState(''); 
             const [modalQty, setModalQty] = useState(''); 
@@ -181,8 +203,68 @@
                     setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''))));
                 }, onError('the recipe book'));
 
+                // Own team record. The rules allow reading only the document
+                // whose uid matches the caller, so this cannot enumerate staff.
+                const user = TCM.auth.currentUser;
+                if (user) {
+                    const key = TCM.phoneKey(user.phoneNumber || '');
+                    if (key) {
+                        db.collection('staffMembers').doc(key).get()
+                            .then(d => { if (d.exists) setMe({ name: d.data().name || '', uid: user.uid }); })
+                            .catch(() => setMe({ name: '', uid: user.uid }));
+                    } else {
+                        setMe({ name: '', uid: user.uid });
+                    }
+                }
+
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
+
+            const resetRecipeForm = () => {
+                setRName(''); setRCat(RECIPE_CATEGORIES[0]); setRYieldQty('');
+                setRYieldUnit('ml'); setRInstructions(''); setRCart([]); setIngSearch('');
+            };
+
+            const saveRecipe = async () => {
+                if (!rName.trim()) return showToast('Give the recipe a name.', 'error');
+                if (rCart.length === 0) return showToast('Add at least one ingredient.', 'error');
+                if (rCat === 'Batch Prep' && !(Number(rYieldQty) > 0)) {
+                    return showToast('A batch prep needs a yield quantity.', 'error');
+                }
+                if (recipes.some(r => (r.name || '').toLowerCase() === rName.trim().toLowerCase())) {
+                    return showToast('A recipe with that name already exists.', 'error');
+                }
+
+                const uid = TCM.auth.currentUser ? TCM.auth.currentUser.uid : '';
+                const id = 'REC-' + Date.now().toString(36).toUpperCase() + '-' + Math.floor(Math.random() * 4096).toString(36).toUpperCase();
+
+                setSavingRecipe(true);
+                try {
+                    await db.collection('recipes').doc(id).set({
+                        id,
+                        name: rName.trim(),
+                        category: rCat,
+                        yieldQty: rCat === 'Batch Prep' ? Number(rYieldQty) : null,
+                        yieldUnit: rCat === 'Batch Prep' ? rYieldUnit : null,
+                        instructions: rInstructions.trim(),
+                        ingredients: rCart,
+                        date: TCM.today(),
+                        createdAt: new Date().toISOString(),
+                        // Required by the security rules: a staff member may only
+                        // create a recipe stamped with their own uid.
+                        createdBy: uid,
+                        createdByName: me.name || ''
+                    });
+                    showToast('Recipe added to the book.', 'success');
+                    setIsBuilding(false);
+                    resetRecipeForm();
+                } catch (err) {
+                    console.error(err);
+                    showToast('Could not save the recipe.', 'error');
+                } finally {
+                    setSavingRecipe(false);
+                }
+            };
 
             // DRAFTING LOGIC
             const openAddModal = (item) => { if (cart.find(i => i.name === item)) return showToast("Already in cart", "error"); setModalItemName(item); setModalQty(''); setModalUnit('Kg'); setShowAddModal(true); };
@@ -208,7 +290,9 @@
                         id: reqId,
                         items: cart,
                         date: TCM.today(),
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        createdBy: TCM.auth.currentUser ? TCM.auth.currentUser.uid : '',
+                        createdByName: me.name || ''
                     });
                 } catch (err) {
                     console.error(err);
@@ -269,7 +353,8 @@
                     await db.collection('pos').doc(TCM.poDocId(receivingPO.id)).update({
                         status: 'Delivered',
                         receivedItems: receivedItemsData,
-                        deliveryDate: TCM.today()
+                        deliveryDate: TCM.today(),
+                        receivedBy: me.name || 'Staff'
                     });
                     setReceivingPO(null);
                     showToast('Intake registered!', 'success');
@@ -283,6 +368,10 @@
 
             const activePOs = pos.filter(po => po.status === 'Approved');
             const displayedItems = searchTerm.trim() !== '' ? [...new Set(Object.values(inventory).flat())].filter(item => (item || '').toLowerCase().includes(searchTerm.toLowerCase())) : (inventory[selectedCategory] || []);
+            const ingredientChoices = [...new Set([
+                ...recipes.filter(r => r.category === 'Batch Prep').map(r => r.name),
+                ...Object.values(inventory).flat()
+            ])].filter(Boolean).sort();
             const displayedRecipes = recipes.filter(r => { const matchesSearch = (r.name || '').toLowerCase().includes(recipeSearchFilter.toLowerCase()); const matchesCat = activeRecipeTab === 'All' || (r.category || 'Beverages') === activeRecipeTab; return matchesSearch && matchesCat; });
 
             return (
@@ -372,6 +461,143 @@
 
                         {activeTab === 'recipes' && (
                             <div className="animate-fade-in">
+                                {/* Staff may add to the recipe book but never change it.
+                                    There is deliberately no edit control anywhere here — and
+                                    the Firestore rules refuse an update from a staff token
+                                    even if one were somehow triggered. */}
+                                <button onClick={() => { resetRecipeForm(); setIsBuilding(true); }}
+                                        className="w-full bg-victorian/95 backdrop-blur-xl text-antique border border-antique/30 font-bold py-4 rounded-2xl shadow-elegant hover:bg-victorian transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2 mb-6">
+                                    <span className="text-lg font-light leading-none">+</span> Add a new recipe
+                                </button>
+
+                                {isBuilding && (
+                                    <div className="fixed inset-0 bg-victorian/70 backdrop-blur-sm z-[70] flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in">
+                                        <div className="bg-paper w-full sm:max-w-lg sm:rounded-2xl rounded-t-3xl shadow-2xl border border-brandBrown/30 max-h-[92vh] overflow-y-auto hide-scrollbar">
+                                            <div className="sticky top-0 bg-paper/95 backdrop-blur-md px-5 py-4 border-b border-brandBrown/20 flex justify-between items-center z-10">
+                                                <h3 className="font-serif font-bold text-victorian text-xl">New recipe</h3>
+                                                <button onClick={() => setIsBuilding(false)} className="text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm border border-gray-200"><Icons.Close/></button>
+                                            </div>
+
+                                            <div className="p-5">
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Recipe name</label>
+                                                <input type="text" value={rName} onChange={e => setRName(e.target.value)} placeholder="e.g. Classic Iced Latte"
+                                                       className="w-full p-3.5 border border-gray-200 rounded-xl mb-5 text-sm bg-white focus:ring-2 focus:ring-brandBrown/50" />
+
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Category</label>
+                                                <select value={rCat} onChange={e => setRCat(e.target.value)}
+                                                        className="w-full p-3.5 border border-gray-200 rounded-xl mb-5 text-sm bg-white font-bold text-victorian shadow-sm">
+                                                    {RECIPE_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                                                </select>
+
+                                                {rCat === 'Batch Prep' && (
+                                                    <div className="mb-5 bg-white/70 p-4 rounded-xl border border-brandBrown/20">
+                                                        <label className="block text-[10px] font-bold text-victorian uppercase tracking-widest mb-3">How much does one batch make?</label>
+                                                        <div className="flex gap-3">
+                                                            <input type="number" min="0" step="any" value={rYieldQty} onChange={e => setRYieldQty(e.target.value)} placeholder="Qty"
+                                                                   className="w-1/2 p-3 border border-gray-200 rounded-xl text-center font-bold text-sm bg-white" />
+                                                            <select value={rYieldUnit} onChange={e => setRYieldUnit(e.target.value)} className="w-1/2 p-3 border border-gray-200 rounded-xl bg-white text-sm">
+                                                                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between items-end mb-3 border-b border-victorian/10 pb-2">
+                                                    <h4 className="font-bold text-victorian text-xs uppercase tracking-widest">Ingredients</h4>
+                                                    <button onClick={() => { setIngName(''); setIngQty(''); setIngUnit('gms'); setIngCustom(true); setShowIngModal(true); }}
+                                                            className="text-[10px] bg-white border border-gray-200 text-gray-600 font-bold px-3 py-2 rounded-lg uppercase tracking-widest shadow-sm">+ Other item</button>
+                                                </div>
+
+                                                <input type="text" value={ingSearch} onChange={e => setIngSearch(e.target.value)} placeholder="Search the catalogue…"
+                                                       className="w-full p-3 border border-gray-200 rounded-xl mb-3 text-sm bg-white" />
+
+                                                <div className="bg-white/60 border border-gray-200 rounded-xl p-1 mb-5 h-44 overflow-y-auto hide-scrollbar">
+                                                    {ingredientChoices.filter(i => (i || '').toLowerCase().includes(ingSearch.toLowerCase())).map((item, i) => (
+                                                        <div key={`ing-${item}-${i}`} className="flex justify-between items-center py-2.5 px-3 border-b border-gray-100 last:border-0">
+                                                            <span className="text-xs font-medium text-gray-800 pr-2">{item}</span>
+                                                            <button onClick={() => { if (rCart.some(c => c.name === item)) return showToast('Already added.', 'error'); setIngName(item); setIngQty(''); setIngUnit('gms'); setIngCustom(false); setShowIngModal(true); }}
+                                                                    className="text-antique bg-antiqueLight/30 w-7 h-7 rounded-full flex items-center justify-center text-lg font-light shrink-0">+</button>
+                                                        </div>
+                                                    ))}
+                                                    {ingredientChoices.filter(i => (i || '').toLowerCase().includes(ingSearch.toLowerCase())).length === 0 && (
+                                                        <p className="text-center text-xs text-gray-400 italic py-8">Nothing matches. Use “+ Other item”.</p>
+                                                    )}
+                                                </div>
+
+                                                {rCart.length > 0 && (
+                                                    <div className="bg-victorian/95 text-paper rounded-2xl p-5 mb-5">
+                                                        <h4 className="font-serif font-bold text-base mb-3 text-antique">In this recipe</h4>
+                                                        {rCart.map((item, idx) => (
+                                                            <div key={`rc-${idx}`} className="flex justify-between items-center border-b border-white/10 pb-2.5 mb-2.5 last:border-0 last:mb-0 last:pb-0">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-sm">{item.name}</span>
+                                                                    {item.isCustom && <span className="text-[9px] text-gray-400 uppercase tracking-widest mt-0.5">Not in catalogue</span>}
+                                                                </div>
+                                                                <div className="flex items-center gap-3">
+                                                                    <span className="text-sm font-bold text-antique bg-black/20 px-2 py-1 rounded">{item.qty} {item.unit}</span>
+                                                                    <button onClick={() => setRCart(rCart.filter((_, i) => i !== idx))} className="text-gray-400 hover:text-danger p-1"><Icons.Trash/></button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Method</label>
+                                                <textarea value={rInstructions} onChange={e => setRInstructions(e.target.value)} placeholder="Step by step…"
+                                                          className="w-full p-3.5 border border-gray-200 rounded-xl mb-5 text-sm h-28 leading-relaxed bg-white"></textarea>
+
+                                                <p className="text-[10px] text-gray-500 leading-relaxed mb-3">
+                                                    Once saved, only the owner can change or remove this recipe. Check it before you save.
+                                                </p>
+
+                                                <button onClick={saveRecipe} disabled={savingRecipe}
+                                                        className="w-full bg-brandBrown text-white font-bold py-4 rounded-xl shadow-lg uppercase tracking-widest text-xs flex justify-center items-center gap-2 disabled:opacity-60">
+                                                    <Icons.Check/> {savingRecipe ? 'Saving…' : 'Save to the recipe book'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {showIngModal && (
+                                    <div className="fixed inset-0 bg-victorian/70 backdrop-blur-sm flex items-center justify-center p-4 z-[80] animate-fade-in">
+                                        <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border border-antique/30">
+                                            {ingCustom ? (
+                                                <div className="mb-5">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Ingredient</label>
+                                                    <input type="text" autoFocus value={ingName} onChange={e => setIngName(e.target.value)} placeholder="e.g. Vanilla essence"
+                                                           className="w-full border border-gray-200 rounded-xl p-3 font-bold text-sm bg-white" />
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-gray-800 mb-5 font-medium border-b border-gray-200 pb-3">{ingName}</p>
+                                            )}
+                                            <div className="flex gap-4 mb-6">
+                                                <div className="w-1/2">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Quantity</label>
+                                                    <input type="number" min="0" step="any" autoFocus={!ingCustom} value={ingQty} onChange={e => setIngQty(e.target.value)} placeholder="0"
+                                                           className="w-full border border-gray-200 rounded-xl p-3 text-center font-bold text-lg bg-white shadow-inner" />
+                                                </div>
+                                                <div className="w-1/2">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2 block">Unit</label>
+                                                    <select value={ingUnit} onChange={e => setIngUnit(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-lg bg-white font-medium text-gray-700">
+                                                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <button onClick={() => setShowIngModal(false)} className="w-1/2 bg-white border border-gray-200 text-gray-600 font-bold py-3 text-xs uppercase tracking-widest rounded-xl">Cancel</button>
+                                                <button onClick={() => {
+                                                            if (ingCustom && !ingName.trim()) return showToast('Name the ingredient.', 'error');
+                                                            if (!ingQty || Number(ingQty) <= 0) return showToast('Enter a quantity.', 'error');
+                                                            setRCart([...rCart, { name: ingName.trim(), qty: Number(ingQty), unit: ingUnit, isCustom: ingCustom }]);
+                                                            setShowIngModal(false);
+                                                        }}
+                                                        className="w-1/2 bg-victorian text-antique border border-antique/30 font-bold py-3 text-xs uppercase tracking-widest rounded-xl shadow-md">Add</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="relative mb-5 shadow-sm"><span className="absolute inset-y-0 left-0 pl-4 flex items-center text-victorian/40 text-lg">⚲</span><input type="text" className="w-full pl-11 p-4 border border-white/50 bg-white/70 backdrop-blur-xl rounded-xl text-sm shadow-sm" placeholder="Search the ledger..." value={recipeSearchFilter} onChange={(e) => setRecipeSearchFilter(e.target.value)}/></div>
                                 {!recipeSearchFilter && <div className="flex overflow-x-auto space-x-2 mb-6 pb-2 hide-scrollbar">{['All', ...RECIPE_CATEGORIES].map(cat => <button key={cat} onClick={() => setActiveRecipeTab(cat)} className={`whitespace-nowrap px-4 py-2 text-xs uppercase tracking-wider rounded-lg transition-all shadow-sm ${activeRecipeTab === cat ? 'bg-victorian text-paper font-bold scale-[1.02]' : 'bg-white/70 backdrop-blur-md text-victorian hover:bg-white font-medium'}`}>{cat}</button>)}</div>}
                                 <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-elegant border border-brandBrown/20 overflow-hidden mb-10">
@@ -382,7 +608,7 @@
                                     }
                                 </div>
                                 {viewingRecipe && (
-                                    <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in"><div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border-2 border-brandBrown/40 max-h-[90vh] overflow-y-auto relative"><button onClick={() => setViewingRecipe(null)} className="absolute top-4 right-4 text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm z-10"><Icons.Close/></button><div className="p-6"><div className="flex flex-col mb-5 pr-10 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight">{viewingRecipe.name || 'Unknown'}</h3><div className="flex gap-2 mt-2.5"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span></div></div><div className="bg-white/80 p-4 rounded-xl border border-white/60 shadow-sm mb-5"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Ingredients</p><ul className="text-sm space-y-2.5">{(viewingRecipe.ingredients || []).map((ing, i) => (<li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name || 'Unknown'} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty || 0} {ing.unit || ''}</span></li>))}</ul></div><p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p><div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div></div></div></div>
+                                    <div className="fixed inset-0 bg-victorian/80 backdrop-blur-sm flex items-center justify-center p-4 z-[60] animate-fade-in"><div className="bg-paper p-0 rounded-2xl shadow-2xl w-full max-w-lg border-2 border-brandBrown/40 max-h-[90vh] overflow-y-auto relative"><button onClick={() => setViewingRecipe(null)} className="absolute top-4 right-4 text-gray-500 hover:text-danger bg-white rounded-full p-2 shadow-sm z-10"><Icons.Close/></button><div className="p-6"><div className="flex flex-col mb-5 pr-10 border-b border-victorian/10 pb-4"><h3 className="font-serif font-bold text-victorian text-2xl leading-tight">{viewingRecipe.name || 'Unknown'}</h3><div className="flex gap-2 mt-2.5"><span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-white/70 text-gray-600 border border-gray-200 px-2.5 py-1 rounded-lg shadow-sm">{viewingRecipe.category || 'Beverages'}</span>{viewingRecipe.createdByName && <span className="text-[9px] uppercase font-bold tracking-[0.2em] bg-vintageGreen/10 text-vintageGreen border border-vintageGreen/30 px-2.5 py-1 rounded-lg shadow-sm">Added by {viewingRecipe.createdByName}</span>}</div></div><div className="bg-white/80 p-4 rounded-xl border border-white/60 shadow-sm mb-5"><p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3">Ingredients</p><ul className="text-sm space-y-2.5">{(viewingRecipe.ingredients || []).map((ing, i) => (<li key={i} className="flex justify-between items-end border-b border-gray-100 pb-1.5"><span className="font-medium text-victorian/80">{ing.name || 'Unknown'} {ing.isCustom && <span className="text-[10px] text-gray-400 font-normal ml-1 italic">(Custom)</span>}</span><span className="font-bold text-victorian">{ing.qty || 0} {ing.unit || ''}</span></li>))}</ul></div><p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2 pl-1">Method & Notes</p><div className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed border-l-2 border-antique pl-4 py-2 bg-white/40 rounded-r-lg">{viewingRecipe.instructions || "Standard preparation."}</div></div></div></div>
                                 )}
                             </div>
                         )}

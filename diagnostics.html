@@ -193,36 +193,39 @@
       return;
     }
 
-    // 5 — is the verifyPin function deployed?
-    // A deliberately wrong PIN is sent. "permission-denied" is the SUCCESS
-    // signal here: it proves the function exists and rejected the guess.
+    // 5 — are the auth functions deployed?
+    // A deliberately malformed request is sent. "invalid-argument" is the
+    // SUCCESS signal: it proves the function exists and validated the input.
+    // It is also cheap — it returns before touching the login throttle.
     try {
-      await firebase.functions().httpsCallable('verifyPin')({ pin: '000000' });
-      add('warn', 'Login service answered, but accepted a test PIN',
-        'verifyPin returned success for 000000 — check which PIN hash you stored.');
+      await firebase.functions().httpsCallable('pinSignIn')({ phone: '', pin: '' });
+      add('warn', 'Login service answered oddly', 'pinSignIn accepted an empty request.');
     } catch (err) {
       var code = err && err.code ? String(err.code) : '';
-      if (code.indexOf('permission-denied') > -1 || code.indexOf('invalid-argument') > -1) {
-        add('pass', 'Login service is deployed and rejecting bad PINs', 'verifyPin responded: ' + code);
-      } else if (code.indexOf('not-found') > -1 || code.indexOf('internal') > -1) {
-        add('fail', 'Login service is NOT deployed', 'verifyPin responded: ' + (code || err.message),
-          'This is the usual reason nobody can sign in. Deploy it:<br>' +
+      if (code.indexOf('invalid-argument') > -1) {
+        add('pass', 'Login service is deployed', 'pinSignIn responded: ' + code);
+      } else if (code.indexOf('not-found') > -1 || code.indexOf('internal') > -1 || code.indexOf('unimplemented') > -1) {
+        add('fail', 'Login functions are NOT deployed', 'pinSignIn responded: ' + (code || err.message),
+          'This is the usual reason nobody can sign in. From the project folder:<br>' +
           '<code>cd functions &amp;&amp; npm install</code><br>' +
-          '<code>node scripts/hash-pin.js YOUR_PIN</code><br>' +
-          '<code>firebase functions:secrets:set OWNER_PIN_HASH</code><br>' +
-          '<code>firebase deploy --only functions:verifyPin</code>');
-      } else if (code.indexOf('resource-exhausted') > -1) {
-        add('warn', 'Login service is deployed but this device is rate-limited',
-          'Too many recent attempts. Wait 15 minutes and try again.');
+          '<code>npm run deploy:auth</code><br>' +
+          'The first deploy asks for your owner mobile number. See SETUP.md.');
       } else if (code.indexOf('unauthenticated') > -1) {
-        add('fail', 'Login service rejected the call as unauthenticated',
-          err.message, 'If you enabled App Check, register this site as an approved app.');
+        add('fail', 'Login service rejected the call as unauthenticated', err.message,
+          'If you enabled App Check, register this site as an approved app.');
       } else {
-        add('fail', 'Could not reach the login service', (code || '') + ' ' + (err.message || ''),
-          'Check the function is deployed in region <code>' + CFG.region + '</code>. If you deployed ' +
-          'to a different region, update the region in <code>assets/tcm-core.js</code>.');
+        add('warn', 'Could not confirm the login service', (code || '') + ' ' + (err.message || ''),
+          'Check the functions are deployed in region <code>' + CFG.region + '</code>.');
       }
     }
+
+    // 5b — is Phone sign-in switched on for the project?
+    // There is no way to test this without actually sending an SMS, so it is
+    // flagged for a human to confirm once.
+    add('warn', 'Confirm Phone sign-in is switched on (one-time check)',
+      'Firebase console \u2192 Authentication \u2192 Sign-in method \u2192 Phone \u2192 Enable.',
+      'Also add this site\u2019s domain under <b>Authentication \u2192 Settings \u2192 Authorized domains</b>, ' +
+      'or the SMS step fails with <code>auth/captcha-check-failed</code>.');
 
     // 6 — are the Firestore rules published?
     // Unauthenticated reads MUST be denied. Success here means the database is

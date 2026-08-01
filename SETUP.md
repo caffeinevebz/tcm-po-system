@@ -1,40 +1,57 @@
 # One-time setup — no software to install
 
-If you are seeing **"Login service not set up yet"** on the sign-in screen, this
-page is what you need. It takes about ten minutes and runs entirely in a browser
-tab, using Google Cloud Shell. Nothing gets installed on your computer.
+Ten minutes, entirely in a browser tab. Nothing gets installed on your computer.
 
 You need the Google account that owns the `tcm-orders` Firebase project.
 
-> **Why is this needed?** The PIN used to be compared inside the web page, so it
-> was readable by anyone who viewed the page source, and the dashboard could be
-> opened by typing its address. The PIN is now checked by a small program on
-> Google's servers. That program has to be uploaded once — that is what you are
-> about to do.
+---
+
+## How signing in works now
+
+- **You (the owner)** are identified by your mobile number. There is exactly one
+  owner and it cannot be invited, changed from inside the app, or granted to
+  anyone else.
+- **Staff are invite-only.** You add someone's mobile number in **Team & Access**
+  first. Only a number on that list can register — a stranger who enters their
+  own number is refused even with a valid SMS code.
+- Everyone signs in the **first time** with an SMS code, then picks their own
+  **PIN**. After that it is just number + PIN, with no SMS and no waiting.
+
+The old shared PINs are gone. Nothing about who can get in is stored in the web
+page any more.
 
 ---
 
 ## Before you start
 
 Your project must be on the **Blaze (pay-as-you-go)** plan. It already is if
-invoice scanning works, since that also runs on Cloud Functions. Setup costs
-nothing extra; the login check is far below the free monthly allowance.
+invoice scanning works. Phone sign-in includes a free monthly SMS allowance;
+because everyone switches to a PIN after registering, a shop of five people
+sends only a handful of messages a month.
 
 ---
 
-## Step 1 — Open Cloud Shell
+## Step 1 — Switch on phone sign-in
 
-Go to **<https://shell.cloud.google.com>** and sign in with the Google account
-that owns the project.
+1. Open the [Firebase console](https://console.firebase.google.com/) and pick
+   **tcm-orders**.
+2. Go to **Build → Authentication**. Click **Get started** if you have never
+   opened it.
+3. Open the **Sign-in method** tab, click **Phone**, turn it **Enable** on, and
+   **Save**.
+4. Open the **Settings** tab → **Authorized domains** → **Add domain**, and add
+   the web address where the app lives (for example `caffeinevebz.github.io`).
+   Skip this and the SMS step fails with a security-check error.
 
-A black terminal panel opens at the bottom of the browser. Wait until it shows a
-prompt ending in `$`. If it asks you to authorise or pick a project, say yes and
-pick **tcm-orders**.
+## Step 2 — Open Cloud Shell
 
-Everything below is typed into that black panel. Press **Enter** after each
-block. Copy-paste works — right-click, then Paste.
+Go to **<https://shell.cloud.google.com>** and sign in with the same Google
+account. A black terminal panel opens. Wait for a prompt ending in `$`. If it
+asks you to authorise or pick a project, say yes and choose **tcm-orders**.
 
-## Step 2 — Get the code
+Everything below is typed into that panel. Copy-paste works — right-click, Paste.
+
+## Step 3 — Get the code
 
 ```bash
 git clone https://github.com/caffeinevebz/tcm-po-system.git
@@ -42,120 +59,126 @@ cd tcm-po-system
 git checkout claude/app-security-effectiveness-review-gvwpx3
 ```
 
-> Already cloned it before? Run `cd tcm-po-system && git pull` instead.
+> Cloned it before? Run `cd tcm-po-system && git pull` instead.
 
-## Step 3 — Choose your PINs
-
-Pick two new numeric PINs — one for you, one for the staff terminal.
-
-**Do not re-use `170117` or `1234`.** Both were published in the page source and
-in this repository's history, so they should be considered public. Make the owner
-PIN at least 6 digits and avoid dates and birthdays.
-
-Generate the owner PIN's fingerprint, replacing `481902` with your chosen PIN:
+## Step 4 — Upload the sign-in service
 
 ```bash
 cd functions
 npm install
-node scripts/hash-pin.js 481902
+cd ..
+npm run deploy:auth
 ```
 
-It prints one long line of letters and numbers, like
-`3f9a…c21b:7d40…9e6f`. **Select that whole line and copy it.**
+The first time, it asks:
 
-Now store it:
-
-```bash
-firebase functions:secrets:set OWNER_PIN_HASH --project tcm-orders
+```
+Enter a value for OWNER_PHONE:
 ```
 
-It waits with a blank line — **paste the copied line and press Enter**. If it
-asks about enabling the Secret Manager API, answer **yes**.
+Type **your** mobile number in international form — `+919876543210` — and press
+Enter. This is the number that gets owner access. Nobody else can claim it.
 
-Repeat for the staff PIN:
+Wait for **`Deploy complete!`** (two or three minutes).
 
-```bash
-node scripts/hash-pin.js 730514
-firebase functions:secrets:set STAFF_PIN_HASH --project tcm-orders
-```
-
-> Your actual PIN is never stored anywhere — only this one-way fingerprint. That
-> means nobody, including Google, can read your PIN back out. It also means if
-> you forget it, you simply repeat this step with a new one.
-
-## Step 4 — Upload the login checker
-
-```bash
-cd ~/tcm-po-system
-firebase deploy --only functions:verifyPin --project tcm-orders
-```
-
-This takes two or three minutes. Wait for **`Deploy complete!`**.
-
-> ⚠️ Type this command exactly. The `--only functions:verifyPin` part matters:
-> plain `firebase deploy --only functions` would **delete your invoice scanner**,
-> because its code is not in this repository.
+> ⚠️ Use `npm run deploy:auth`, which deploys the four sign-in functions by
+> name. A plain `firebase deploy --only functions` would **delete your invoice
+> scanner**, because its code is not in this repository.
 
 ## Step 5 — Lock the database
 
 ```bash
-firebase deploy --only firestore:rules --project tcm-orders
+npm run deploy:rules
 ```
 
 This is the step that stops strangers reading your purchase orders, cost prices
-and supplier phone numbers. Until you run it, your database is readable by anyone
-on the internet who knows the project name — which is visible in the page source.
+and supplier phone numbers. Until you run it, anyone on the internet who knows
+the project name — which is visible in the page source — can read the lot.
 
 ## Step 6 — Publish the updated website
 
-How you do this depends on where the app is hosted.
+**If you upload files through the GitHub website**, merge the branch
+`claude/app-security-effectiveness-review-gvwpx3` into `main`.
 
-**If you upload files to GitHub through the website**, merge the branch
-`claude/app-security-effectiveness-review-gvwpx3` into `main` on GitHub, and your
-host will pick it up.
-
-**If you use Firebase Hosting**, run:
+**If you use Firebase Hosting**:
 
 ```bash
 firebase deploy --only hosting --project tcm-orders
 ```
 
-## Step 7 — Check it worked
+## Step 7 — Sign in and add your team
 
-Open the app and add `/diagnostics.html` to the address, for example
-`https://your-site/diagnostics.html`.
+1. Open the app. Enter **your** mobile number → you get an SMS code.
+2. Enter the code, then choose a PIN. You land on the owner dashboard.
+3. Open the menu → **Team & Access**.
+4. Type a staff member's name and mobile number → **Add & send invite on
+   WhatsApp**. Their invite message opens ready to send.
+5. They open the link, enter their number, get a code, and pick their own PIN.
 
-You want a green **"Everything checks out"**. In particular:
+To remove someone, tap **Remove** next to their name. They are signed out
+everywhere immediately and their PIN is deleted.
 
-- *Login service is deployed and rejecting bad PINs* — Step 4 worked
-- *Database correctly refuses unauthenticated access* — Step 5 worked
+## Step 8 — Check it worked
 
-Then sign in with your **new** owner PIN.
+Open `/diagnostics.html` on your site. You want a green **"Everything checks
+out"**, and in particular:
+
+- *Login service is deployed*
+- *Database correctly refuses unauthenticated access*
+
+---
+
+## What staff can and cannot do
+
+| | Owner | Staff |
+|---|---|---|
+| Raise material requests | ✓ | ✓ |
+| Read the recipe book | ✓ | ✓ |
+| **Add** a new recipe | ✓ | ✓ |
+| **Edit or delete** a recipe | ✓ | ✗ |
+| Book in a delivery against a PO | ✓ | ✓ |
+| See cost prices and food cost | ✓ | ✗ |
+| Create, change or cancel POs | ✓ | ✗ |
+| Vendors, catalogue, prep rules | ✓ | ✗ |
+| Add or remove team members | ✓ | ✗ |
+
+These limits are enforced by the database itself, not just by hiding buttons —
+40 automated tests check them on every change (`npm run test:rules`).
 
 ---
 
 ## If something goes wrong
 
-**"Login service not set up yet" is still showing**
-Your browser is probably still running the old page. Open `/diagnostics.html`,
-and if it offers *Clear cached app*, click it. Otherwise reload with
+**"This number has not been added to the team"**
+Correct behaviour for an uninvited number. Add it in **Team & Access** first.
+
+**"Phone sign-in is not switched on in Firebase yet"**
+Step 1 was skipped or not saved.
+
+**"Security check failed. Reload the page and try again"**
+The site's domain is missing from **Authentication → Settings → Authorized
+domains**. Add it, then reload.
+
+**"Login service not set up yet"**
+Step 4 has not run, or the browser is showing an old copy of the page. Open
+`/diagnostics.html`, click *Clear cached app* if offered, then reload with
 `Ctrl+Shift+R` (`Cmd+Shift+R` on a Mac).
 
-**"Terminal denied"**
-The function is working — the PIN is simply wrong. Redo Step 3 with a PIN you are
-sure of. Note there is no space or extra line when you paste the fingerprint.
+**No SMS arrives**
+Check the number, including the country code. Firebase limits how many codes go
+to one number in a short period; wait a few minutes. Daily SMS quota is visible
+under **Authentication → Usage**.
+
+**"Number or PIN is wrong" but the PIN is right**
+PINs are per person. If you cleared browser data or switched devices, tap
+*Forgot PIN? Use SMS code* and set it again.
 
 **"Too many attempts"**
-The lockout after 8 wrong tries. Wait 15 minutes, or use a different device.
+The lockout after 8 wrong PINs. Wait 15 minutes, or sign in with an SMS code.
 
 **`Error: HTTP Error: 403` during deploy**
-The signed-in account does not own the project. In Cloud Shell run
-`firebase login --reauth` and pick the right Google account.
-
-**Diagnostics says the database is readable without signing in**
-Step 5 did not take effect. Re-run it, then check
-**Firebase console → Firestore → Rules** to confirm the published rules mention
-`role`.
+The signed-in account does not own the project. Run `firebase login --reauth`
+and pick the right Google account.
 
 **Invoice scanning stopped working**
 A plain `firebase deploy --only functions` was run and removed it. Re-deploy
@@ -165,7 +188,11 @@ again.
 
 ---
 
-## Changing a PIN later
+## Changing the owner number
 
-Repeat Step 3 with the new PIN, then Step 4. Takes about two minutes. Do this
-whenever someone who knew the staff PIN leaves.
+Re-run `npm run deploy:auth`. To be prompted again, first clear the stored value:
+
+```bash
+rm -f functions/.env.tcm-orders
+npm run deploy:auth
+```

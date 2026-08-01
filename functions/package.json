@@ -7,9 +7,8 @@
     "node": "20"
   },
   "scripts": {
-    "hash-pin": "node scripts/hash-pin.js",
-    "deploy:auth": "firebase deploy --only functions:verifyPin",
-    "logs": "firebase functions:log --only verifyPin"
+    "deploy:auth": "firebase deploy --only functions:claimRole,functions:pinSignIn,functions:setPin,functions:setStaffStatus,functions:inviteStaff",
+    "logs": "firebase functions:log"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",
