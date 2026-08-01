@@ -105,6 +105,8 @@
     });
   }
 
+  var FIREBASE_API_KEY = 'AIzaSyAcE76Pc46oOJ3FMqb4kcojbvq5ACPuwaE';
+
   var CFG = {
     projectId: 'tcm-orders',
     // Callable functions live in the project's default region. If you deploy to
@@ -219,13 +221,65 @@
       }
     }
 
-    // 5b — is Phone sign-in switched on for the project?
-    // There is no way to test this without actually sending an SMS, so it is
-    // flagged for a human to confirm once.
-    add('warn', 'Confirm Phone sign-in is switched on (one-time check)',
-      'Firebase console \u2192 Authentication \u2192 Sign-in method \u2192 Phone \u2192 Enable.',
-      'Also add this site\u2019s domain under <b>Authentication \u2192 Settings \u2192 Authorized domains</b>, ' +
-      'or the SMS step fails with <code>auth/captcha-check-failed</code>.');
+    // 5b — is this site's domain authorised for sign-in?
+    try {
+      var cfgRes = await fetch('https://identitytoolkit.googleapis.com/v1/projects?key=' +
+        encodeURIComponent(FIREBASE_API_KEY));
+      var cfg = await cfgRes.json();
+      var domains = (cfg && cfg.authorizedDomains) || [];
+      if (domains.indexOf(location.hostname) > -1) {
+        add('pass', 'This domain is authorised for sign-in', location.hostname);
+      } else {
+        add('fail', 'This domain is NOT authorised for sign-in',
+          location.hostname + ' is not in: ' + domains.join(', '),
+          'Firebase console \u2192 Authentication \u2192 Settings \u2192 Authorized domains \u2192 ' +
+          'Add domain, then enter <code>' + location.hostname + '</code>.');
+      }
+    } catch (e) {
+      add('warn', 'Could not read the authorised domain list', e.message || String(e));
+    }
+
+    // 5c — will Firebase actually send an SMS?
+    //
+    // A verification request is sent with a deliberately invalid captcha token.
+    // No SMS can result from it: the request is rejected long before delivery.
+    // What matters is WHICH rejection comes back, because the checks happen in a
+    // fixed order — the provider and the SMS region policy are both evaluated
+    // before the captcha is. So a captcha complaint is the success signal.
+    try {
+      var smsRes = await fetch(
+        'https://identitytoolkit.googleapis.com/v1/accounts:sendVerificationCode?key=' +
+        encodeURIComponent(FIREBASE_API_KEY), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneNumber: '+919000000001', recaptchaToken: 'diagnostics-probe' })
+        });
+      var smsBody = await smsRes.json();
+      var smsMsg = (smsBody && smsBody.error && smsBody.error.message) || '';
+
+      if (/region/i.test(smsMsg)) {
+        add('fail', 'SMS is blocked for this country',
+          smsMsg,
+          'Phone sign-in is on, but the region allowlist is refusing the message.<br>' +
+          'Firebase console \u2192 <b>Authentication \u2192 Settings \u2192 SMS region policy</b> \u2192 ' +
+          'allow <b>India (IN)</b>, then Save. Takes effect within a minute.');
+      } else if (/OPERATION_NOT_ALLOWED/.test(smsMsg)) {
+        add('fail', 'Phone sign-in is switched off', smsMsg,
+          'Firebase console \u2192 <b>Authentication \u2192 Sign-in method \u2192 Phone</b> \u2192 Enable \u2192 Save.');
+      } else if (/CAPTCHA|APP_CREDENTIAL|RECAPTCHA/i.test(smsMsg)) {
+        add('pass', 'Phone sign-in is enabled and this region is allowed',
+          'Rejected only at the captcha step, which is expected for this probe.');
+      } else if (/BILLING|QUOTA/i.test(smsMsg)) {
+        add('fail', 'SMS quota or billing problem', smsMsg,
+          'Check <b>Authentication \u2192 Usage</b> and that the project is on the Blaze plan.');
+      } else if (smsMsg) {
+        add('warn', 'Unexpected response from the SMS service', smsMsg);
+      } else {
+        add('warn', 'SMS probe returned no error', 'Unexpected, but not necessarily a problem.');
+      }
+    } catch (e) {
+      add('warn', 'Could not reach the SMS service', e.message || String(e));
+    }
 
     // 6 — are the Firestore rules published?
     // Unauthenticated reads MUST be denied. Success here means the database is

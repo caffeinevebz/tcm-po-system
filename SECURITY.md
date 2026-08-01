@@ -106,9 +106,15 @@ npm run deploy:rules
 `firebase deploy --only functions` would delete `scanInvoice`, whose source is
 not in this repository.
 
-Phone sign-in must also be enabled once in the Firebase console
-(**Authentication → Sign-in method → Phone**), and the site's domain added under
-**Authentication → Settings → Authorized domains**.
+Three one-time settings in the Firebase console, all under **Authentication**:
+
+1. **Sign-in method → Phone** → Enable.
+2. **Settings → SMS region policy** → allow **India**. Enabling the provider does
+   not allow any country by default; until this is set, every code is refused.
+3. **Settings → Authorized domains** → add the site's domain.
+
+`/diagnostics.html` checks all three against the live project and names whichever
+one is missing.
 
 ### Verify
 

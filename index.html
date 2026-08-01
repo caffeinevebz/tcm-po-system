@@ -237,8 +237,19 @@
             if (code === 'auth/code-expired')             return showError('That code has expired — request a new one');
             if (code === 'auth/too-many-requests')        return showError('Too many attempts. Try again later');
             if (code === 'auth/quota-exceeded')           return showError('SMS limit reached for today');
+            // Two quite different causes share this one code, and the SDK does
+            // not always pass the server's detail through. Name both, region
+            // first: enabling Phone sign-in does NOT automatically allow any
+            // country, and the SMS region policy refuses the message before it
+            // is ever sent.
             if (code === 'auth/operation-not-allowed') {
-                return showError('Phone sign-in is not switched on in Firebase yet');
+                var detail = (err && err.customData && err.customData._serverResponse
+                              && err.customData._serverResponse.error
+                              && err.customData._serverResponse.error.message) || msg || '';
+                if (/region/i.test(detail)) {
+                    return showError('SMS is blocked for this country. In Firebase → Authentication → Settings → SMS region policy, allow India');
+                }
+                return showError('SMS could not be sent. In Firebase → Authentication, check Phone sign-in is enabled AND that India is allowed under Settings → SMS region policy');
             }
             if (code === 'auth/captcha-check-failed' || code === 'auth/invalid-app-credential') {
                 return showError('Security check failed. Reload the page and try again');
