@@ -12,20 +12,21 @@
  *   - anything non-GET        -> not intercepted at all
  * ========================================================================== */
 
-const CACHE_NAME = 'tcm-po-v3';
+const CACHE_NAME = 'tcm-po-v4';
 
 // Only genuinely static, non-sensitive files. HTML is deliberately absent: the
 // dashboards are behind a login and must not be served from a stale cache to
 // whoever opens the browser next.
 const PRECACHE = [
   './manifest.json',
+  './assets/tcm-boot.js',
   './assets/tcm-core.js',
   './assets/tcm-theme.js',
   './assets/bg-dashboard.jpg',
   './assets/bg-login.jpg',
   './assets/login-card.jpg',
-  './assets/name.jpg',
-  './assets/page-header.jpg',
+  './assets/name.png',
+  './assets/page-header.png',
   './assets/favicon.png'
 ];
 
