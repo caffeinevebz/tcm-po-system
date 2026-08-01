@@ -6,10 +6,14 @@
     <title>TCM BrewOps — Sign In</title>
 
     <!-- Defence in depth for hosts that ignore firebase.json headers (e.g. GitHub Pages). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
+
+    <!-- Must load first and must be same-origin: this is what reports a
+         failure when one of the CDN scripts below never arrives. -->
+    <script src="assets/tcm-boot.js"></script>
 
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="assets/tcm-theme.js"></script>
@@ -70,6 +74,13 @@
 
                     <p id="errorMsg" role="alert" aria-live="polite"
                        class="text-danger text-center mt-3 text-xs font-bold uppercase tracking-widest min-h-[1rem]" hidden></p>
+
+                    <div id="setupHelp" hidden
+                         class="mt-3 text-[11px] leading-relaxed text-center text-victorian/80 bg-white/70 border border-brandBrown/25 rounded-xl px-3 py-2.5">
+                        The one-time setup in <span class="font-bold">SECURITY.md</span> has not been run,
+                        so no PIN is registered yet.
+                        <a href="diagnostics.html" class="block mt-1.5 font-bold text-brandBrown underline">Run diagnostics</a>
+                    </div>
                 </form>
 
                 <div class="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">Internal Security Protocol</div>
@@ -99,6 +110,20 @@
         function clearError() {
             error.hidden = true;
             error.textContent = '';
+        }
+
+        /**
+         * Shown when the login Cloud Function has not been deployed yet. This is
+         * a one-time setup step, not a fault, so it gets a real explanation and
+         * a link to the diagnostics page rather than a red one-liner.
+         */
+        function showSetupNeeded() {
+            error.hidden = false;
+            error.className = 'text-danger text-center mt-3 text-[11px] font-bold uppercase tracking-wide leading-relaxed';
+            error.textContent = 'Login service not set up yet';
+
+            var help = document.getElementById('setupHelp');
+            if (help) help.hidden = false;
         }
 
         function setBusy(busy) {
@@ -147,15 +172,24 @@
                     input.value = '';
                     input.focus();
 
-                    if (err && err.code === 'functions/resource-exhausted') {
+                    var code = err && err.code ? String(err.code) : '';
+
+                    if (code === 'functions/resource-exhausted') {
                         showError(err.message || 'Too many attempts. Try again later.');
-                    } else if (err && (err.code === 'functions/permission-denied' ||
-                                       err.code === 'functions/invalid-argument')) {
+                    } else if (code === 'functions/permission-denied' ||
+                               code === 'functions/invalid-argument') {
                         showError('Terminal denied');
-                    } else if (err && err.code === 'functions/not-found') {
-                        showError('Login service not deployed — see SECURITY.md');
+                    } else if (code === 'functions/not-found' ||
+                               code === 'functions/internal' ||
+                               code === 'functions/unavailable' ||
+                               code === 'functions/unimplemented') {
+                        // A callable that has never been deployed surfaces as
+                        // not-found or internal depending on the browser. Name
+                        // the cause instead of blaming the network — this is the
+                        // expected state until SECURITY.md step 2 has been run.
+                        showSetupNeeded();
                     } else {
-                        showError('Cannot reach the security terminal');
+                        showError('Cannot reach the security terminal — check this device\'s internet connection');
                     }
                 });
         });

@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrewOps - Owner Command Center</title>
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
+
+    <!-- Must load first and must be same-origin: this is what reports a
+         failure when one of the CDN scripts below never arrives. -->
+    <script src="assets/tcm-boot.js"></script>
 
     <script src="https://cdn.tailwindcss.com/3.4.16"></script>
     <script src="assets/tcm-theme.js"></script>
@@ -40,12 +44,6 @@
             crossorigin="anonymous"></script>
 
     <script src="assets/tcm-core.js"></script>
-    <script>
-        // Safe replacement for the old crash reporter, which interpolated the
-        // raw error message into document.body.innerHTML — a script-injection
-        // sink. TCM.installCrashHandler writes with textContent instead.
-        TCM.installCrashHandler();
-    </script>
 
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
