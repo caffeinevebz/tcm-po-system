@@ -3,18 +3,18 @@ rules_version = '2';
 // =============================================================================
 // TCM BrewOps — Firestore security rules
 // -----------------------------------------------------------------------------
-// This is the real security boundary. The checks inside the pages are only there
-// to keep the UI honest; a determined visitor can bypass those, but not these.
+// This is the real security boundary. The checks inside the pages only keep the
+// UI honest; a determined visitor can bypass those, but not these.
 //
-// Roles come from the `role` custom claim, written by the Cloud Functions in
-// functions/index.js after a verified phone sign-in:
+//   owner   one account, the address configured as OWNER_EMAIL. Everything.
+//   user    an account the owner created. May do exactly what the owner ticked
+//           on their user document, and nothing else.
+//   nobody  anyone else, including a signed-in account that has been suspended.
 //
-//   owner   one person, the number configured as OWNER_PHONE. Full access.
-//   staff   invite-only: the owner adds the mobile number first, then that
-//           person registers with an SMS code. May raise material requests,
-//           add recipes, and book in deliveries.
-//   (none)  any number that was never invited, or has been removed — treated
-//           exactly like a stranger.
+// Permissions are read from /users/{username} on every request rather than from
+// a token claim. That costs one document read, and buys immediate effect: when
+// the owner unticks a box or suspends someone, the very next write is refused —
+// no waiting for a cached token to expire.
 //
 // Publish with:  firebase deploy --only firestore:rules
 // =============================================================================
@@ -22,60 +22,93 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- role helpers -------------------------------------------------------
-    function role() {
-      return request.auth != null ? request.auth.token.get('role', '') : '';
+    // --- who is asking ------------------------------------------------------
+    function signedIn() {
+      return request.auth != null;
     }
-    function isOwner()  { return role() == 'owner'; }
-    function isStaff()  { return role() == 'staff'; }
-    function signedIn() { return isOwner() || isStaff(); }
 
-    // Keys this write is adding, removing or changing. Only valid inside an
-    // `allow update` rule, where `resource` is the stored document.
+    function isOwner() {
+      return signedIn() && request.auth.token.get('role', '') == 'owner';
+    }
+
+    // The caller's account document. Users are keyed by username, so this finds
+    // it through the uid index maintained by the Cloud Functions.
+    function account() {
+      return get(/databases/$(database)/documents/userIndex/$(request.auth.uid)).data;
+    }
+
+    function isActiveUser() {
+      return signedIn()
+             && request.auth.token.get('role', '') == 'user'
+             && exists(/databases/$(database)/documents/userIndex/$(request.auth.uid))
+             && account().status == 'active';
+    }
+
+    /** Owner can do anything; a user needs the specific box ticked. */
+    function can(permission) {
+      return isOwner() || (isActiveUser() && account().perms[permission] == true);
+    }
+
+    /** Signed in as somebody the app recognises. */
+    function member() {
+      return isOwner() || isActiveUser();
+    }
+
+    // Keys this write is adding, removing or changing. Only valid in an update
+    // rule, where `resource` is the stored document.
     //
-    // Note: Firestore evaluates rules twice — once optimistically before the
-    // document is fetched, then again with real data. diff() raises an
-    // "evaluation error" in that first pass, which shows up in emulator and
-    // console logs even though the write is decided correctly by the second
-    // pass. This is expected for any diff()-based rule, not a misconfiguration.
+    // Firestore evaluates rules twice — once optimistically before the document
+    // is fetched, then again with real data. diff() raises an "evaluation error"
+    // in the first pass, which appears in console logs even though the write is
+    // decided correctly by the second. Expected for any diff()-based rule.
     function touched() {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
 
-    // --- team directory -----------------------------------------------------
-    // One document per invited mobile number, keyed by its last 10 digits.
-    //
+    // --- accounts -----------------------------------------------------------
     // Written ONLY by the Cloud Functions through the Admin SDK, which bypasses
-    // these rules. No client may write here — otherwise a staff member could
-    // invite themselves, or flip their own status back to "active" after being
-    // removed.
-    match /staffMembers/{phoneKey} {
+    // these rules. If a client could write here, a user could tick their own
+    // permission boxes or un-suspend themselves.
+    match /users/{username} {
       allow read: if isOwner()
-                  || (request.auth != null && resource.data.uid == request.auth.uid);
+                  || (signedIn() && resource.data.uid == request.auth.uid);
       allow write: if false;
     }
 
-    // --- PIN hashes and login throttling ------------------------------------
+    // A uid -> account mirror so the rules above can look someone up by uid
+    // without a query. Same rule: functions only.
+    match /userIndex/{uid} {
+      allow read: if isOwner() || (signedIn() && request.auth.uid == uid);
+      allow write: if false;
+    }
+
+    // --- access-key hashes and sign-in throttling ---------------------------
     // Never readable or writable by any client, at all.
-    match /_staffSecrets/{document=**} { allow read, write: if false; }
+    match /_userSecrets/{document=**} { allow read, write: if false; }
     match /_authThrottle/{document=**} { allow read, write: if false; }
 
-    // --- shared settings document ------------------------------------------
+    // --- shared settings ----------------------------------------------------
     // Catalogue, vendors, master prices, prep rules, PO counter, scanner aliases.
+    // These live in one document, so writes are gated per field group.
     match /settings/main {
-      allow read: if signedIn();
+      // Cost prices live here, so reading requires either the prices permission
+      // or one of the permissions that genuinely needs the catalogue.
+      allow read: if member();
 
-      allow create, update: if isOwner();
+      allow create: if isOwner();
 
-      // Staff need exactly one thing here: to teach the scanner that an invoice
-      // line maps to a catalogue item. Nothing else is writable by them — in
-      // particular not `prices`.
-      allow update: if isStaff() && touched().hasOnly(['aliases']);
+      allow update: if isOwner()
+                    || (can('inventory') && touched().hasOnly(['inventory', 'prepItems', 'poCounter']))
+                    || (can('prices')    && touched().hasOnly(['prices']))
+                    || (can('vendors')   && touched().hasOnly(['suppliers', 'ownerPhone']))
+                    // Teaching the invoice scanner a name mapping is part of
+                    // booking in a delivery.
+                    || (can('receive')   && touched().hasOnly(['aliases']));
 
       allow delete: if false;
     }
 
-    // --- staff material requests -------------------------------------------
+    // --- material requests --------------------------------------------------
     match /requests/{requestId} {
       function validRequest(d) {
         return d.keys().hasAll(['id', 'items'])
@@ -85,27 +118,25 @@ service cloud.firestore {
             && d.items.size() <= 200;
       }
 
-      allow read:   if signedIn();
-      allow create: if signedIn() && validRequest(request.resource.data);
+      allow read:   if member();
+      allow create: if can('requests') && validRequest(request.resource.data);
 
-      // The owner triages requests into POs. Staff cannot rewrite or withdraw a
-      // request once it is submitted.
-      allow update, delete: if isOwner();
+      // Turning requests into purchase orders is a purchasing decision.
+      allow update, delete: if can('poManage');
     }
 
     // --- purchase orders ----------------------------------------------------
     match /pos/{poId} {
-      allow read:   if signedIn();
+      allow read: if member();
 
-      // Raising and cancelling POs is the owner's decision alone.
-      allow create: if isOwner();
-      allow delete: if isOwner();
-      allow update: if isOwner();
+      allow create: if can('poManage');
+      allow delete: if can('poManage');
+      allow update: if can('poManage');
 
-      // Staff may only book in a delivery against an already-approved PO: mark
-      // it Delivered and record what actually arrived. They cannot reopen a PO,
-      // change the ordered lines, or reassign the supplier.
-      allow update: if isStaff()
+      // Booking in a delivery is a separate, much narrower permission: mark an
+      // approved order Delivered and record what actually arrived. It cannot
+      // reopen an order, change the ordered lines, or reassign the supplier.
+      allow update: if can('receive')
                     && touched().hasOnly(['status', 'receivedItems', 'deliveryDate', 'receivedBy'])
                     && request.resource.data.status == 'Delivered'
                     && resource.data.status == 'Approved'
@@ -123,18 +154,16 @@ service cloud.firestore {
             && d.ingredients.size() <= 200;
       }
 
-      allow read: if signedIn();
+      allow read: if can('recipesView');
 
-      // Staff may ADD a recipe, and it must be stamped with their own uid so
-      // there is a record of who wrote it. They may not edit or delete any
-      // recipe afterwards — including their own — so the book cannot be
-      // rewritten without the owner.
+      // Adding is separate from editing, and a new recipe must carry the uid of
+      // whoever wrote it.
       allow create: if isOwner()
-                    || (isStaff()
+                    || (can('recipesAdd')
                         && validNewRecipe(request.resource.data)
                         && request.resource.data.createdBy == request.auth.uid);
 
-      allow update, delete: if isOwner();
+      allow update, delete: if can('recipesEdit');
     }
 
     // --- default deny -------------------------------------------------------

@@ -1,51 +1,154 @@
 /**
- * End-to-end tests for the sign-in Cloud Functions, run against the Firestore
- * and Auth emulators.
+ * End-to-end tests for the account Cloud Functions, against the Firestore and
+ * Auth emulators.
  *
- *   npm install --save-dev firebase-functions-test
  *   npm run test:auth
  *
- * These walk the journeys a real person takes — first registration, setting a
- * PIN, coming back the next day — because the bug that made the owner re-do the
- * SMS code every time was only visible across two calls: claimRole reported
- * hasPin for staff but not for the owner.
+ * These walk the journeys a real person takes: the owner bootstrapping, then
+ * creating an account, then that person signing in and changing their key. The
+ * bug that made the owner redo sign-in every time was only visible across two
+ * calls, so single-call tests would not have caught it.
  */
-process.env.GCLOUD_PROJECT='demo-tcm'; process.env.OWNER_PHONE='+919876500001';
-process.env.OWNER_EMAIL='owner@caffeine.test';
-process.env.FIRESTORE_EMULATOR_HOST='127.0.0.1:8085'; process.env.FIREBASE_AUTH_EMULATOR_HOST='127.0.0.1:9099';
-const ftest=(await import('firebase-functions-test')).default({projectId:'demo-tcm'});
-const admin=(await import('firebase-admin')).default;
-const fns=await import('../functions/index.js');
-const w=f=>ftest.wrap(f);
-const ok=(l,v)=>console.log('  ✓ '+l+(v!==undefined?': '+JSON.stringify(v):''));
-const bad=(l,e)=>console.log('  ✗ '+l+' -> '+(e.code||'')+' '+e.message);
-const pctx=(u,extra={})=>({auth:{uid:u.uid,token:{phone_number:u.phoneNumber,...extra}}});
-const ectx=(u,extra={})=>({auth:{uid:u.uid,token:{email:u.email,email_verified:true,...extra}}});
+process.env.GCLOUD_PROJECT = 'demo-tcm';
+process.env.OWNER_EMAIL = 'owner@caffeine.test';
+process.env.FIRESTORE_EMULATOR_HOST = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8085';
+process.env.FIREBASE_AUTH_EMULATOR_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST || '127.0.0.1:9099';
 
-console.log('\n=== OWNER via mobile ===');
-const o=await admin.auth().createUser({phoneNumber:'+919876500001'});
-try{ok('1. claimRole after OTP (first ever)',await w(fns.claimRole)({},pctx(o)));}catch(e){bad('claimRole',e)}
-try{ok('2. setPin',await w(fns.setPin)({pin:'481902'},pctx(o,{role:'owner'})));}catch(e){bad('setPin',e)}
-try{ok('3. claimRole again — hasPin must be TRUE now',await w(fns.claimRole)({},pctx(o)));}catch(e){bad('claimRole',e)}
-try{const r=await w(fns.pinSignIn)({phone:'+919876500001',pin:'481902'},{rawRequest:{ip:'1.1.1.1'}});ok('4. next visit: number + PIN',{role:r.role,token:!!r.token});}catch(e){bad('pinSignIn',e)}
-try{ok('5. sessionState (returning, session alive)',await w(fns.sessionState)({},pctx(o,{role:'owner'})));}catch(e){bad('sessionState',e)}
-try{await w(fns.pinSignIn)({phone:'+919876500001',pin:'999999'},{rawRequest:{ip:'1.1.1.9'}});console.log('  ✗ wrong PIN was ACCEPTED');}catch(e){ok('6. wrong PIN rejected',e.code)}
+const ftest = (await import('firebase-functions-test')).default({ projectId: 'demo-tcm' });
+const admin = (await import('firebase-admin')).default;
+const fns = await import('../functions/index.js');
 
-console.log('\n=== OWNER via email ===');
-const oe=await admin.auth().createUser({email:'owner@caffeine.test',emailVerified:true});
-try{ok('1. claimRole after email link',await w(fns.claimRole)({},ectx(oe)));}catch(e){bad('claimRole',e)}
-try{ok('2. setPin',await w(fns.setPin)({pin:'552211'},ectx(oe,{role:'owner'})));}catch(e){bad('setPin',e)}
-try{const r=await w(fns.pinSignIn)({email:'owner@caffeine.test',pin:'552211'},{rawRequest:{ip:'2.2.2.2'}});ok('3. next visit: email + PIN',{role:r.role,token:!!r.token});}catch(e){bad('pinSignIn',e)}
+const w = (f) => ftest.wrap(f);
+let pass = 0; const fails = [];
 
-console.log('\n=== a stranger with a verified email ===');
-const x=await admin.auth().createUser({email:'nobody@example.com',emailVerified:true});
-try{const r=await w(fns.claimRole)({},ectx(x));console.log('  ✗ stranger ADMITTED:',JSON.stringify(r));}catch(e){ok('refused',e.code+' '+e.message)}
+async function ok(label, fn) {
+  try { const r = await fn(); pass++; console.log('  ✓ ' + label + (r === undefined ? '' : ': ' + JSON.stringify(r))); return r; }
+  catch (e) { fails.push(label); console.log('  ✗ ' + label + ' -> ' + (e.code || '') + ' ' + e.message); }
+}
+async function refused(label, fn, expect) {
+  try { await fn(); fails.push(label); console.log('  ✗ ' + label + ' -> WAS ALLOWED'); }
+  catch (e) {
+    if (expect && String(e.code).indexOf(expect) === -1) {
+      fails.push(label); console.log('  ✗ ' + label + ' -> wrong code ' + e.code);
+    } else { pass++; console.log('  ✓ ' + label + ' -> ' + e.code); }
+  }
+}
 
-console.log('\n=== STAFF ===');
-try{await w(fns.inviteStaff)({phone:'9876500002',name:'Rahul'},pctx(o,{role:'owner'}));}catch(e){bad('invite',e)}
-const st=await admin.auth().createUser({phoneNumber:'+919876500002'});
-try{ok('1. claimRole after OTP',await w(fns.claimRole)({},pctx(st)));}catch(e){bad('claimRole',e)}
-try{await w(fns.setPin)({pin:'730514'},pctx(st,{role:'staff'}));ok('2. setPin');}catch(e){bad('setPin',e)}
-try{ok('3. claimRole again — hasPin TRUE',await w(fns.claimRole)({},pctx(st)));}catch(e){bad('claimRole',e)}
-try{const r=await w(fns.pinSignIn)({phone:'+919876500002',pin:'730514'},{rawRequest:{ip:'3.3.3.3'}});ok('4. number + PIN',{role:r.role});}catch(e){bad('pinSignIn',e)}
-ftest.cleanup(); process.exit(0);
+const ownerCtx = (uid) => ({ auth: { uid, token: { email: 'owner@caffeine.test', email_verified: true, role: 'owner' } } });
+const userCtx  = (uid) => ({ auth: { uid, token: { role: 'user' } } });
+const ip = (a) => ({ rawRequest: { ip: a } });
+
+console.log('\nowner bootstrap');
+await ok('creates the owner account', () => w(fns.setupOwner)({ email: 'owner@caffeine.test', password: 'a-long-password' }));
+await refused('refuses a second bootstrap', () => w(fns.setupOwner)({ email: 'owner@caffeine.test', password: 'another-one' }), 'already-exists');
+await refused('refuses a different email', () => w(fns.setupOwner)({ email: 'someone@else.test', password: 'a-long-password' }), 'permission-denied');
+// The password rule is checked before the account is looked up, so a short one
+// is rejected as invalid-argument whether or not the owner already exists.
+await refused('refuses a short password',
+  () => w(fns.setupOwner)({ email: 'owner@caffeine.test', password: 'short' }), 'invalid-argument');
+
+const ownerUser = await admin.auth().getUserByEmail('owner@caffeine.test');
+const OWNER = ownerCtx(ownerUser.uid);
+
+await ok('owner claims their role', () => w(fns.claimOwner)({}, OWNER));
+await refused('a stranger cannot claim owner', () => {
+  return w(fns.claimOwner)({}, { auth: { uid: 'x', token: { email: 'nobody@else.test', email_verified: true } } });
+}, 'permission-denied');
+
+console.log('\ncreating accounts');
+await ok('creates a barista', () => w(fns.createUser)({
+  username: 'rahul', name: 'Rahul', role: 'staff', accessKey: 'first-key-99'
+}, OWNER));
+await refused('rejects a duplicate username', () => w(fns.createUser)({
+  username: 'rahul', name: 'Someone', role: 'staff', accessKey: 'other-key-99' }, OWNER), 'already-exists');
+await refused('rejects a reserved username', () => w(fns.createUser)({
+  username: 'admin', name: 'X', role: 'staff', accessKey: 'other-key-99' }, OWNER), 'invalid-argument');
+await refused('rejects a weak access key', () => w(fns.createUser)({
+  username: 'weak', name: 'X', role: 'staff', accessKey: '12345' }, OWNER), 'invalid-argument');
+await refused('a user cannot create accounts', () => w(fns.createUser)({
+  username: 'sneaky', name: 'X', role: 'staff', accessKey: 'good-key-99' }, userCtx('someone')), 'permission-denied');
+
+const rahul = (await admin.firestore().collection('users').doc('rahul').get()).data();
+
+console.log('\npermissions');
+await ok('the staff preset is applied', async () => {
+  const p = rahul.perms;
+  if (!p.requests || !p.receive || !p.recipesAdd) throw new Error('preset missing');
+  if (p.poManage || p.prices || p.team) throw new Error('preset too broad');
+  return { requests: p.requests, poManage: p.poManage, team: p.team };
+});
+await ok('team can never be granted to a user', async () => {
+  await w(fns.updateUser)({ username: 'rahul', perms: { team: true, requests: true } }, OWNER);
+  const after = (await admin.firestore().collection('users').doc('rahul').get()).data();
+  if (after.perms.team) throw new Error('team was granted');
+  return { team: after.perms.team };
+});
+await ok('the uid mirror stays in step', async () => {
+  const idx = (await admin.firestore().collection('userIndex').doc(rahul.uid).get()).data();
+  if (!idx || idx.perms.team !== false) throw new Error('mirror out of step');
+  return { mirrored: true };
+});
+
+console.log('\nsigning in');
+const signedIn = await ok('signs in with username and key',
+  async () => { const r = await w(fns.signIn)({ username: 'rahul', accessKey: 'first-key-99' }, ip('1.1.1.1'));
+                return { role: r.role, token: !!r.token, mustChangeKey: r.mustChangeKey }; });
+await refused('wrong key is refused', () => w(fns.signIn)({ username: 'rahul', accessKey: 'wrong-key-99' }, ip('1.1.1.2')), 'permission-denied');
+await refused('unknown username is refused the same way',
+  () => w(fns.signIn)({ username: 'nobody', accessKey: 'first-key-99' }, ip('1.1.1.3')), 'permission-denied');
+await refused('the owner cannot use the staff door',
+  () => w(fns.signIn)({ username: 'owner', accessKey: 'a-long-password' }, ip('1.1.1.4')), 'failed-precondition');
+
+console.log('\nchanging the key');
+await ok('the user replaces their issued key',
+  () => w(fns.changeMyKey)({ current: 'first-key-99', next: 'my-own-key-77' }, userCtx(rahul.uid)));
+await refused('the old key stops working',
+  () => w(fns.signIn)({ username: 'rahul', accessKey: 'first-key-99' }, ip('1.1.1.5')), 'permission-denied');
+await ok('the new key works',
+  async () => { const r = await w(fns.signIn)({ username: 'rahul', accessKey: 'my-own-key-77' }, ip('1.1.1.6'));
+                return { role: r.role, mustChangeKey: r.mustChangeKey }; });
+await refused('cannot change it without the current one',
+  () => w(fns.changeMyKey)({ current: 'guessing', next: 'another-key-88' }, userCtx(rahul.uid)), 'permission-denied');
+
+console.log('\nsuspending and restoring');
+await ok('the owner suspends the account', () => w(fns.updateUser)({ username: 'rahul', status: 'suspended' }, OWNER));
+await refused('a suspended account cannot sign in',
+  () => w(fns.signIn)({ username: 'rahul', accessKey: 'my-own-key-77' }, ip('1.1.1.7')), 'permission-denied');
+await ok('the owner restores it', () => w(fns.updateUser)({ username: 'rahul', status: 'active' }, OWNER));
+await ok('and they can sign in again',
+  async () => { const r = await w(fns.signIn)({ username: 'rahul', accessKey: 'my-own-key-77' }, ip('1.1.1.8'));
+                return { role: r.role }; });
+
+console.log('\nresetting a forgotten key');
+await ok('the owner issues a new key', () => w(fns.resetAccessKey)({ username: 'rahul', accessKey: 'owner-reset-55' }, OWNER));
+await ok('the reset key works and asks to be changed',
+  async () => { const r = await w(fns.signIn)({ username: 'rahul', accessKey: 'owner-reset-55' }, ip('1.1.1.9'));
+                if (!r.mustChangeKey) throw new Error('should ask for a new key');
+                return { mustChangeKey: r.mustChangeKey }; });
+
+console.log('\nsession');
+await ok('me() describes the owner', async () => {
+  const r = await w(fns.me)({}, OWNER);
+  return { role: r.role, isOwner: r.isOwner };
+});
+await ok('me() describes a user', async () => {
+  const r = await w(fns.me)({}, userCtx(rahul.uid));
+  return { role: r.role, isOwner: r.isOwner, canReceive: r.perms.receive };
+});
+
+console.log('\ndeleting');
+await ok('the owner deletes the account', () => w(fns.deleteUser)({ username: 'rahul' }, OWNER));
+await refused('the deleted account cannot sign in',
+  () => w(fns.signIn)({ username: 'rahul', accessKey: 'owner-reset-55' }, ip('1.1.2.1')), 'permission-denied');
+await refused('the owner account cannot be deleted',
+  () => w(fns.deleteUser)({ username: 'owner' }, OWNER), 'failed-precondition');
+
+ftest.cleanup();
+console.log('');
+if (fails.length) {
+  console.log(`FAILED ${fails.length} of ${pass + fails.length}`);
+  fails.forEach(f => console.log('  - ' + f));
+  process.exit(1);
+}
+console.log(`All ${pass} auth-flow tests passed.`);
+process.exit(0);

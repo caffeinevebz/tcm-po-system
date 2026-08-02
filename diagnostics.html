@@ -237,33 +237,33 @@
       return;
     }
 
-    // 5 — are the auth functions deployed?
+    // 5 — are the account functions deployed?
     // A deliberately malformed request is sent. "invalid-argument" is the
-    // SUCCESS signal: it proves the function exists and validated the input.
-    // It is also cheap — it returns before touching the login throttle.
+    // SUCCESS signal: it proves the function exists and validated the input,
+    // and it is cheap because it returns before touching the sign-in throttle.
     try {
-      await firebase.functions().httpsCallable('pinSignIn')({ phone: '', pin: '' });
-      add('warn', 'Login service answered oddly', 'pinSignIn accepted an empty request.');
+      await firebase.functions().httpsCallable('signIn')({ username: '', accessKey: '' });
+      add('warn', 'Sign-in service answered oddly', 'It accepted an empty request.');
     } catch (err) {
       var code = err && err.code ? String(err.code) : '';
       if (code.indexOf('invalid-argument') > -1) {
-        add('pass', 'Login service is deployed', 'pinSignIn responded: ' + code);
+        add('pass', 'Sign-in service is deployed', 'signIn responded: ' + code);
       } else if (code.indexOf('not-found') > -1 || code.indexOf('internal') > -1 || code.indexOf('unimplemented') > -1) {
-        add('fail', 'Login functions are NOT deployed', 'pinSignIn responded: ' + (code || err.message),
-          'This is the usual reason nobody can sign in. From the project folder:<br>' +
+        add('fail', 'Account functions are NOT deployed', 'signIn responded: ' + (code || err.message),
+          'Nobody can sign in until these exist. From the project folder:<br>' +
           '<code>cd functions &amp;&amp; npm install</code><br>' +
           '<code>npm run deploy:auth</code><br>' +
-          'The first deploy asks for your owner mobile number. See SETUP.md.');
-      } else if (code.indexOf('unauthenticated') > -1) {
-        add('fail', 'Login service rejected the call as unauthenticated', err.message,
-          'If you enabled App Check, register this site as an approved app.');
+          'The first deploy asks for your owner email. See SETUP.md.');
       } else {
-        add('warn', 'Could not confirm the login service', (code || '') + ' ' + (err.message || ''),
+        add('warn', 'Could not confirm the sign-in service', (code || '') + ' ' + (err.message || ''),
           'Check the functions are deployed in region <code>' + CFG.region + '</code>.');
       }
     }
 
-    // 5b — is this site's domain authorised for sign-in?
+    // 5b — is Email/Password sign-in switched on?
+    // That is the only provider this app needs: users are minted server-side and
+    // hold no provider credential of their own. There is no phone provider, no
+    // SMS region policy and no reCAPTCHA to configure any more.
     try {
       var cfgRes = await fetchWithTimeout('https://identitytoolkit.googleapis.com/v1/projects?key=' +
         encodeURIComponent(FIREBASE_API_KEY), {}, 12000);
@@ -281,47 +281,10 @@
       add('warn', 'Could not read the authorised domain list', e.message || String(e));
     }
 
-    // 5c — will Firebase actually send an SMS?
-    //
-    // A verification request is sent with a deliberately invalid captcha token.
-    // No SMS can result from it: the request is rejected long before delivery.
-    // What matters is WHICH rejection comes back, because the checks happen in a
-    // fixed order — the provider and the SMS region policy are both evaluated
-    // before the captcha is. So a captcha complaint is the success signal.
-    try {
-      var smsRes = await fetchWithTimeout(
-        'https://identitytoolkit.googleapis.com/v1/accounts:sendVerificationCode?key=' +
-        encodeURIComponent(FIREBASE_API_KEY), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phoneNumber: '+919000000001', recaptchaToken: 'diagnostics-probe' })
-        }, 15000);
-      var smsBody = await smsRes.json();
-      var smsMsg = (smsBody && smsBody.error && smsBody.error.message) || '';
-
-      if (/region/i.test(smsMsg)) {
-        add('fail', 'SMS is blocked for this country',
-          smsMsg,
-          'Phone sign-in is on, but the region allowlist is refusing the message.<br>' +
-          'Firebase console \u2192 <b>Authentication \u2192 Settings \u2192 SMS region policy</b> \u2192 ' +
-          'allow <b>India (IN)</b>, then Save. Takes effect within a minute.');
-      } else if (/OPERATION_NOT_ALLOWED/.test(smsMsg)) {
-        add('fail', 'Phone sign-in is switched off', smsMsg,
-          'Firebase console \u2192 <b>Authentication \u2192 Sign-in method \u2192 Phone</b> \u2192 Enable \u2192 Save.');
-      } else if (/CAPTCHA|APP_CREDENTIAL|RECAPTCHA/i.test(smsMsg)) {
-        add('pass', 'Phone sign-in is enabled and this region is allowed',
-          'Rejected only at the captcha step, which is expected for this probe.');
-      } else if (/BILLING|QUOTA/i.test(smsMsg)) {
-        add('fail', 'SMS quota or billing problem', smsMsg,
-          'Check <b>Authentication \u2192 Usage</b> and that the project is on the Blaze plan.');
-      } else if (smsMsg) {
-        add('warn', 'Unexpected response from the SMS service', smsMsg);
-      } else {
-        add('warn', 'SMS probe returned no error', 'Unexpected, but not necessarily a problem.');
-      }
-    } catch (e) {
-      add('warn', 'Could not reach the SMS service', e.message || String(e));
-    }
+    add('warn', 'Confirm Email/Password sign-in is on (one-time check)',
+      'Firebase console \u2192 Authentication \u2192 Sign-in method \u2192 Email/Password \u2192 Enable.',
+      'This is the only provider the app needs \u2014 it is how the owner signs in. ' +
+      'Staff accounts are created by the owner and need no provider at all.');
 
     // 6 — are the Firestore rules published?
     // Unauthenticated reads MUST be denied. Success here means the database is

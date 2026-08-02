@@ -203,19 +203,10 @@
                     setRecipes(recData.sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''))));
                 }, onError('the recipe book'));
 
-                // Own team record. The rules allow reading only the document
-                // whose uid matches the caller, so this cannot enumerate staff.
-                const user = TCM.auth.currentUser;
-                if (user) {
-                    const key = TCM.phoneKey(user.phoneNumber || '');
-                    if (key) {
-                        db.collection('staffMembers').doc(key).get()
-                            .then(d => { if (d.exists) setMe({ name: d.data().name || '', uid: user.uid }); })
-                            .catch(() => setMe({ name: '', uid: user.uid }));
-                    } else {
-                        setMe({ name: '', uid: user.uid });
-                    }
-                }
+                // Identity comes from the verified session rather than a
+                // separate lookup.
+                const s = TCM.session();
+                setMe({ name: s.name || '', uid: TCM.auth.currentUser ? TCM.auth.currentUser.uid : '' });
 
                 return () => { unsubSettings(); unsubReqs(); unsubPOs(); unsubRecipes(); };
             }, []);
@@ -620,7 +611,10 @@
         // 'staff' is the minimum role; TCM.guard also admits an owner, so the
         // owner can use the staff terminal without a second PIN. A visitor with
         // no session is redirected to the login page and this never runs.
-        TCM.guard('staff').then(() => {
+        // Any account the owner gave a shop-floor permission to. Each action
+        // inside is separately gated by the Firestore rules, so a person who
+        // only holds "read the recipe book" simply finds nothing else works.
+        TCM.guard(['requests', 'receive', 'recipesView']).then((session) => {
             document.getElementById('auth-gate').remove();
             const rootEl = document.getElementById('root');
             rootEl.hidden = false;

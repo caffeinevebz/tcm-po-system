@@ -208,27 +208,35 @@ test('rejects an obviously bad number', () =>
   assert.equal(TCM.isPlausiblePhone('123'), false));
 
 
-// --- PIN rules --------------------------------------------------------------
-// These must agree exactly with isValidPin() in functions/index.js, or the page
-// will accept a PIN the server then refuses (or nag about one it would accept).
-console.log('\nPIN rules');
+// --- access keys and usernames ----------------------------------------------
+// These mirror keyProblem() and usernameProblem() in functions/index.js. If the
+// two drift, the owner's form accepts something the server then refuses.
+console.log('\naccess keys');
 
-const rejects = ['1234','0000','1111','123456','654321','9876','4321','7890','012','123456789','12a4',''];
-const accepts = ['2580','1122','170117','2468','1357','0101','8901','1379','1990','000111','112233','481902'];
+test('rejects weak keys', () => {
+  ['', 'abc', '12345', 'aaaaaa', '123456', '654321', 'password', 'qwerty']
+    .forEach(k => assert.ok(TCM.keyProblem(k), 'should reject: ' + JSON.stringify(k)));
+});
+test('accepts reasonable keys', () => {
+  ['BrewOps24!', 'K7M-QP2-XRT', 'coffee-bean-42', 'Rahul2026']
+    .forEach(k => assert.equal(TCM.keyProblem(k), null, 'should accept: ' + k));
+});
+test('says what is wrong', () => {
+  assert.match(TCM.keyProblem('abc'), /6 characters/i);
+  assert.match(TCM.keyProblem('aaaaaa'), /repeated/i);
+});
 
-test('rejects the obvious ones', () => {
-  const wrong = rejects.filter(p => TCM.pinProblem(p) === null);
-  assert.deepEqual(wrong, [], 'these should have been rejected: ' + wrong.join(', '));
+console.log('\nusernames');
+test('rejects bad usernames', () => {
+  ['ab', 'owner', 'admin', 'has space', 'UPPER CASE!', '']
+    .forEach(u => assert.ok(TCM.usernameProblem(u), 'should reject: ' + JSON.stringify(u)));
 });
-test('accepts ordinary ones', () => {
-  const wrong = accepts.filter(p => TCM.pinProblem(p) !== null);
-  assert.deepEqual(wrong, [], 'these should have been accepted: ' + wrong.join(', '));
+test('accepts ordinary usernames', () => {
+  ['rahul', 'priya.k', 'bar_staff', 'kitchen-2']
+    .forEach(u => assert.equal(TCM.usernameProblem(u), null, 'should accept: ' + u));
 });
-test('explains why, rather than just failing', () => {
-  assert.match(TCM.pinProblem('1111'), /same/i);
-  assert.match(TCM.pinProblem('1234'), /run/i);
-  assert.match(TCM.pinProblem('12'), /4 to 8/i);
-});
+test('is case-insensitive, like the server', () =>
+  assert.equal(TCM.usernameProblem('Rahul'), null));
 
 // --- summary ----------------------------------------------------------------
 console.log('');
