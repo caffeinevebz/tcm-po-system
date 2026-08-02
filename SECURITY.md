@@ -37,17 +37,27 @@ repository. Treat both as public knowledge. Neither is used any more.
 
 | | How they are identified | How they are added |
 |---|---|---|
-| **Owner** | The number in `OWNER_PHONE`, set at deploy time | Cannot be added, changed or granted from inside the app |
+| **Owner** | The number in `OWNER_PHONE`, or the address in `OWNER_EMAIL`, both set at deploy time | Cannot be added, changed or granted from inside the app |
 | **Staff** | Their own mobile number | Invite-only — the owner adds the number first |
 | **Everyone else** | — | Refused, even with a valid SMS code |
 
 Sign-in is two-stage by design:
 
-- **First time, new device, or forgotten PIN** → mobile number + SMS one-time
-  code. Firebase Phone Authentication sends the message and runs the anti-abuse
+- **First time or a new device** → mobile number + SMS one-time code, or for the
+  owner an emailed sign-in link. Firebase handles delivery and the anti-abuse
   checks; this app never sees or stores a code.
-- **Every day after that** → mobile number + a PIN the person chose themselves.
-  No SMS, no cost, no waiting.
+- **Every day after that** → a PIN the person chose themselves. No SMS, no cost,
+  no waiting.
+
+The Firebase session persists on the device. After 30 minutes idle the app
+**locks** rather than signing out: the session is kept, but the PIN is demanded
+again and is re-checked by `pinSignIn` on the server — so a shared tablet cannot
+be picked up and used, and nobody has to wait for an SMS to resume. A full sign
+out discards the session, and coming back then needs a one-time code.
+
+An email address only counts as the owner when Firebase reports it verified,
+which it is after an email-link sign-in. A stranger with any other verified email
+is refused.
 
 PINs are stored as **scrypt hashes** (N=16384) in `_staffSecrets`, a collection
 no client can read — not staff, not the owner. Verification happens only inside

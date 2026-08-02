@@ -47,6 +47,13 @@ const OWNER_PHONE = defineString('OWNER_PHONE', {
   description: 'Owner mobile number in international format, e.g. +919876543210'
 });
 
+// Optional second way for the owner to sign in. Useful when travelling without
+// the SIM, or when SMS is failing. Leave blank to disable email sign-in.
+const OWNER_EMAIL = defineString('OWNER_EMAIL', {
+  default: '',
+  description: 'Optional owner email for passwordless sign-in. Leave blank to disable.'
+});
+
 const TEAM = 'staffMembers';       // keyed by phoneKey, readable by the owner
 const SECRETS = '_staffSecrets';   // PIN hashes, keyed by uid; no client access
 const THROTTLE = '_authThrottle';
@@ -75,6 +82,28 @@ function samePhone(a, b) {
 function isOwnerPhone(phone) {
   const configured = OWNER_PHONE.value();
   return !!configured && samePhone(phone, configured);
+}
+
+function isOwnerEmail(email) {
+  const configured = (OWNER_EMAIL.value() || '').trim().toLowerCase();
+  return !!configured && String(email || '').trim().toLowerCase() === configured;
+}
+
+/**
+ * Is this caller the owner? Either verified identifier will do.
+ * Email only counts when Firebase has actually verified it, which it has after
+ * an email-link sign-in.
+ */
+function callerIsOwner(context) {
+  const tok = (context.auth && context.auth.token) || {};
+  if (isOwnerPhone(tok.phone_number)) return true;
+  return !!tok.email_verified && isOwnerEmail(tok.email);
+}
+
+/** Does this account already have a PIN stored? */
+async function hasPinFor(uid) {
+  const snap = await db.collection(SECRETS).doc(uid).get();
+  return snap.exists && !!snap.data().pinHash;
 }
 
 // --- PIN hashing ------------------------------------------------------------
@@ -241,17 +270,26 @@ exports.claimRole = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
   .https.onCall(async (data, context) => {
     const uid = requireSignedIn(context);
     const phone = callerPhone(context);
+    const email = (context.auth.token && context.auth.token.email) || '';
+
+    // --- the owner ---------------------------------------------------------
+    // Either verified identifier gets you in: the configured mobile number, or
+    // the configured email after a passwordless email-link sign-in.
+    if (callerIsOwner(context)) {
+      await admin.auth().setCustomUserClaims(uid, { role: 'owner' });
+      const hasPin = await hasPinFor(uid);
+      functions.logger.info('owner signed in', { uid, via: isOwnerPhone(phone) ? 'phone' : 'email' });
+      // hasPin drives whether the app asks them to choose one. Omitting it — as
+      // this branch used to — made the owner set a PIN over and over and never
+      // offered them the PIN sign-in path.
+      return { role: 'owner', status: 'active', hasPin, name: 'Owner' };
+    }
 
     if (!phone) {
       throw new functions.https.HttpsError('failed-precondition',
-        'This account has no verified mobile number.');
-    }
-
-    // --- the owner ---------------------------------------------------------
-    if (isOwnerPhone(phone)) {
-      await admin.auth().setCustomUserClaims(uid, { role: 'owner' });
-      functions.logger.info('owner signed in', { uid });
-      return { role: 'owner', status: 'active' };
+        email
+          ? 'That email address does not have access.'
+          : 'This account has no verified mobile number.');
     }
 
     if (!OWNER_PHONE.value()) {
@@ -279,9 +317,6 @@ exports.claimRole = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
         'This account has been removed. Speak to the owner.');
     }
 
-    // First registration against the invite, or a returning member on a new
-    // device (Firebase issues the same uid for the same number, but re-binding
-    // is harmless and keeps the record correct).
     await ref.set({
       uid,
       status: 'active',
@@ -292,14 +327,39 @@ exports.claimRole = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
 
     await admin.auth().setCustomUserClaims(uid, { role: 'staff' });
 
+    // Read the real answer rather than trusting the cached flag on the team
+    // document, which can drift if a PIN was cleared.
+    const hasPin = await hasPinFor(uid);
+
     functions.logger.info('staff signed in', { uid, key, firstTime: member.status === 'invited' });
     return {
       role: 'staff',
       status: 'active',
       name: member.name || '',
-      hasPin: !!member.hasPin,
+      hasPin,
       isNew: member.status === 'invited'
     };
+  });
+
+// =============================================================================
+// sessionState — what should the app show this already-signed-in person?
+// Lets a returning user be met with an unlock prompt instead of a fresh sign-in.
+// =============================================================================
+exports.sessionState = functions.runWith({ memory: '256MB', timeoutSeconds: 20 })
+  .https.onCall(async (data, context) => {
+    const uid = requireSignedIn(context);
+    const role = context.auth.token.role;
+
+    if (role !== 'owner' && role !== 'staff') {
+      return { role: null, hasPin: false };
+    }
+
+    let name = 'Owner';
+    if (role === 'staff') {
+      const snap = await db.collection(TEAM).doc(phoneKey(callerPhone(context))).get();
+      name = (snap.exists && snap.data().name) || '';
+    }
+    return { role, name, hasPin: await hasPinFor(uid) };
   });
 
 // =============================================================================
@@ -330,7 +390,7 @@ exports.setPin = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
       updatedAt: stamp()
     });
 
-    if (role === 'staff') {
+    if (role === 'staff' && phoneKey(phone)) {
       await db.collection(TEAM).doc(phoneKey(phone))
         .set({ hasPin: true, updatedAt: stamp() }, { merge: true });
     }
@@ -344,30 +404,36 @@ exports.setPin = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
 // =============================================================================
 exports.pinSignIn = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
   .https.onCall(async (data, context) => {
-    const phone = typeof data?.phone === 'string' ? data.phone.trim() : '';
     const pin = typeof data?.pin === 'string' ? data.pin.trim() : '';
+    const phone = typeof data?.phone === 'string' ? data.phone.trim() : '';
+    const email = typeof data?.email === 'string' ? data.email.trim().toLowerCase() : '';
     const key = phoneKey(phone);
 
-    if (key.length < 10 || !/^\d{4,8}$/.test(pin)) {
-      throw new functions.https.HttpsError('invalid-argument', 'Check the number and PIN.');
+    // Either identifier is acceptable: staff always use their number, and the
+    // owner may have arrived by email and have no number on the account.
+    const byEmail = !key && !!email;
+    if ((!byEmail && key.length < 10) || !/^\d{4,8}$/.test(pin)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Check the details and PIN.');
     }
 
-    // Throttle on (address + number) so one attacker cannot spray many numbers,
-    // and one number cannot be ground down from many addresses.
-    const state = await checkThrottle(throttleId([clientIp(context), key]));
+    // Throttle on (address + identifier) so one attacker cannot spray many
+    // accounts, and one account cannot be ground down from many addresses.
+    const state = await checkThrottle(throttleId([clientIp(context), byEmail ? email : key]));
     if (!state.allowed) {
       throw new functions.https.HttpsError('resource-exhausted',
         `Too many attempts. Try again in ${Math.ceil(state.retryAfterSec / 60)} minute(s).`);
     }
 
-    // Same message whether the number is unknown or the PIN is wrong, so this
-    // cannot be used to discover who works here.
-    const deny = () => new functions.https.HttpsError('permission-denied', 'Number or PIN is wrong.');
+    // The same message whether the account is unknown or the PIN is wrong, so
+    // this cannot be used to discover who works here.
+    const deny = () => new functions.https.HttpsError('permission-denied',
+      byEmail ? 'Email or PIN is wrong.' : 'Number or PIN is wrong.');
 
     let user;
     try {
-      user = await admin.auth().getUserByPhoneNumber(
-        phone.startsWith('+') ? phone : '+91' + key);
+      user = byEmail
+        ? await admin.auth().getUserByEmail(email)
+        : await admin.auth().getUserByPhoneNumber(phone.startsWith('+') ? phone : '+91' + key);
     } catch (_) {
       await recordFailure(state);
       throw deny();
@@ -377,7 +443,7 @@ exports.pinSignIn = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
     if (!secretSnap.exists) {
       await recordFailure(state);
       throw new functions.https.HttpsError('failed-precondition',
-        'No PIN set for this number yet. Sign in with an SMS code first.');
+        'No PIN set for this account yet. Sign in with a one-time code first.');
     }
 
     if (!await pinMatches(pin, secretSnap.data().pinHash)) {
@@ -386,12 +452,12 @@ exports.pinSignIn = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
     }
 
     // Re-derive the role from current state; never trust a stale claim. This is
-    // what makes revoking someone take effect on their next sign-in.
+    // what makes removing someone take effect on their next sign-in.
     let role = null;
-    if (isOwnerPhone(user.phoneNumber)) {
+    if (isOwnerPhone(user.phoneNumber) || isOwnerEmail(user.email)) {
       role = 'owner';
-    } else {
-      const memberSnap = await db.collection(TEAM).doc(key).get();
+    } else if (user.phoneNumber) {
+      const memberSnap = await db.collection(TEAM).doc(phoneKey(user.phoneNumber)).get();
       if (memberSnap.exists && memberSnap.data().status === 'active') role = 'staff';
     }
 
@@ -405,11 +471,11 @@ exports.pinSignIn = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
     await clearThrottle(state);
 
     if (role === 'staff') {
-      await db.collection(TEAM).doc(key).set({ lastSeenAt: stamp() }, { merge: true });
+      await db.collection(TEAM).doc(phoneKey(user.phoneNumber)).set({ lastSeenAt: stamp() }, { merge: true });
     }
 
     const token = await admin.auth().createCustomToken(user.uid, { role });
-    functions.logger.info('pin sign-in', { uid: user.uid, role });
+    functions.logger.info('pin sign-in', { uid: user.uid, role, via: byEmail ? 'email' : 'phone' });
     return { token, role };
   });
 

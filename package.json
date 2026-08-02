@@ -10,12 +10,14 @@
     "sri:check": "node tools/sri.mjs --check",
     "images": "node tools/optimize-images.mjs",
     "deploy:rules": "firebase deploy --only firestore:rules",
-    "deploy:auth": "firebase deploy --only functions:claimRole,functions:pinSignIn,functions:setPin,functions:setStaffStatus,functions:inviteStaff",
-    "test:rules": "firebase emulators:exec --only firestore \"node tools/test-rules.mjs\""
+    "deploy:auth": "firebase deploy --only functions:claimRole,functions:pinSignIn,functions:setPin,functions:sessionState,functions:setStaffStatus,functions:inviteStaff",
+    "test:rules": "firebase emulators:exec --only firestore \"node tools/test-rules.mjs\"",
+    "test:auth": "firebase emulators:exec --only firestore,auth \"node tools/test-auth-flows.mjs\""
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
     "firebase": "^11.0.0",
+    "firebase-functions-test": "^3.3.0",
     "sharp": "^0.33.5"
   }
 }

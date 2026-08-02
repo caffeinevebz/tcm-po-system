@@ -15,7 +15,12 @@ You need the Google account that owns the `tcm-orders` Firebase project.
   first. Only a number on that list can register — a stranger who enters their
   own number is refused even with a valid SMS code.
 - Everyone signs in the **first time** with an SMS code, then picks their own
-  **PIN**. After that it is just number + PIN, with no SMS and no waiting.
+  **PIN**. **That is the only SMS they will ever need** on that device.
+- The sign-in then stays on the device. After 30 minutes idle the app *locks*
+  rather than signing out, so getting back in is just the PIN — never another
+  code. A code is needed again only on a new device, or if the PIN is forgotten.
+- The owner can also sign in with **email** instead of SMS, which is useful when
+  travelling without the SIM or if SMS is failing.
 
 The old shared PINs are gone. Nothing about who can get in is stored in the web
 page any more.
@@ -39,6 +44,8 @@ sends only a handful of messages a month.
    opened it.
 3. Open the **Sign-in method** tab, click **Phone**, turn it **Enable** on, and
    **Save**.
+   Optional: also enable **Email/Password** and tick **Email link (passwordless
+   sign-in)** inside it, if you want the owner email option.
 4. **Settings → SMS region policy** → allow **India (IN)**, then Save.
 
    > **Do not skip this one.** Enabling Phone sign-in does *not* allow any
@@ -86,6 +93,9 @@ Enter a value for OWNER_PHONE:
 
 Type **your** mobile number in international form — `+919876543210` — and press
 Enter. This is the number that gets owner access. Nobody else can claim it.
+
+It then asks for `OWNER_EMAIL`. Type your email if you want the email sign-in
+option, or just press Enter to leave it blank and disable it.
 
 Wait for **`Deploy complete!`** (two or three minutes).
 
@@ -185,7 +195,13 @@ under **Authentication → Usage**.
 
 **"Number or PIN is wrong" but the PIN is right**
 PINs are per person. If you cleared browser data or switched devices, tap
-*Forgot PIN? Use SMS code* and set it again.
+*Forgot PIN? Use a one-time code* and set it again.
+
+**It keeps asking for an SMS code every time**
+That was a bug, now fixed: the owner's account never reported that a PIN had
+been set, so the app pushed it back through PIN setup instead of offering the
+PIN. Deploy the current version. If a device still asks, tap
+*Already set a PIN? Use it instead* on the code screen.
 
 **"Too many attempts"**
 The lockout after 8 wrong PINs. Wait 15 minutes, or sign in with an SMS code.
