@@ -207,6 +207,29 @@ test('leaves an already-international number alone', () =>
 test('rejects an obviously bad number', () =>
   assert.equal(TCM.isPlausiblePhone('123'), false));
 
+
+// --- PIN rules --------------------------------------------------------------
+// These must agree exactly with isValidPin() in functions/index.js, or the page
+// will accept a PIN the server then refuses (or nag about one it would accept).
+console.log('\nPIN rules');
+
+const rejects = ['1234','0000','1111','123456','654321','9876','4321','7890','012','123456789','12a4',''];
+const accepts = ['2580','1122','170117','2468','1357','0101','8901','1379','1990','000111','112233','481902'];
+
+test('rejects the obvious ones', () => {
+  const wrong = rejects.filter(p => TCM.pinProblem(p) === null);
+  assert.deepEqual(wrong, [], 'these should have been rejected: ' + wrong.join(', '));
+});
+test('accepts ordinary ones', () => {
+  const wrong = accepts.filter(p => TCM.pinProblem(p) !== null);
+  assert.deepEqual(wrong, [], 'these should have been accepted: ' + wrong.join(', '));
+});
+test('explains why, rather than just failing', () => {
+  assert.match(TCM.pinProblem('1111'), /same/i);
+  assert.match(TCM.pinProblem('1234'), /run/i);
+  assert.match(TCM.pinProblem('12'), /4 to 8/i);
+});
+
 // --- summary ----------------------------------------------------------------
 console.log('');
 if (failures.length) {

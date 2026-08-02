@@ -203,6 +203,17 @@ been set, so the app pushed it back through PIN setup instead of offering the
 PIN. Deploy the current version. If a device still asks, tap
 *Already set a PIN? Use it instead* on the code screen.
 
+**Cannot set a PIN — "Choose 4 to 8 digits…"**
+The PIN is being refused because it is too guessable. Rejected: all the same
+digit (`1111`, `0000`) and runs in either direction (`1234`, `123456`, `7890`,
+`4321`, `9876`). The sign-in screen now tells you as you type, rather than after
+you enter it twice.
+
+**Cannot set a PIN — "Your session is out of date"**
+The browser was holding a sign-in token issued a moment before your access was
+recorded. The app now refreshes and retries automatically, so this should not
+appear. If it does, sign out and in once.
+
 **"Too many attempts"**
 The lockout after 8 wrong PINs. Wait 15 minutes, or sign in with an SMS code.
 
