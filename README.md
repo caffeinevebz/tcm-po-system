@@ -6,9 +6,11 @@ Purchase orders, raw-material inventory, recipe management and food costing for
 Two terminals — an owner command centre and a staff terminal — backed by
 Firebase (Firestore + Cloud Functions).
 
-**Signing in:** the owner is one fixed mobile number. Staff are invite-only —
-the owner adds a number, that person registers with an SMS code, then sets their
-own PIN. Day to day it is just number + PIN, no SMS.
+**Signing in:** the owner is one fixed mobile number (optionally also an email).
+Staff are invite-only — the owner adds a number, that person registers with a
+one-time SMS code, then sets their own PIN. That is the only code they ever need
+on that device: the session persists, and after 30 minutes idle the app *locks*
+rather than signing out, so returning is just the PIN.
 
 > **First time, or seeing "Login service not set up yet"?**
 > Follow **[SETUP.md](SETUP.md)** — a ten-minute, browser-only walkthrough.
@@ -73,6 +75,7 @@ uploaded.
 └── tools/
     ├── test-costing.mjs    Unit tests for the costing engine
     ├── test-rules.mjs      Security tests for firestore.rules
+    ├── test-auth-flows.mjs Sign-in journeys against the emulators
     ├── sri.mjs             Regenerate/verify CDN integrity hashes
     └── optimize-images.mjs Rebuild the assets/ image derivatives
 ```
@@ -147,6 +150,7 @@ Run the tests for the engine:
 ```bash
 npm test            # costing, unit conversion, id allocation  (23 tests)
 npm run test:rules  # firestore.rules access boundary         (40 tests, needs Java)
+npm run test:auth   # sign-in journeys against the emulators  (needs Java)
 ```
 
 ---
