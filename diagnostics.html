@@ -43,6 +43,7 @@
   <div id="summary" class="warn">Running checks…</div>
   <div id="results"></div>
   <button onclick="location.reload()">Run again</button>
+  <button id="swclear" style="background:#6b6154">Clear cached app &amp; reload</button>
   <p style="margin-top:22px;font-size:13px;">
     Setup instructions are in <a href="SECURITY.md">SECURITY.md</a>.
   </p>
@@ -339,14 +340,47 @@
       }
     }
 
-    // 7 — a stale service worker can pin an old copy of the app
+    // 7 — offline cache
+    //
+    // A service worker being installed is NORMAL — the app registers one on
+    // purpose so it keeps working on bad shop wifi. What actually matters is
+    // whether the cache it holds is the CURRENT one, so this compares the
+    // version baked into the live sw.js against the caches on the device.
     if ('serviceWorker' in navigator) {
       try {
         var regs = await navigator.serviceWorker.getRegistrations();
-        if (!regs.length) add('pass', 'No stale service worker');
-        else add('warn', 'A service worker is installed', regs.length + ' registration(s)',
-          'If the app looks like an old version, click below to clear it, then reload. ' +
-          '<button id="swclear" style="margin:8px 0 0">Clear cached app</button>');
+
+        if (!regs.length) {
+          add('pass', 'No offline cache yet', 'One is created after you sign in.');
+        } else {
+          var expected = '';
+          try {
+            var swSrc = await (await fetch('sw.js', { cache: 'no-store' })).text();
+            var m = /CACHE_NAME\s*=\s*['\"]([^'\"]+)['\"]/.exec(swSrc);
+            expected = m ? m[1] : '';
+          } catch (_) { /* fall through to the generic answer below */ }
+
+          var keys = window.caches ? await caches.keys() : [];
+          var mine = keys.filter(function (k) { return k.indexOf('tcm-po') === 0; });
+          var oldOnes = mine.filter(function (k) { return k !== expected; });
+
+          if (!expected) {
+            add('warn', 'Could not read the current app version', 'sw.js was not readable.',
+              'Not serious on its own. If the app looks out of date, use the button at the bottom.');
+          } else if (mine.length === 0) {
+            add('pass', 'Offline cache is empty', 'Nothing stale can be served.');
+          } else if (mine.indexOf(expected) > -1 && oldOnes.length === 0) {
+            add('pass', 'Offline cache is up to date', expected);
+          } else if (mine.indexOf(expected) > -1) {
+            add('pass', 'Offline cache is up to date', expected +
+              ' — ' + oldOnes.length + ' older cache(s) will be removed automatically.');
+          } else {
+            add('fail', 'The app is being served from an OLD offline cache',
+              'device has: ' + mine.join(', ') + '  |  current: ' + expected,
+              'This is why a page can look unchanged after a deploy. ' +
+              'Use <b>Clear cached app &amp; reload</b> at the bottom of this page.');
+          }
+        }
       } catch (e3) { /* not fatal */ }
     }
 
@@ -374,19 +408,32 @@
       summary.textContent = 'Everything checks out — the app should work. If you still cannot sign in, the PIN itself is wrong.';
     }
 
-    var btn = document.getElementById('swclear');
-    if (btn) {
-      btn.onclick = async function () {
-        var regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map(function (r) { return r.unregister(); }));
+  }
+
+  // Wired immediately, not from finish(): this is the escape hatch for a page
+  // that is stuck, so it must not depend on the checks having completed.
+  var clearBtn = document.getElementById('swclear');
+  if (clearBtn) {
+    clearBtn.onclick = async function () {
+      clearBtn.disabled = true;
+      clearBtn.textContent = 'Clearing…';
+      try {
+        if ('serviceWorker' in navigator) {
+          var regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(function (r) { return r.unregister(); }));
+        }
         if (window.caches) {
           var keys = await caches.keys();
           await Promise.all(keys.map(function (k) { return caches.delete(k); }));
         }
-        btn.textContent = 'Cleared — reloading…';
-        setTimeout(function () { location.reload(); }, 700);
-      };
-    }
+        clearBtn.textContent = 'Cleared — reloading…';
+      } catch (e) {
+        clearBtn.textContent = 'Could not clear: ' + (e.message || e);
+        clearBtn.disabled = false;
+        return;
+      }
+      setTimeout(function () { location.reload(true); }, 700);
+    };
   }
 })();
 </script>
