@@ -371,14 +371,18 @@ exports.setPin = functions.runWith({ memory: '256MB', timeoutSeconds: 30 })
     const role = context.auth.token.role;
 
     if (role !== 'owner' && role !== 'staff') {
+      // Usually means the ID token predates the role claim rather than anything
+      // being wrong with the account. The client retries once via claimRole;
+      // the wording tells a human what to do if the retry also fails.
       throw new functions.https.HttpsError('permission-denied',
-        'Your account is not active.');
+        'Your session is out of date. Sign in again, then set your PIN.');
     }
 
     const pin = typeof data?.pin === 'string' ? data.pin.trim() : '';
     if (!isValidPin(pin)) {
       throw new functions.https.HttpsError('invalid-argument',
-        'Choose 4-8 digits, not all the same and not a run like 1234.');
+        'Choose 4 to 8 digits. Not all the same digit, and not a run like 1234, ' +
+        '4321, 7890 or 9876.');
     }
 
     const phone = callerPhone(context);

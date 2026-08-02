@@ -166,8 +166,11 @@
                 <!-- ===== choose a PIN ===== -->
                 <form id="stepNewPin" autocomplete="off" novalidate hidden>
                     <p class="text-center text-[11px] font-bold text-vintageGreen tracking-wide mb-1">Verified ✓</p>
-                    <p class="text-center text-[11px] text-victorian/70 leading-relaxed mb-4">
+                    <p class="text-center text-[11px] text-victorian/70 leading-relaxed mb-3">
                         Choose a PIN. From now on this is all you need — no more codes by SMS.
+                    </p>
+                    <p class="text-center text-[10px] text-victorian/50 leading-relaxed mb-4">
+                        4&ndash;8 digits. Not all the same, and not a run like 1234 or 9876.
                     </p>
                     <label for="newPinInput" class="sr-only">New PIN</label>
                     <input type="password" id="newPinInput" required inputmode="numeric" maxlength="8"
@@ -177,6 +180,7 @@
                     <input type="password" id="newPinConfirm" required inputmode="numeric" maxlength="8"
                            autocomplete="new-password" enterkeyhint="go" placeholder="Repeat PIN"
                            class="w-full p-3.5 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-2xl tracking-[0.4em] font-mono bg-transparent text-victorian mb-4" />
+                    <p id="pinHint" class="text-center text-[10px] font-bold uppercase tracking-wide text-danger min-h-[0.9rem] mb-2" aria-live="polite"></p>
                     <button type="submit" id="newPinBtn"
                             class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
                         Save PIN &amp; continue
@@ -459,12 +463,28 @@
         });
 
         // ------------------------------------------------------------ new PIN
+        // Tell them the rule while they type. The server applies the same rule,
+        // but finding out only after entering it twice and pressing Save is a
+        // miserable way to learn that 1234 is not allowed.
+        var newPinEl = document.getElementById('newPinInput');
+        var pinHint = document.getElementById('pinHint');
+        newPinEl.addEventListener('input', function () {
+            var v = newPinEl.value.trim();
+            pinHint.textContent = v.length >= 4 ? (TCM.pinProblem(v) || '') : '';
+        });
+
         el.stepNewPin.addEventListener('submit', function (e) {
             e.preventDefault();
             clearError();
             var a = document.getElementById('newPinInput').value.trim();
             var b = document.getElementById('newPinConfirm').value.trim();
-            if (!/^\d{4,8}$/.test(a)) return showError('Choose 4 to 8 digits');
+
+            var problem = TCM.pinProblem(a);
+            if (problem) {
+                pinHint.textContent = problem;
+                newPinEl.focus();
+                return showError(problem);
+            }
             if (a !== b) {
                 document.getElementById('newPinConfirm').value = '';
                 document.getElementById('newPinConfirm').focus();
