@@ -112,63 +112,116 @@
         const compressImage = TCM.compressImage;
 
         /**
-         * Team & Access.
+         * Users & Access.
          *
-         * Staff are invite-only: a mobile number has to appear in this list
-         * before that person can register. Someone who verifies an uninvited
-         * number is refused by claimRole, so there is no way to self-enrol.
+         * The owner creates every account here: a username, an access key they
+         * issue, and a tick-list of what that person may open. Nobody registers
+         * themselves and there is no SMS anywhere in the flow.
+         *
+         * The same permission flags are read by firestore.rules on every
+         * request, so unticking a box refuses the write as well as hiding the
+         * button — the two cannot drift apart.
          */
-        function TeamView({ team, showToast, confirmAction }) {
-            const [name, setName] = useState('');
-            const [phone, setPhone] = useState('');
+        function UsersView({ users, showToast, confirmAction }) {
+            const blank = { username: '', name: '', role: 'staff', accessKey: '', perms: {} };
+            const [draft, setDraft] = useState(blank);
             const [busy, setBusy] = useState(false);
+            const [editing, setEditing] = useState(null);
+            const [issued, setIssued] = useState(null);
 
-            const members = (team || []).filter(m => m.role !== 'owner');
-            const waiting = members.filter(m => m.status === 'invited');
-            const active = members.filter(m => m.status === 'active');
-            const removed = members.filter(m => m.status === 'revoked');
+            const ROLE_PRESETS = {
+                staff:   { requests: true, recipesView: true, recipesAdd: true, receive: true },
+                manager: { requests: true, recipesView: true, recipesAdd: true, recipesEdit: true,
+                           receive: true, poManage: true, inventory: true, vendors: true },
+                viewer:  { recipesView: true }
+            };
 
-            const appLink = window.location.origin + window.location.pathname.replace(/owner\.html$/, 'index.html');
+            const people = (users || []).filter(u => !u.isOwner);
+            const active = people.filter(u => u.status === 'active');
+            const suspended = people.filter(u => u.status !== 'active');
 
-            const invite = async () => {
-                const digits = phone.replace(/\D/g, '');
-                if (!name.trim()) return showToast('Give them a name.', 'error');
-                if (digits.length < 10) return showToast('Enter a 10-digit mobile number.', 'error');
+            // `team` is owner-only by construction, so it is never offered here.
+            const grantable = TCM.PERMISSIONS.filter(p => p !== 'team');
 
-                setBusy(true);
+            const applyRole = (role) => setDraft(d => ({ ...d, role, perms: { ...ROLE_PRESETS[role] } }));
+
+            const suggest = async () => {
+                // Resolve first: the inner updater passed to setDraft is not an
+                // async function, so it cannot await.
                 try {
-                    await TCM.inviteStaff(digits, name.trim());
-                    showToast(`${name.trim()} can now register.`, 'success');
-                    // Send them the link over WhatsApp, the same channel POs use.
-                    const msg = `Hello ${name.trim()},\n\nYou have been added to *TCM BrewOps*.\n\nOpen ${appLink} and sign in with this mobile number. You will get a one-time code by SMS, then you can set your own PIN.\n\n— The Caffeine Ministry`;
-                    window.open('https://wa.me/' + TCM.normalizePhone(digits) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-                    setName(''); setPhone('');
+                    const key = await TCM.suggestAccessKey();
+                    setDraft(d => ({ ...d, accessKey: key }));
                 } catch (err) {
-                    showToast(err.message || 'Could not add them.', 'error');
-                } finally {
-                    setBusy(false);
+                    showToast(err.message || 'Could not generate a key.', 'error');
                 }
             };
 
-            const changeStatus = (member, status, question) => confirmAction(question, async () => {
-                try {
-                    await TCM.setStaffStatus(member.phoneKey, status);
-                    showToast('Updated.', 'success');
-                } catch (err) {
-                    showToast(err.message || 'Could not update.', 'error');
-                }
-            });
+            const create = async () => {
+                const uProblem = TCM.usernameProblem(draft.username);
+                if (uProblem) return showToast(uProblem, 'error');
+                if (!draft.name.trim()) return showToast('Give the person a name.', 'error');
+                const kProblem = TCM.keyProblem(draft.accessKey);
+                if (kProblem) return showToast(kProblem, 'error');
 
-            const Row = ({ member, children, tone }) => (
-                <div className={`flex justify-between items-center p-4 border-b border-brandBrown/10 last:border-0 ${tone || ''}`}>
-                    <div className="flex flex-col truncate pr-2">
-                        <span className="text-sm font-bold text-victorian">{member.name || 'Unnamed'}</span>
-                        <span className="text-[10px] text-gray-500 font-medium tracking-widest mt-0.5">
-                            {member.phone || ('+91 ' + (member.phoneKey || ''))}
-                            {member.hasPin && <span className="ml-2 text-vintageGreen">PIN set</span>}
-                        </span>
-                    </div>
-                    <div className="flex gap-2 shrink-0">{children}</div>
+                setBusy(true);
+                try {
+                    await TCM.createUser({
+                        username: draft.username.trim().toLowerCase(),
+                        name: draft.name.trim(),
+                        role: draft.role,
+                        perms: draft.perms,
+                        accessKey: draft.accessKey
+                    });
+                    // Shown once so the owner can pass it on; it is stored only
+                    // as a hash, so it cannot be looked up again afterwards.
+                    setIssued({ username: draft.username.trim().toLowerCase(), name: draft.name.trim(), accessKey: draft.accessKey });
+                    setDraft(blank);
+                } catch (err) {
+                    showToast(err.message || 'Could not create the account.', 'error');
+                } finally { setBusy(false); }
+            };
+
+            const savePerms = async (user, perms) => {
+                try {
+                    await TCM.updateUser({ username: user.username, perms });
+                    showToast('Access updated.', 'success');
+                } catch (err) { showToast(err.message || 'Could not update.', 'error'); }
+            };
+
+            const setStatus = (user, status) => confirmAction(
+                status === 'suspended'
+                    ? `Suspend ${user.name}? They are signed out everywhere immediately.`
+                    : `Restore access for ${user.name}?`,
+                async () => {
+                    try { await TCM.updateUser({ username: user.username, status }); showToast('Updated.', 'success'); }
+                    catch (err) { showToast(err.message || 'Could not update.', 'error'); }
+                });
+
+            const remove = (user) => confirmAction(
+                `Delete ${user.name} permanently? This cannot be undone.`,
+                async () => {
+                    try { await TCM.deleteUser(user.username); showToast('Account deleted.', 'success'); }
+                    catch (err) { showToast(err.message || 'Could not delete.', 'error'); }
+                });
+
+            const resetKey = async (user) => {
+                try {
+                    const key = await TCM.suggestAccessKey();
+                    await TCM.resetAccessKey(user.username, key);
+                    setIssued({ username: user.username, name: user.name, accessKey: key, reset: true });
+                } catch (err) { showToast(err.message || 'Could not reset the key.', 'error'); }
+            };
+
+            const PermRow = ({ user }) => (
+                <div className="mt-3 pt-3 border-t border-brandBrown/10 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                    {grantable.map(p => (
+                        <label key={p} className="flex items-center gap-2.5 cursor-pointer text-[11px] text-gray-700">
+                            <input type="checkbox" className="vintage-checkbox !w-4 !h-4"
+                                   checked={!!(user.perms || {})[p]}
+                                   onChange={(e) => savePerms(user, { ...(user.perms || {}), [p]: e.target.checked })} />
+                            {TCM.PERMISSION_LABELS[p]}
+                        </label>
+                    ))}
                 </div>
             );
 
@@ -176,93 +229,159 @@
                 <div className="animate-fade-in lg:grid lg:grid-cols-2 lg:gap-8">
                     <div className="lg:col-span-1 space-y-6">
                         <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
-                            <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-2 border-b border-brandBrown/20 pb-3">Invite a team member</h3>
+                            <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-2 border-b border-brandBrown/20 pb-3">Create an account</h3>
                             <p className="text-[11px] text-gray-600 leading-relaxed mb-5">
-                                Only a number you add here can register. They sign in with an SMS code once,
-                                then choose their own PIN.
+                                You choose the username and issue the access key. Nobody can sign themselves up.
                             </p>
 
                             <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Name</label>
-                            <input type="text" value={name} onChange={e => setName(e.target.value)}
-                                   placeholder="e.g. Rahul"
-                                   className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner mb-4 focus:ring-2 focus:ring-brandBrown/50" />
+                            <input type="text" value={draft.name} onChange={e => setDraft({ ...draft, name: e.target.value })}
+                                   placeholder="e.g. Rahul Sharma"
+                                   className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner mb-4" />
 
-                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Mobile number</label>
-                            <div className="flex items-center gap-2 mb-5">
-                                <span className="px-3 py-3 rounded-xl bg-paper border border-gray-200 text-victorian font-bold text-sm">+91</span>
-                                <input type="tel" inputMode="numeric" maxLength="14" value={phone}
-                                       onChange={e => setPhone(e.target.value)} placeholder="98765 43210"
-                                       className="flex-1 min-w-0 p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner font-mono tracking-wider focus:ring-2 focus:ring-brandBrown/50" />
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Username</label>
+                            <input type="text" value={draft.username} autoCapitalize="none" spellCheck="false"
+                                   onChange={e => setDraft({ ...draft, username: e.target.value.toLowerCase() })}
+                                   placeholder="rahul"
+                                   className="w-full p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner mb-1 font-mono" />
+                            <p className="text-[10px] text-danger min-h-[0.9rem] mb-3">
+                                {draft.username ? (TCM.usernameProblem(draft.username) || '') : ''}
+                            </p>
+
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Role</label>
+                            <div className="flex gap-2 mb-4">
+                                {['staff', 'manager', 'viewer'].map(r => (
+                                    <button key={r} onClick={() => applyRole(r)}
+                                            className={"flex-1 py-2.5 text-[10px] font-bold uppercase tracking-widest rounded-xl border transition-all " +
+                                                (draft.role === r ? 'bg-victorian text-antique border-victorian' : 'bg-white text-victorian border-gray-200')}>
+                                        {r}
+                                    </button>
+                                ))}
                             </div>
 
-                            <button onClick={invite} disabled={busy}
-                                    className="w-full bg-brandBrown text-white font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-brandLightBrown transition-all disabled:opacity-60">
-                                {busy ? 'Adding…' : 'Add & send invite on WhatsApp'}
-                            </button>
-                        </div>
+                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Can open</p>
+                            <div className="grid grid-cols-1 gap-1.5 mb-4 bg-paper/50 border border-brandBrown/15 rounded-xl p-3">
+                                {grantable.map(p => (
+                                    <label key={p} className="flex items-center gap-2.5 cursor-pointer text-[11px] text-gray-700">
+                                        <input type="checkbox" className="vintage-checkbox !w-4 !h-4"
+                                               checked={!!draft.perms[p]}
+                                               onChange={e => setDraft({ ...draft, perms: { ...draft.perms, [p]: e.target.checked } })} />
+                                        {TCM.PERMISSION_LABELS[p]}
+                                    </label>
+                                ))}
+                            </div>
 
-                        <div className="bg-white/80 backdrop-blur-xl p-5 rounded-2xl shadow-elegant border border-brandBrown/20">
-                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">What staff can do</p>
-                            <ul className="text-[11px] text-gray-700 space-y-1.5 leading-relaxed">
-                                <li>✓ Raise material requests</li>
-                                <li>✓ Add new recipes and read the whole book</li>
-                                <li>✓ Book in deliveries against an open PO</li>
-                                <li className="text-danger">✗ Edit or delete any recipe</li>
-                                <li className="text-danger">✗ See or change cost prices, vendors and POs</li>
-                            </ul>
+                            <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Access key</label>
+                            <div className="flex gap-2 mb-1">
+                                <input type="text" value={draft.accessKey} onChange={e => setDraft({ ...draft, accessKey: e.target.value })}
+                                       placeholder="at least 6 characters"
+                                       className="flex-1 min-w-0 p-3 border border-gray-200 rounded-xl text-sm bg-white shadow-inner font-mono" />
+                                <button onClick={suggest}
+                                        className="px-3 bg-white border border-brandBrown/40 text-brandBrown text-[10px] font-bold rounded-xl uppercase tracking-wider whitespace-nowrap">
+                                    Generate
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-danger min-h-[0.9rem] mb-4">
+                                {draft.accessKey ? (TCM.keyProblem(draft.accessKey) || '') : ''}
+                            </p>
+
+                            <button onClick={create} disabled={busy}
+                                    className="w-full bg-brandBrown text-white font-bold py-3.5 text-xs uppercase tracking-widest rounded-xl shadow-md hover:bg-brandLightBrown transition-all disabled:opacity-60">
+                                {busy ? 'Creating…' : 'Create account'}
+                            </button>
                         </div>
                     </div>
 
                     <div className="lg:col-span-1 space-y-6">
-                        {waiting.length > 0 && (
-                            <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-antique/40">
-                                <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-antique/30 pb-3">
-                                    Invited — not registered yet ({waiting.length})
-                                </h3>
-                                <div className="bg-paper/50 border border-brandBrown/20 rounded-xl">
-                                    {waiting.map(m => (
-                                        <Row key={m.phoneKey} member={m}>
-                                            <button onClick={() => changeStatus(m, 'revoked', `Cancel the invite for ${m.name || 'this number'}?`)}
-                                                    className="text-gray-400 hover:text-danger p-2 bg-white shadow-sm rounded-lg transition-colors"><Icons.Trash/></button>
-                                        </Row>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
                         <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-brandBrown/20">
                             <h3 className="font-bold text-victorian text-xs uppercase tracking-widest mb-4 border-b border-brandBrown/20 pb-3">
-                                Active staff ({active.length})
+                                Accounts ({active.length})
                             </h3>
-                            <div className="bg-paper/50 border border-brandBrown/20 rounded-xl">
-                                {active.length === 0
-                                    ? <p className="text-center text-xs py-6 text-gray-500 italic">Nobody has registered yet.</p>
-                                    : active.map(m => (
-                                        <Row key={m.phoneKey} member={m}>
-                                            <button onClick={() => changeStatus(m, 'revoked', `Remove ${m.name || 'this person'}? They will be signed out everywhere and their PIN deleted.`)}
-                                                    className="text-[10px] font-bold uppercase tracking-widest text-danger bg-dangerLight px-3 py-2 rounded-lg hover:bg-danger hover:text-white transition-colors">Remove</button>
-                                        </Row>
-                                    ))
-                                }
-                            </div>
+                            {active.length === 0
+                                ? <p className="text-center text-xs py-6 text-gray-500 italic">No accounts yet.</p>
+                                : active.map(u => (
+                                    <div key={u.username} className="bg-paper/50 border border-brandBrown/15 rounded-xl p-4 mb-3 last:mb-0">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex flex-col truncate pr-2">
+                                                <span className="text-sm font-bold text-victorian">{u.name}</span>
+                                                <span className="text-[10px] text-gray-500 font-mono mt-0.5">
+                                                    {u.username} · {u.role}
+                                                    {u.mustChangeKey && <span className="ml-2 text-antique font-bold">key not yet changed</span>}
+                                                </span>
+                                            </div>
+                                            <button onClick={() => setEditing(editing === u.username ? null : u.username)}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-brandBrown bg-white border border-brandBrown/30 px-3 py-1.5 rounded-lg shrink-0">
+                                                {editing === u.username ? 'Done' : 'Access'}
+                                            </button>
+                                        </div>
+
+                                        {editing === u.username && (
+                                            <React.Fragment>
+                                                <PermRow user={u} />
+                                                <div className="flex gap-2 mt-4">
+                                                    <button onClick={() => resetKey(u)}
+                                                            className="flex-1 text-[10px] font-bold uppercase tracking-widest text-victorian bg-white border border-gray-200 py-2 rounded-lg">New key</button>
+                                                    <button onClick={() => setStatus(u, 'suspended')}
+                                                            className="flex-1 text-[10px] font-bold uppercase tracking-widest text-danger bg-dangerLight py-2 rounded-lg">Suspend</button>
+                                                    <button onClick={() => remove(u)}
+                                                            className="flex-1 text-[10px] font-bold uppercase tracking-widest text-white bg-danger py-2 rounded-lg">Delete</button>
+                                                </div>
+                                            </React.Fragment>
+                                        )}
+                                    </div>
+                                ))
+                            }
                         </div>
 
-                        {removed.length > 0 && (
+                        {suspended.length > 0 && (
                             <div className="bg-white/60 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-gray-200">
                                 <h3 className="font-bold text-gray-500 text-xs uppercase tracking-widest mb-4 border-b border-gray-200 pb-3">
-                                    Removed ({removed.length})
+                                    Suspended ({suspended.length})
                                 </h3>
-                                <div className="bg-paper/40 border border-gray-200 rounded-xl">
-                                    {removed.map(m => (
-                                        <Row key={m.phoneKey} member={m} tone="opacity-70">
-                                            <button onClick={() => changeStatus(m, 'invited', `Let ${m.name || 'them'} register again?`)}
-                                                    className="text-[10px] font-bold uppercase tracking-widest text-vintageGreen bg-vintageGreen/10 px-3 py-2 rounded-lg hover:bg-vintageGreen hover:text-white transition-colors">Restore</button>
-                                        </Row>
-                                    ))}
-                                </div>
+                                {suspended.map(u => (
+                                    <div key={u.username} className="flex justify-between items-center p-3 border-b border-gray-100 last:border-0 opacity-75">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm font-bold text-victorian">{u.name}</span>
+                                            <span className="text-[10px] text-gray-500 font-mono">{u.username}</span>
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setStatus(u, 'active')}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-vintageGreen bg-vintageGreen/10 px-3 py-2 rounded-lg">Restore</button>
+                                            <button onClick={() => remove(u)}
+                                                    className="text-[10px] font-bold uppercase tracking-widest text-danger bg-dangerLight px-3 py-2 rounded-lg">Delete</button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>
+
+                    {/* An access key is stored only as a hash, so this is the one
+                        and only chance to read it. */}
+                    {issued && (
+                        <div className="fixed inset-0 bg-victorian/70 backdrop-blur-sm flex items-center justify-center p-4 z-[80] animate-fade-in">
+                            <div className="bg-paper p-6 rounded-2xl shadow-2xl w-full max-w-sm border-2 border-antique/50 text-center">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-vintageGreen mb-2">
+                                    {issued.reset ? 'New key issued' : 'Account created'}
+                                </p>
+                                <p className="font-serif font-bold text-xl text-victorian mb-1">{issued.name}</p>
+                                <p className="text-[11px] text-gray-500 font-mono mb-5">username: {issued.username}</p>
+
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-2">Access key</p>
+                                <p className="text-2xl font-mono font-bold text-brandBrown bg-white border-2 border-dashed border-brandBrown/40 rounded-xl py-4 mb-4 select-all break-all">
+                                    {issued.accessKey}
+                                </p>
+                                <p className="text-[10px] text-danger leading-relaxed mb-5">
+                                    Write this down or send it now. It is stored only as a hash, so it cannot be shown again —
+                                    you would have to issue a new one.
+                                </p>
+                                <button onClick={() => setIssued(null)}
+                                        className="w-full bg-victorian text-antique font-bold py-3 text-xs uppercase tracking-widest rounded-xl">
+                                    I have passed it on
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -301,7 +420,7 @@
                 { id: 'conversions', label: 'Prep Kitchen Engine' },
                 { id: 'vendors', label: 'Vendor Directory' },
                 { id: 'inventory', label: 'Raw Material Master' },
-                { id: 'team', label: 'Team & Access' },
+                { id: 'team', label: 'Users & Access' },
                 { id: 'workbench', label: "Brewster's Workbench" }
             ];
 
@@ -638,7 +757,7 @@
                     
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
-                    {ownerTab === 'team' && <TeamView team={team} showToast={showToast} confirmAction={confirmAction} />}
+                    {ownerTab === 'team' && <UsersView users={team} showToast={showToast} confirmAction={confirmAction} />}
 
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">
@@ -1328,7 +1447,7 @@
                     // Team directory. Only the owner can read the whole
                     // collection; the rules deny every client write, so members
                     // are added and removed through Cloud Functions alone.
-                    unsubTeam = db.collection('staffMembers').onSnapshot(snap => {
+                    unsubTeam = db.collection('users').onSnapshot(snap => {
                         const rows = [];
                         snap.forEach(d => rows.push(d.data()));
                         setTeam(rows.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''))));
@@ -1471,7 +1590,9 @@
         // page instead of resolving when it is not, so this render is only ever
         // reached by an authenticated owner. The server-side rules in
         // firestore.rules are the real enforcement; this is the UX half.
-        TCM.guard('owner').then(() => {
+        // The owner, and anyone the owner gave purchasing rights to. Everything
+        // inside is additionally gated by the Firestore rules.
+        TCM.guard('poManage').then((session) => {
             document.getElementById('auth-gate').remove();
             const rootEl = document.getElementById('root');
             rootEl.hidden = false;

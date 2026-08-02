@@ -6,11 +6,11 @@ Purchase orders, raw-material inventory, recipe management and food costing for
 Two terminals — an owner command centre and a staff terminal — backed by
 Firebase (Firestore + Cloud Functions).
 
-**Signing in:** the owner is one fixed mobile number (optionally also an email).
-Staff are invite-only — the owner adds a number, that person registers with a
-one-time SMS code, then sets their own PIN. That is the only code they ever need
-on that device: the session persists, and after 30 minutes idle the app *locks*
-rather than signing out, so returning is just the PIN.
+**Signing in:** the owner uses an email address and password. Everyone else uses
+a username and an access key the owner issued in *Users & Access*, together with
+a tick-list of exactly what they may open. There is no SMS, no one-time code and
+no self-registration. The session persists on the device; after 30 minutes idle
+the app *locks* and asks for the access key again.
 
 > **First time, or seeing "Login service not set up yet"?**
 > Follow **[SETUP.md](SETUP.md)** — a ten-minute, browser-only walkthrough.
@@ -29,7 +29,7 @@ rather than signing out, so returning is just the PIN.
   (e.g. 18 gms of beans → one 30 ml espresso shot)
 - **Vendor Directory** — suppliers and their WhatsApp numbers
 - **Raw Material Master** — the catalogue plus the master price book (with GST)
-- **Team & Access** — invite staff by mobile number, and remove them
+- **Users & Access** — create accounts, issue access keys, set per-area permissions
 
 ### `staff.html` — Staff Terminal
 - Draft material requests from the catalogue and send them to the owner
@@ -48,7 +48,7 @@ The owner can also use the staff terminal; staff cannot open the owner terminal.
 | UI | React 18 (UMD) with JSX compiled in the browser by Babel Standalone |
 | Styling | Tailwind Play CDN + a shared theme in `assets/tcm-theme.js` |
 | Data | Cloud Firestore (live `onSnapshot` listeners) |
-| Auth | Phone + OTP (Firebase Phone Auth) to register, then number + PIN. `role` custom claim set server-side |
+| Auth | Owner: Firebase Email/Password. Users: username + access key, verified server-side against a scrypt hash |
 | Invoice OCR | `scanInvoice` callable Cloud Function |
 | Hosting | Any static host (Firebase Hosting config included) |
 
@@ -70,7 +70,7 @@ uploaded.
 │   ├── tcm-theme.js        Shared Tailwind theme
 │   └── *.jpg, *.png        Web-sized image derivatives
 ├── functions/
-│   ├── index.js            invite, role assignment, PIN sign-in, rate limiting
+│   ├── index.js            accounts, permissions, sign-in, rate limiting
 │   └── lib/auth-guard.js   requireRole() for other callables
 └── tools/
     ├── test-costing.mjs    Unit tests for the costing engine
@@ -90,8 +90,8 @@ Shared by all three pages so the two terminals cannot drift apart. It owns:
 - **Costing** — recipe explosion through batch preps and prep rules, with cycle
   detection, and per-line reasons when something cannot be costed
 - **Id allocation** — transactional PO numbers, collision-resistant request ids
-- **Auth** — `sendOtp` / `confirmOtp`, `setPin`, `signInWithPin`, `guard(role)`,
-  inactivity logout
+- **Accounts** — `signInOwner`, `signIn`, `changeMyKey`, `guard(permission)`,
+  `can(permission)`, inactivity lock
 
 ---
 
@@ -109,8 +109,9 @@ Shared by all three pages so the two terminals cannot drift apart. It owns:
 | `aliases` | Invoice line text → catalogue item name, taught by the scanner |
 | `ownerPhone` | Where staff request alerts are sent |
 
-**`staffMembers/{phoneKey}`** — the team, keyed by the last 10 digits of the
-mobile number. Read-only to clients; written only by Cloud Functions.
+**`users/{username}`** — one document per account, with its permission flags.
+Mirrored to **`userIndex/{uid}`** so the security rules can find it by uid. Both
+are read-only to every client; only Cloud Functions write them.
 
 **`requests/{id}`** — staff material requests awaiting triage.
 **`pos/{id}`** — purchase orders (`Approved` → `Delivered`). The document id is
@@ -149,8 +150,8 @@ Run the tests for the engine:
 
 ```bash
 npm test            # costing, unit conversion, id allocation  (23 tests)
-npm run test:rules  # firestore.rules access boundary         (40 tests, needs Java)
-npm run test:auth   # sign-in journeys against the emulators  (needs Java)
+npm run test:rules  # firestore.rules access boundary         (49 tests, needs Java)
+npm run test:auth   # account journeys against the emulators  (33 tests, needs Java)
 ```
 
 ---

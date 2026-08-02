@@ -6,7 +6,7 @@
     <title>TCM BrewOps — Sign In</title>
 
     <!-- Defence in depth for hosts that ignore firebase.json headers (e.g. GitHub Pages). -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com https://www.google.com https://www.recaptcha.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: https://www.gstatic.com https://www.google.com; frame-src https://www.google.com https://www.recaptcha.net https://tcm-orders.firebaseapp.com; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; base-uri 'self'; form-action 'self'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com; base-uri 'self'; form-action 'self'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
@@ -56,134 +56,124 @@
         <div class="relative z-10 w-[90%] max-w-[380px] min-h-[600px] sm:min-h-[680px] rounded-[30px] shadow-[0_20px_50px_rgba(0,0,0,0.2)] overflow-hidden flex flex-col bg-white bg-card mt-10">
             <div class="flex-1 flex flex-col justify-end px-7 pb-14 sm:pb-20">
 
-                <!-- Shown while we work out whether there is already a session. -->
                 <div id="stepBoot" class="text-center py-10">
                     <p class="text-[11px] font-bold uppercase tracking-widest text-victorian/60 animate-pulse">Checking…</p>
                 </div>
 
-                <!-- ===== UNLOCK: session is alive, just locked ===== -->
+                <!-- ===== USER: username + access key ===== -->
+                <form id="stepUser" autocomplete="off" novalidate hidden>
+                    <label for="userInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Username</label>
+                    <input type="text" id="userInput" required autocapitalize="none" autocorrect="off"
+                           spellcheck="false" autocomplete="username" enterkeyhint="next" placeholder="rahul"
+                           class="w-full p-3.5 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-lg bg-transparent text-victorian disabled:opacity-50" />
+
+                    <label for="keyInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Access key</label>
+                    <input type="password" id="keyInput" required autocomplete="current-password" enterkeyhint="go"
+                           placeholder="••••••••"
+                           class="w-full p-3.5 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-lg tracking-widest font-mono bg-transparent text-victorian disabled:opacity-50" />
+
+                    <button type="submit" id="userBtn"
+                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Sign in
+                    </button>
+                    <button type="button" id="toOwnerBtn"
+                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
+                        Owner sign-in
+                    </button>
+                    <p class="text-center text-[10px] text-victorian/45 leading-relaxed mt-3">
+                        Accounts are created by the owner. If you do not have one, ask for a username and access key.
+                    </p>
+                </form>
+
+                <!-- ===== OWNER: email + password ===== -->
+                <form id="stepOwner" autocomplete="off" novalidate hidden>
+                    <p class="text-center text-[10px] font-bold uppercase tracking-widest text-victorian/50 mb-3">Owner</p>
+
+                    <label for="emailInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Email</label>
+                    <input type="email" id="emailInput" required autocomplete="username" enterkeyhint="next"
+                           placeholder="you@example.com"
+                           class="w-full p-3.5 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-sm bg-transparent text-victorian" />
+
+                    <label for="passwordInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Password</label>
+                    <input type="password" id="passwordInput" required autocomplete="current-password" enterkeyhint="go"
+                           placeholder="••••••••••"
+                           class="w-full p-3.5 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-lg tracking-widest font-mono bg-transparent text-victorian" />
+
+                    <button type="submit" id="ownerBtn"
+                            class="w-full p-4 border-none rounded-xl bg-victorian hover:bg-victorianLight text-antique font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Sign in
+                    </button>
+                    <button type="button" id="forgotOwnerBtn"
+                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
+                        Email me a password reset
+                    </button>
+                    <button type="button" id="toUserBtn"
+                            class="w-full mt-2 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
+                        Staff sign-in
+                    </button>
+                    <button type="button" id="firstRunBtn"
+                            class="w-full mt-4 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
+                        First time? Create the owner account
+                    </button>
+                </form>
+
+                <!-- ===== FIRST RUN: create the owner account ===== -->
+                <form id="stepSetup" autocomplete="off" novalidate hidden>
+                    <p class="text-center text-[11px] font-bold text-victorian mb-1">Create the owner account</p>
+                    <p class="text-center text-[10px] text-victorian/60 leading-relaxed mb-4">
+                        This works once, and only for the email address configured when the app was deployed.
+                    </p>
+                    <input type="email" id="setupEmail" required autocomplete="username" placeholder="Owner email"
+                           class="w-full p-3.5 mb-3 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-sm bg-transparent text-victorian" />
+                    <input type="password" id="setupPassword" required autocomplete="new-password" placeholder="Password (10+ characters)"
+                           class="w-full p-3.5 mb-3 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-sm bg-transparent text-victorian" />
+                    <input type="password" id="setupConfirm" required autocomplete="new-password" placeholder="Repeat password"
+                           class="w-full p-3.5 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-sm bg-transparent text-victorian" />
+                    <button type="submit" id="setupBtn"
+                            class="w-full p-4 border-none rounded-xl bg-victorian hover:bg-victorianLight text-antique font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
+                        Create account
+                    </button>
+                    <button type="button" id="setupBackBtn"
+                            class="w-full mt-3 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
+                        Back
+                    </button>
+                </form>
+
+                <!-- ===== UNLOCK ===== -->
                 <form id="stepUnlock" autocomplete="off" novalidate hidden>
                     <p class="text-center text-[10px] font-bold uppercase tracking-widest text-victorian/50 mb-1">Welcome back</p>
                     <p id="unlockWho" class="text-center text-base font-bold text-victorian mb-4"></p>
-                    <label for="unlockPin" class="sr-only">PIN</label>
-                    <input type="password" id="unlockPin" required inputmode="numeric" maxlength="8"
-                           autocomplete="current-password" enterkeyhint="go" placeholder="••••"
-                           class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian disabled:opacity-50 mb-4" />
+                    <input type="password" id="unlockKey" required autocomplete="current-password" enterkeyhint="go"
+                           placeholder="Access key"
+                           class="w-full p-4 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-lg tracking-widest font-mono bg-transparent text-victorian" />
                     <button type="submit" id="unlockBtn"
                             class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
                         Unlock
                     </button>
-                    <button type="button" id="unlockForgot"
-                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
-                        Forgot PIN? Use a one-time code
-                    </button>
                     <button type="button" id="unlockSwitch"
-                            class="w-full mt-2 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
+                            class="w-full mt-3 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
                         Sign in as someone else
                     </button>
                 </form>
 
-                <!-- ===== STEP 1: mobile number ===== -->
-                <form id="stepPhone" autocomplete="off" novalidate hidden>
-                    <label for="phoneInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Mobile number</label>
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="px-3 py-4 rounded-xl bg-white/70 border-2 border-antique/60 text-victorian font-bold text-sm">+91</span>
-                        <input type="tel" id="phoneInput" required inputmode="numeric" autocomplete="tel-national"
-                               maxlength="14" enterkeyhint="next" placeholder="98765 43210"
-                               class="flex-1 min-w-0 p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-xl tracking-widest font-mono bg-transparent text-victorian disabled:opacity-50" />
-                    </div>
-                    <button type="submit" id="phoneBtn"
-                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
-                        Continue
-                    </button>
-                    <button type="button" id="toEmailBtn"
-                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
-                        Owner? Sign in with email instead
-                    </button>
-                </form>
-
-                <!-- ===== EMAIL (owner) ===== -->
-                <form id="stepEmail" autocomplete="off" novalidate hidden>
-                    <label for="emailInput" class="block text-[10px] font-bold text-victorian/60 uppercase tracking-widest mb-2">Owner email</label>
-                    <input type="email" id="emailInput" required autocomplete="email" enterkeyhint="go"
-                           placeholder="you@example.com"
-                           class="w-full p-4 mb-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-sm bg-transparent text-victorian" />
-                    <button type="submit" id="emailBtn"
-                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
-                        Email me a link
-                    </button>
-                    <button type="button" id="toPhoneBtn"
-                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
-                        Use mobile number instead
-                    </button>
-                </form>
-
-                <div id="stepEmailSent" hidden class="text-center py-6">
-                    <p class="text-3xl mb-3">📧</p>
-                    <p class="text-sm font-bold text-victorian mb-2">Check your inbox</p>
-                    <p id="emailSentTo" class="text-[11px] text-victorian/70 leading-relaxed mb-4"></p>
-                    <p class="text-[10px] text-victorian/50 leading-relaxed">Open the link on this device to finish signing in.</p>
-                </div>
-
-                <!-- ===== SMS code ===== -->
-                <form id="stepOtp" autocomplete="off" novalidate hidden>
-                    <p id="otpSentTo" class="text-center text-[11px] font-bold text-victorian/70 tracking-wide mb-3"></p>
-                    <label for="otpInput" class="sr-only">SMS code</label>
-                    <input type="text" id="otpInput" required inputmode="numeric" maxlength="6"
-                           autocomplete="one-time-code" enterkeyhint="go" placeholder="••••••"
-                           class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-2xl tracking-[0.5em] font-mono bg-transparent text-victorian disabled:opacity-50 mb-4" />
-                    <button type="submit" id="otpBtn"
-                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
-                        Verify
-                    </button>
-                    <button type="button" id="otpUsePin"
-                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
-                        Already set a PIN? Use it instead
-                    </button>
-                    <button type="button" id="backBtn"
-                            class="w-full mt-2 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
-                        Change number
-                    </button>
-                </form>
-
-                <!-- ===== PIN sign-in ===== -->
-                <form id="stepPin" autocomplete="off" novalidate hidden>
-                    <p id="pinWho" class="text-center text-[11px] font-bold text-victorian/70 tracking-wide mb-3"></p>
-                    <label for="pinInput" class="sr-only">PIN</label>
-                    <input type="password" id="pinInput" required inputmode="numeric" maxlength="8"
-                           autocomplete="current-password" enterkeyhint="go" placeholder="••••"
-                           class="w-full p-4 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown focus:ring-2 focus:ring-brandBrown/20 transition-all text-center text-3xl tracking-[0.6em] font-mono bg-transparent text-victorian disabled:opacity-50 mb-4" />
-                    <button type="submit" id="pinBtn"
-                            class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
-                        Sign in
-                    </button>
-                    <button type="button" id="useOtpBtn"
-                            class="w-full mt-3 text-[11px] font-bold uppercase tracking-widest text-brandBrown hover:underline bg-transparent border-0 cursor-pointer">
-                        Forgot PIN? Use a one-time code
-                    </button>
-                </form>
-
-                <!-- ===== choose a PIN ===== -->
-                <form id="stepNewPin" autocomplete="off" novalidate hidden>
-                    <p class="text-center text-[11px] font-bold text-vintageGreen tracking-wide mb-1">Verified ✓</p>
-                    <p class="text-center text-[11px] text-victorian/70 leading-relaxed mb-3">
-                        Choose a PIN. From now on this is all you need — no more codes by SMS.
+                <!-- ===== FORCED KEY CHANGE ===== -->
+                <form id="stepNewKey" autocomplete="off" novalidate hidden>
+                    <p class="text-center text-[11px] font-bold text-vintageGreen mb-1">Signed in ✓</p>
+                    <p class="text-center text-[10px] text-victorian/60 leading-relaxed mb-4">
+                        Choose your own access key. The owner cannot see it once you have.
                     </p>
-                    <p class="text-center text-[10px] text-victorian/50 leading-relaxed mb-4">
-                        4&ndash;8 digits. Not all the same, and not a run like 1234 or 9876.
-                    </p>
-                    <label for="newPinInput" class="sr-only">New PIN</label>
-                    <input type="password" id="newPinInput" required inputmode="numeric" maxlength="8"
-                           autocomplete="new-password" placeholder="New PIN"
-                           class="w-full p-3.5 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-2xl tracking-[0.4em] font-mono bg-transparent text-victorian mb-3" />
-                    <label for="newPinConfirm" class="sr-only">Repeat PIN</label>
-                    <input type="password" id="newPinConfirm" required inputmode="numeric" maxlength="8"
-                           autocomplete="new-password" enterkeyhint="go" placeholder="Repeat PIN"
-                           class="w-full p-3.5 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-2xl tracking-[0.4em] font-mono bg-transparent text-victorian mb-4" />
-                    <p id="pinHint" class="text-center text-[10px] font-bold uppercase tracking-wide text-danger min-h-[0.9rem] mb-2" aria-live="polite"></p>
-                    <button type="submit" id="newPinBtn"
+                    <input type="password" id="newKey" required autocomplete="new-password" placeholder="New access key"
+                           class="w-full p-3.5 mb-3 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-lg font-mono bg-transparent text-victorian" />
+                    <input type="password" id="newKeyConfirm" required autocomplete="new-password" placeholder="Repeat it"
+                           class="w-full p-3.5 mb-2 rounded-xl border-2 border-antique/80 outline-none focus:border-brandBrown transition-all text-center text-lg font-mono bg-transparent text-victorian" />
+                    <p id="keyHint" class="text-center text-[10px] font-bold uppercase tracking-wide text-danger min-h-[0.9rem] mb-2" aria-live="polite"></p>
+                    <button type="submit" id="newKeyBtn"
                             class="w-full p-4 border-none rounded-xl bg-brandBrown hover:bg-[#c08a5b] text-white font-poppins text-[15px] font-bold uppercase tracking-widest cursor-pointer transition-all shadow-md disabled:opacity-60 disabled:cursor-wait">
-                        Save PIN &amp; continue
+                        Save &amp; continue
+                    </button>
+                    <button type="button" id="skipKeyBtn"
+                            class="w-full mt-3 text-[10px] font-bold uppercase tracking-widest text-victorian/40 hover:underline bg-transparent border-0 cursor-pointer">
+                        Keep the key I was given
                     </button>
                 </form>
 
@@ -192,11 +182,10 @@
 
                 <div id="setupHelp" hidden
                      class="mt-3 text-[11px] leading-relaxed text-center text-victorian/80 bg-white/70 border border-brandBrown/25 rounded-xl px-3 py-2.5">
-                    The one-time setup has not been run, so no owner is registered yet.
+                    The sign-in service has not been deployed yet.
                     <a href="diagnostics.html" class="block mt-1.5 font-bold text-brandBrown underline">Run diagnostics</a>
                 </div>
 
-                <div id="recaptcha"></div>
                 <div class="mt-6 text-[10px] text-gray-500 font-medium tracking-wide text-center">The Caffeine Ministry</div>
             </div>
         </div>
@@ -207,13 +196,12 @@
     (function () {
         'use strict';
 
-        var STEPS = ['stepBoot','stepUnlock','stepPhone','stepEmail','stepEmailSent','stepOtp','stepPin','stepNewPin'];
+        var STEPS = ['stepBoot','stepUser','stepOwner','stepSetup','stepUnlock','stepNewKey'];
         var el = {};
         STEPS.forEach(function (id) { el[id] = document.getElementById(id); });
-
         var error = document.getElementById('errorMsg');
-        var identity = { phone: '', email: '' };
-        var pendingRole = null;
+
+        var pending = { role: null, isOwner: false, username: '', key: '' };
 
         function show(id) {
             STEPS.forEach(function (s) { el[s].hidden = (s !== id); });
@@ -221,14 +209,13 @@
             var first = el[id].querySelector('input');
             if (first) setTimeout(function () { first.focus(); }, 60);
         }
-
         function clearError() {
             error.hidden = true; error.textContent = '';
             document.getElementById('setupHelp').hidden = true;
         }
         function showError(m) { error.textContent = m; error.hidden = false; }
-        function showSetupNeeded() {
-            showError('Login service not set up yet');
+        function notDeployed() {
+            showError('Sign-in service not deployed');
             document.getElementById('setupHelp').hidden = false;
         }
         function busy(btn, on, label) {
@@ -236,52 +223,34 @@
             btn.dataset.label = btn.dataset.label || btn.textContent;
             btn.textContent = on ? (label || 'Please wait…') : btn.dataset.label;
         }
-        function prettyPhone(p) {
-            var d = String(p).replace(/\D/g, '').slice(-10);
-            return '+91 ' + d.slice(0, 5) + ' ' + d.slice(5);
+        function landingFor(s) {
+            // Anyone who manages purchasing gets the full command centre; the
+            // rest get the shop-floor terminal. The rules enforce the boundary
+            // either way — this only picks the more useful screen.
+            return (s.isOwner || (s.perms && s.perms.poManage)) ? 'owner.html' : 'staff.html';
         }
-        function landingFor(role) { return role === 'owner' ? 'owner.html' : 'staff.html'; }
-
-        function go(role) {
+        function go(sess) {
             TCM.unlock();
-            if (identity.phone) TCM.rememberPhone(identity.phone);
-            window.location.replace(landingFor(role));
+            if (sess.username) TCM.rememberUser(sess.username);
+            window.location.replace(landingFor(sess));
         }
 
-        /** Turn a Firebase/callable error into something a barista can act on. */
         function explain(err) {
             var code = (err && err.code) ? String(err.code) : '';
             var msg  = (err && err.message) ? String(err.message) : '';
 
             if (code === 'functions/not-found' || code === 'functions/internal' ||
-                code === 'functions/unavailable' || code === 'functions/unimplemented') return showSetupNeeded();
-            if (code === 'functions/resource-exhausted') return showError(msg);
-            if (code === 'functions/failed-precondition') return showError(msg);
-            if (code === 'functions/permission-denied')  return showError(msg);
+                code === 'functions/unavailable' || code === 'functions/unimplemented') return notDeployed();
+            if (code.indexOf('functions/') === 0) return showError(msg);
 
-            if (code === 'auth/invalid-phone-number')      return showError('That number does not look right');
-            if (code === 'auth/invalid-email')             return showError('That email does not look right');
-            if (code === 'auth/invalid-verification-code') return showError('That code is not correct');
-            if (code === 'auth/code-expired')              return showError('That code has expired — request a new one');
-            if (code === 'auth/too-many-requests')         return showError('Too many attempts. Try again later');
-            if (code === 'auth/quota-exceeded')            return showError('SMS limit reached for today');
-            if (code === 'auth/network-request-failed')    return showError('No internet connection');
-            if (code === 'auth/billing-not-enabled')       return showError('SMS sign-in needs the Blaze plan on this Firebase project');
-            if (code === 'auth/unauthorized-continue-uri' || code === 'auth/invalid-continue-uri') {
-                return showError('This site is not authorised in Firebase for email links');
-            }
+            if (code === 'auth/invalid-email')        return showError('That email does not look right');
+            if (code === 'auth/user-not-found' ||
+                code === 'auth/wrong-password' ||
+                code === 'auth/invalid-credential')  return showError('Email or password is wrong');
+            if (code === 'auth/too-many-requests')    return showError('Too many attempts. Try again later');
+            if (code === 'auth/network-request-failed') return showError('No internet connection');
             if (code === 'auth/operation-not-allowed') {
-                var detail = (err && err.customData && err.customData._serverResponse
-                              && err.customData._serverResponse.error
-                              && err.customData._serverResponse.error.message) || msg || '';
-                if (/region/i.test(detail)) {
-                    return showError('SMS is blocked for this country. In Firebase → Authentication → Settings → SMS region policy, allow India');
-                }
-                return showError('This sign-in method is not switched on in Firebase yet');
-            }
-            if (code === 'auth/captcha-check-failed' || code === 'auth/invalid-app-credential' ||
-                code === 'auth/internal-error' || code === 'auth/argument-error') {
-                return showError('Security check could not load. Check this site is listed under Authorized domains in Firebase, then reload');
+                return showError('Email sign-in is not switched on in Firebase yet');
             }
             if (!msg || /^Firebase:/.test(msg)) {
                 return showError('Something went wrong. Reload and try again' + (code ? ' (' + code + ')' : ''));
@@ -289,266 +258,167 @@
             return showError(msg);
         }
 
-        // ------------------------------------------------------------- unlock
-        function offerUnlock(state) {
-            identity.phone = (TCM.auth.currentUser && TCM.auth.currentUser.phoneNumber) || TCM.lastPhone() || '';
-            identity.email = (TCM.auth.currentUser && TCM.auth.currentUser.email) || '';
-            document.getElementById('unlockWho').textContent =
-                state.name || (identity.phone ? prettyPhone(identity.phone) : identity.email);
-            pendingRole = state.role;
-            show('stepUnlock');
-        }
+        // ------------------------------------------------------- user sign-in
+        el.stepUser.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+            var username = document.getElementById('userInput').value.trim().toLowerCase();
+            var key = document.getElementById('keyInput').value;
+            if (!username || !key) return showError('Enter your username and access key');
 
+            var btn = document.getElementById('userBtn');
+            busy(btn, true, 'Signing in…');
+
+            TCM.signIn(username, key)
+                .then(function (out) {
+                    pending = { role: out.role, isOwner: false, username: username,
+                                perms: out.perms || {}, key: key };
+                    TCM.rememberUser(username);
+                    // An owner-issued key is a shared secret until the person
+                    // replaces it, so ask on first use.
+                    if (out.mustChangeKey) return show('stepNewKey');
+                    go(pending);
+                })
+                .catch(function (err) {
+                    busy(btn, false);
+                    document.getElementById('keyInput').value = '';
+                    document.getElementById('keyInput').focus();
+                    explain(err);
+                });
+        });
+
+        // ------------------------------------------------------ owner sign-in
+        el.stepOwner.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+            var email = document.getElementById('emailInput').value.trim();
+            var password = document.getElementById('passwordInput').value;
+            if (!email || !password) return showError('Enter your email and password');
+
+            var btn = document.getElementById('ownerBtn');
+            busy(btn, true, 'Signing in…');
+
+            TCM.signInOwner(email, password)
+                .then(function (out) { go({ isOwner: true, perms: out.perms || {}, username: 'owner' }); })
+                .catch(function (err) {
+                    busy(btn, false);
+                    document.getElementById('passwordInput').value = '';
+                    explain(err);
+                });
+        });
+
+        document.getElementById('forgotOwnerBtn').addEventListener('click', function () {
+            clearError();
+            var email = document.getElementById('emailInput').value.trim();
+            if (!email) return showError('Enter your email first');
+            TCM.sendOwnerPasswordReset(email)
+                .then(function () { showError('Reset link sent to ' + email); })
+                .catch(explain);
+        });
+
+        document.getElementById('toOwnerBtn').addEventListener('click', function () { show('stepOwner'); });
+        document.getElementById('toUserBtn').addEventListener('click', function () { show('stepUser'); });
+        document.getElementById('firstRunBtn').addEventListener('click', function () { show('stepSetup'); });
+        document.getElementById('setupBackBtn').addEventListener('click', function () { show('stepOwner'); });
+
+        // --------------------------------------------------------- first run
+        el.stepSetup.addEventListener('submit', function (e) {
+            e.preventDefault();
+            clearError();
+            var email = document.getElementById('setupEmail').value.trim();
+            var a = document.getElementById('setupPassword').value;
+            var b = document.getElementById('setupConfirm').value;
+            if (!email) return showError('Enter the owner email');
+            if (a.length < 10) return showError('Use a password of at least 10 characters');
+            if (a !== b) return showError('The two passwords do not match');
+
+            var btn = document.getElementById('setupBtn');
+            busy(btn, true, 'Creating…');
+
+            TCM.setupOwner(email, a)
+                .then(function () { return TCM.signInOwner(email, a); })
+                .then(function (out) { go({ isOwner: true, perms: out.perms || {}, username: 'owner' }); })
+                .catch(function (err) { busy(btn, false); explain(err); });
+        });
+
+        // ------------------------------------------------------------- unlock
         el.stepUnlock.addEventListener('submit', function (e) {
             e.preventDefault();
             clearError();
-            var pin = document.getElementById('unlockPin').value.trim();
-            if (!/^\d{4,8}$/.test(pin)) return showError('Enter your PIN');
+            var key = document.getElementById('unlockKey').value;
+            if (!key) return showError('Enter your access key');
 
             var btn = document.getElementById('unlockBtn');
             busy(btn, true, 'Unlocking…');
 
-            // Verified by the server, not here — the same call used to sign in.
-            TCM.signInWithPin(identity.phone || '', pin, identity.email || '')
-                .then(function (role) { go(role || pendingRole); })
+            // Re-checked by the server, never in the browser.
+            TCM.signIn(pending.username, key)
+                .then(function (out) { go({ isOwner: false, username: pending.username, perms: out.perms || {} }); })
                 .catch(function (err) {
                     busy(btn, false);
-                    document.getElementById('unlockPin').value = '';
-                    document.getElementById('unlockPin').focus();
+                    document.getElementById('unlockKey').value = '';
+                    document.getElementById('unlockKey').focus();
                     explain(err);
                 });
         });
 
-        document.getElementById('unlockForgot').addEventListener('click', function () {
-            clearError();
-            if (identity.phone) { show('stepOtp'); requestOtp(); }
-            else show('stepEmail');
+        document.getElementById('unlockSwitch').addEventListener('click', function () { TCM.signOut(); });
+
+        // ------------------------------------------------------- new key
+        var newKeyEl = document.getElementById('newKey');
+        var keyHint = document.getElementById('keyHint');
+        newKeyEl.addEventListener('input', function () {
+            var v = newKeyEl.value;
+            keyHint.textContent = v.length >= 3 ? (TCM.keyProblem(v) || '') : '';
         });
 
-        document.getElementById('unlockSwitch').addEventListener('click', function () {
-            TCM.signOut();
-        });
-
-        // ------------------------------------------------------------ step 1
-        el.stepPhone.addEventListener('submit', function (e) {
+        el.stepNewKey.addEventListener('submit', function (e) {
             e.preventDefault();
             clearError();
-            var digits = document.getElementById('phoneInput').value.replace(/\D/g, '');
-            if (digits.length < 10) return showError('Enter your 10-digit mobile number');
+            var a = newKeyEl.value, b = document.getElementById('newKeyConfirm').value;
+            var problem = TCM.keyProblem(a);
+            if (problem) { keyHint.textContent = problem; newKeyEl.focus(); return showError(problem); }
+            if (a !== b) return showError('The two keys do not match');
 
-            identity.phone = TCM.toE164(digits);
-            identity.email = '';
+            var btn = document.getElementById('newKeyBtn');
+            busy(btn, true, 'Saving…');
 
-            // A number this device has used before goes straight to the PIN. The
-            // OTP screen still offers "use it instead", so a device that has
-            // forgotten is never stuck waiting for an SMS.
-            if (TCM.phoneKey(TCM.lastPhone()) === TCM.phoneKey(identity.phone)) {
-                document.getElementById('pinWho').textContent = prettyPhone(identity.phone);
-                show('stepPin');
-            } else {
-                show('stepOtp');
-                requestOtp();
-            }
-        });
-
-        document.getElementById('toEmailBtn').addEventListener('click', function () { show('stepEmail'); });
-        document.getElementById('toPhoneBtn').addEventListener('click', function () { show('stepPhone'); });
-
-        // -------------------------------------------------------------- email
-        el.stepEmail.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            var addr = document.getElementById('emailInput').value.trim();
-            if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) return showError('Enter a valid email address');
-
-            var btn = document.getElementById('emailBtn');
-            busy(btn, true, 'Sending…');
-            identity.email = addr;
-
-            TCM.sendEmailLink(addr)
-                .then(function () {
-                    busy(btn, false);
-                    document.getElementById('emailSentTo').textContent = 'We sent a sign-in link to ' + addr;
-                    show('stepEmailSent');
-                })
+            TCM.changeMyKey(pending.key, a)
+                .then(function () { go(pending); })
                 .catch(function (err) { busy(btn, false); explain(err); });
         });
 
-        // ---------------------------------------------------------------- OTP
-        function requestOtp() {
-            var btn = document.getElementById('otpBtn');
-            busy(btn, true, 'Sending code…');
-            TCM.sendOtp(identity.phone, 'recaptcha')
-                .then(function () {
-                    busy(btn, false);
-                    document.getElementById('otpSentTo').textContent = 'Code sent to ' + prettyPhone(identity.phone);
-                })
-                .catch(function (err) { busy(btn, false); show('stepPhone'); explain(err); });
-        }
-
-        el.stepOtp.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            var code = document.getElementById('otpInput').value.trim();
-            if (!/^\d{4,8}$/.test(code)) return showError('Enter the code from the SMS');
-
-            var btn = document.getElementById('otpBtn');
-            busy(btn, true, 'Verifying…');
-
-            TCM.confirmOtp(code)
-                .then(function (result) { busy(btn, false); afterVerified(result); })
-                .catch(function (err) {
-                    busy(btn, false);
-                    document.getElementById('otpInput').value = '';
-                    document.getElementById('otpInput').focus();
-                    explain(err);
-                });
-        });
-
-        document.getElementById('otpUsePin').addEventListener('click', function () {
-            clearError();
-            TCM.resetRecaptcha();
-            document.getElementById('pinWho').textContent = prettyPhone(identity.phone);
-            show('stepPin');
-        });
-
-        document.getElementById('backBtn').addEventListener('click', function () {
-            TCM.resetRecaptcha();
-            show('stepPhone');
-        });
-
-        /** Shared tail for OTP and email-link sign-in. */
-        function afterVerified(result) {
-            if (result.role !== 'owner' && result.role !== 'staff') {
-                return showError('This account does not have access yet');
-            }
-            if (identity.phone) TCM.rememberPhone(identity.phone);
-            pendingRole = result.role;
-            // Only ask for a PIN when there genuinely is not one. This is what
-            // used to be broken for the owner: hasPin was never reported, so the
-            // owner was pushed back through PIN setup on every single sign-in.
-            if (!result.hasPin) return show('stepNewPin');
-            go(result.role);
-        }
-
-        // ------------------------------------------------------------ PIN sign-in
-        el.stepPin.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            var pin = document.getElementById('pinInput').value.trim();
-            if (!/^\d{4,8}$/.test(pin)) return showError('Enter your PIN');
-
-            var btn = document.getElementById('pinBtn');
-            busy(btn, true, 'Signing in…');
-
-            TCM.signInWithPin(identity.phone, pin)
-                .then(function (role) { go(role); })
-                .catch(function (err) {
-                    busy(btn, false);
-                    document.getElementById('pinInput').value = '';
-                    document.getElementById('pinInput').focus();
-                    if (err && err.code === 'functions/failed-precondition') {
-                        showError(err.message);
-                        show('stepOtp');
-                        return requestOtp();
-                    }
-                    explain(err);
-                });
-        });
-
-        document.getElementById('useOtpBtn').addEventListener('click', function () {
-            clearError();
-            show('stepOtp');
-            requestOtp();
-        });
-
-        // ------------------------------------------------------------ new PIN
-        // Tell them the rule while they type. The server applies the same rule,
-        // but finding out only after entering it twice and pressing Save is a
-        // miserable way to learn that 1234 is not allowed.
-        var newPinEl = document.getElementById('newPinInput');
-        var pinHint = document.getElementById('pinHint');
-        newPinEl.addEventListener('input', function () {
-            var v = newPinEl.value.trim();
-            pinHint.textContent = v.length >= 4 ? (TCM.pinProblem(v) || '') : '';
-        });
-
-        el.stepNewPin.addEventListener('submit', function (e) {
-            e.preventDefault();
-            clearError();
-            var a = document.getElementById('newPinInput').value.trim();
-            var b = document.getElementById('newPinConfirm').value.trim();
-
-            var problem = TCM.pinProblem(a);
-            if (problem) {
-                pinHint.textContent = problem;
-                newPinEl.focus();
-                return showError(problem);
-            }
-            if (a !== b) {
-                document.getElementById('newPinConfirm').value = '';
-                document.getElementById('newPinConfirm').focus();
-                return showError('The two PINs do not match');
-            }
-
-            var btn = document.getElementById('newPinBtn');
-            busy(btn, true, 'Saving…');
-
-            TCM.setPin(a)
-                .then(function () { go(pendingRole); })
-                .catch(function (err) {
-                    busy(btn, false);
-                    document.getElementById('newPinInput').value = '';
-                    document.getElementById('newPinConfirm').value = '';
-                    document.getElementById('newPinInput').focus();
-                    explain(err);
-                });
-        });
+        document.getElementById('skipKeyBtn').addEventListener('click', function () { go(pending); });
 
         // ----------------------------------------------------------- start-up
-        var prefill = TCM.lastPhone();
-        if (prefill) document.getElementById('phoneInput').value = String(prefill).replace(/\D/g, '').slice(-10);
+        var last = TCM.lastUser();
+        if (last) document.getElementById('userInput').value = last;
 
-        function startFresh() {
-            identity.phone = ''; identity.email = '';
-            show('stepPhone');
-        }
+        function startFresh() { show(last === 'owner' ? 'stepOwner' : 'stepUser'); }
 
-        // Opened from an emailed sign-in link.
-        if (TCM.isEmailLink()) {
-            TCM.completeEmailLink(function () {
-                return window.prompt('Confirm the email address this link was sent to:') || '';
-            })
-            .then(function (result) { afterVerified(result); })
-            .catch(function (err) { console.error('email link sign-in failed', err); startFresh(); explain(err); });
-        } else {
-            var decided = false;
-            TCM.auth.onAuthStateChanged(function (user) {
-                if (decided) return;
-                decided = true;
+        var decided = false;
+        TCM.auth.onAuthStateChanged(function (user) {
+            if (decided) return;
+            decided = true;
+            if (!user) return startFresh();
 
-                if (!user) return startFresh();
+            TCM.whoAmI()
+                .then(function (info) {
+                    if (!info || !info.signedIn) return startFresh();
+                    pending = { role: info.role, isOwner: !!info.isOwner,
+                                username: info.username || 'owner', perms: info.perms || {} };
 
-                // A session survives closing the tab, so a returning person is
-                // met with an unlock prompt rather than a fresh registration.
-                TCM.sessionState()
-                    .then(function (state) {
-                        if (state.role !== 'owner' && state.role !== 'staff') return startFresh();
-                        if (!state.hasPin) { pendingRole = state.role; return show('stepNewPin'); }
-                        if (TCM.isLocked()) return offerUnlock(state);
-                        window.location.replace(landingFor(state.role));
-                    })
-                    .catch(function (err) {
-                        // Never swallow this silently: dropping the user on the
-                        // number screen with no reason is how "I have to use OTP
-                        // every time" looks from the outside.
-                        console.error('session check failed', err);
-                        startFresh();
-                    });
-            });
-            // If Firebase never answers, do not sit on "Checking…" forever.
-            setTimeout(function () { if (!decided) { decided = true; startFresh(); } }, 8000);
-        }
+                    if (!TCM.isLocked()) return window.location.replace(landingFor(pending));
+
+                    // The owner unlocks with their password, everyone else with
+                    // their access key.
+                    if (pending.isOwner) return show('stepOwner');
+                    document.getElementById('unlockWho').textContent = info.name || info.username;
+                    show('stepUnlock');
+                })
+                .catch(function (err) { console.error('session check failed', err); startFresh(); });
+        });
+        setTimeout(function () { if (!decided) { decided = true; startFresh(); } }, 8000);
 
         TCM.registerServiceWorker();
     })();
