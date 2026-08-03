@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CashFlow Lite">
+  <!-- Stand-in mark in the badge's colours, used until logo.png is present:
+       the poster ground with its sunburst, a sage banknote and a stack of
+       coins in the mascot's orange, inside the badge's chocolate border. -->
+  <defs>
+    <clipPath id="card"><rect x="16" y="16" width="480" height="480" rx="56"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="72" fill="#32200f"/>
+  <g clip-path="url(#card)">
+    <rect x="16" y="16" width="480" height="480" fill="#f2d79f"/>
+    <g fill="#e8c281">
+      <path d="M256 300 -60 40h84z"/><path d="M256 300 90 -30h72z"/>
+      <path d="M256 300 250 -40h72z"/><path d="M256 300 410 -20h76z"/>
+      <path d="M256 300 572 60h-60z"/><path d="M256 300 600 250h-40z"/>
+    </g>
+    <!-- banknote -->
+    <rect x="112" y="150" width="288" height="140" rx="14" fill="#c3c294"/>
+    <rect x="134" y="172" width="244" height="96" rx="7" fill="none" stroke="#7e8258" stroke-width="6"/>
+    <circle cx="256" cy="220" r="31" fill="#a9ab7c"/>
+    <path d="M242 205h29M242 217h29M264 205c9 0 14 6 14 12s-5 13-14 13h-13l19 20"
+          fill="none" stroke="#3d3a1f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- stacked coins -->
+    <ellipse cx="256" cy="404" rx="92" ry="25" fill="#b36b27"/>
+    <ellipse cx="256" cy="380" rx="92" ry="25" fill="#d98a3e"/>
+    <ellipse cx="256" cy="356" rx="92" ry="25" fill="#b36b27"/>
+    <ellipse cx="256" cy="356" rx="57" ry="14" fill="#eaa860"/>
+  </g>
+  <rect x="16" y="16" width="480" height="480" rx="56" fill="none" stroke="#32200f" stroke-width="18"/>
+</svg>

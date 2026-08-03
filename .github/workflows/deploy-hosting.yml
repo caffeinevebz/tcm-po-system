@@ -1,0 +1,36 @@
+# Publishes the site to Firebase Hosting — BrewOps and /cash-counter/ alike.
+#
+# Inert until the repository has a FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS secret:
+# Firebase console → Project settings → Service accounts → Generate new private
+# key, then paste the whole JSON file into
+# Settings → Secrets and variables → Actions → New repository secret.
+#
+# Runs on a push to main, or on demand from the Actions tab against any branch.
+# Only hosting is touched; Firestore rules and Cloud Functions are left alone.
+name: Deploy Hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hosting-live
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to the live channel
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS }}
+          projectId: tcm-orders
+          channelId: live

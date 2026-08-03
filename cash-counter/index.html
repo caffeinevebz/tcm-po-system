@@ -1,0 +1,680 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#32200f" />
+<meta name="description" content="Count the cash drawer and send the breakdown to the owner on WhatsApp." />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="CashFlow Lite" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./logo.png" />
+<link rel="icon" sizes="192x192" href="./logo-192.png" />
+<title>CashFlow Lite</title>
+<style>
+  /* Palette lifted from the CashFlow Lite badge: the poster's sepia ground and
+     sunburst, the mascot cup's orange, its dark chocolate outline, the cream of
+     its gloves, and the sage green of the banknotes it is holding. */
+  :root {
+    --espresso: #32200f;     /* badge border, header ground */
+    --espresso-2: #241408;
+    --crema: #d98a3e;        /* the cup itself */
+    --crema-dark: #b36b27;
+    --crema-ink: #96551a;    /* the same orange, dark enough to set text in */
+    --crema-soft: #f6ddb5;
+    --page: #f6e7c8;         /* the poster behind the mascot */
+    --surface: #fffbf2;      /* the cream of the gloves */
+    --surface-2: #fbf0dc;
+    --ink: #33210f;
+    --ink-2: #6e543a;
+    --muted: #7d6344;        /* dark enough to clear 4.5:1 on the page ground */
+    --line: #e7d3ae;
+    --good: #6f7a45;         /* the sage of the banknotes */
+    --warn: #b0761e;
+    --danger: #b5462f;
+    --send: #128c7e;         /* WhatsApp's deep green, at home on this ground */
+    --send-dark: #0e7568;
+    --radius: 14px;
+    --tap: 44px;
+    --bar: 96px;
+  }
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, Roboto, sans-serif;
+    background: var(--page);
+    color: var(--ink);
+    line-height: 1.45;
+    padding-bottom: calc(var(--bar) + env(safe-area-inset-bottom));
+  }
+  button, input, select { font: inherit; color: inherit; }
+  button { border: none; background: none; cursor: pointer; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 0 14px 24px; }
+
+  /* ------------------------------------------------------------- header -- */
+  header {
+    background-color: var(--espresso-2);
+    background-image:
+      repeating-conic-gradient(from -96deg at 50% 128%,
+        rgba(217, 138, 62, 0.15) 0deg 6deg, rgba(217, 138, 62, 0) 6deg 13deg),
+      linear-gradient(165deg, var(--espresso), var(--espresso-2));
+    color: #fff;
+    padding: calc(18px + env(safe-area-inset-top)) 14px 18px;
+  }
+  .head-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
+  .logo {
+    width: 46px; height: 46px; flex: none; border-radius: 12px;
+    display: grid; place-items: center; font-size: 28px; line-height: 1;
+    background: rgba(255,255,255,0.08); overflow: hidden;
+  }
+  .logo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .head-text { flex: 1; min-width: 0; }
+  .head-text h1 { font-size: 18px; font-weight: 800; letter-spacing: -0.01em; }
+  .head-text p {
+    font-size: 12px; color: var(--crema-soft); opacity: 0.85;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .icon-btn {
+    width: var(--tap); height: var(--tap); border-radius: 12px;
+    background: rgba(255,255,255,0.1); color: #fff; font-size: 19px;
+    display: grid; place-items: center; flex: none;
+  }
+  .icon-btn:active { background: rgba(255,255,255,0.2); }
+
+  /* -------------------------------------------------------------- shift -- */
+  .types { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 14px 0 16px; }
+  .type {
+    background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius);
+    padding: 11px 4px; text-align: center; color: var(--ink-2);
+    font-size: 12px; font-weight: 650; min-height: 62px;
+  }
+  .type b { display: block; font-size: 19px; line-height: 1.3; }
+  .type[aria-pressed="true"] { background: var(--espresso); border-color: var(--espresso); color: #fff; }
+
+  /* --------------------------------------------------------------- card -- */
+  .card {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 12px;
+  }
+  .card > h2 {
+    display: flex; align-items: baseline; justify-content: space-between;
+    font-size: 14px; font-weight: 750; color: var(--espresso); margin-bottom: 12px;
+  }
+  .card > h2 span { font-size: 14px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  label.field { display: block; margin-bottom: 12px; }
+  label.field:last-child { margin-bottom: 0; }
+  label.field > span { display: block; font-size: 12px; font-weight: 650; color: var(--ink-2); margin-bottom: 5px; }
+  .input {
+    width: 100%; min-height: var(--tap); border: 1px solid var(--line);
+    background: var(--surface); border-radius: 10px; padding: 10px 12px; font-size: 16px;
+  }
+  .input:focus { outline: none; border-color: var(--crema); box-shadow: 0 0 0 3px rgba(217,138,62,0.24); }
+
+  /* -------------------------------------------------------------- rows --- */
+  .row {
+    display: grid; grid-template-columns: 58px var(--tap) 1fr var(--tap) 84px;
+    align-items: center; gap: 6px; padding: 6px 0; border-top: 1px solid var(--line);
+  }
+  .row:first-of-type { border-top: none; }
+  .face { font-size: 15px; font-weight: 800; color: var(--espresso); font-variant-numeric: tabular-nums; }
+  .step {
+    width: var(--tap); height: var(--tap); border-radius: 11px;
+    background: var(--surface-2); border: 1px solid var(--line);
+    font-size: 20px; font-weight: 700; color: var(--ink-2); display: grid; place-items: center;
+  }
+  .step:active { background: var(--crema-soft); }
+  .step:disabled { opacity: 0.35; }
+  .qty {
+    width: 100%; min-height: var(--tap); text-align: center;
+    font-size: 17px; font-weight: 700; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--surface);
+    appearance: textfield; -moz-appearance: textfield;
+  }
+  .qty::-webkit-outer-spin-button, .qty::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .qty:focus { outline: none; border-color: var(--crema); box-shadow: 0 0 0 3px rgba(217,138,62,0.24); }
+  .amt { text-align: right; font-size: 13px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .row.on .face { color: var(--crema-ink); }
+  .row.on .amt { color: var(--ink); }
+
+  /* ------------------------------------------------------------ history -- */
+  h2.section { font-size: 14px; font-weight: 750; color: var(--espresso); margin: 22px 0 10px; }
+  .hist { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px; }
+  .hist-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .hist-top strong { font-size: 14px; }
+  .hist-top b { font-size: 16px; color: var(--espresso); font-variant-numeric: tabular-nums; }
+  .hist-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .hist-acts { display: flex; gap: 8px; margin-top: 10px; }
+  .mini {
+    flex: 1; min-height: 38px; border-radius: 10px; background: var(--surface-2);
+    border: 1px solid var(--line); font-size: 13px; font-weight: 650; color: var(--ink);
+  }
+  .mini.danger { color: var(--danger); }
+  .mini:active { background: var(--crema-soft); }
+  .empty { text-align: center; color: var(--muted); font-size: 13px; padding: 26px 10px; }
+
+  /* ---------------------------------------------------------- send bar --- */
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: var(--surface); border-top: 1px solid var(--line);
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    box-shadow: 0 -6px 22px rgba(50,32,15,0.13);
+  }
+  .bar-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 8px; }
+  .bar-total { flex: 1; min-width: 0; }
+  .bar-total span {
+    display: block; font-size: 11px; color: var(--muted); font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .bar-total strong {
+    font-size: 23px; font-weight: 800; color: var(--espresso);
+    font-variant-numeric: tabular-nums; letter-spacing: -0.02em; white-space: nowrap;
+  }
+  .send {
+    flex: none; min-height: 52px; padding: 0 16px; border-radius: 13px;
+    background: var(--send); color: #fff; font-size: 14.5px; font-weight: 750;
+    white-space: nowrap; box-shadow: 0 6px 16px rgba(18,140,126,0.32);
+  }
+  .send:active { background: var(--send-dark); }
+  .send:disabled { background: var(--line); color: var(--muted); box-shadow: none; }
+  .peek {
+    flex: none; width: 48px; height: 52px; border-radius: 13px; font-size: 18px;
+    background: var(--surface-2); border: 1px solid var(--line);
+  }
+  .peek:active { background: var(--crema-soft); }
+  .peek:disabled { opacity: 0.4; }
+  .note { font-size: 12px; text-align: center; margin-top: 8px; min-height: 16px; }
+  .note.ok { color: var(--good); font-weight: 650; }
+  .note.warn { color: var(--danger); font-weight: 650; }
+  .note.hint { color: var(--muted); }
+  .note a { color: inherit; }
+
+  /* On narrow phones the total gets its own line so nothing is truncated. */
+  @media (max-width: 430px) {
+    body { padding-bottom: calc(140px + env(safe-area-inset-bottom)); }
+    .bar-in { flex-wrap: wrap; }
+    .bar-total {
+      flex: 1 0 100%; display: flex; flex-direction: row-reverse;
+      justify-content: flex-end; align-items: baseline; gap: 9px; margin-bottom: 8px;
+    }
+    .bar-total strong { font-size: 26px; }
+    .send { flex: 1; }
+  }
+
+  /* ------------------------------------------------------------ dialog --- */
+  dialog {
+    border: none; border-radius: 18px; padding: 18px; width: min(440px, calc(100vw - 28px));
+    background: var(--surface); color: var(--ink);
+  }
+  dialog::backdrop { background: rgba(50,32,15,0.55); }
+  dialog h2 { font-size: 16px; color: var(--espresso); margin-bottom: 14px; }
+  .dlg-acts { display: flex; gap: 8px; margin-top: 16px; }
+  .dlg-acts button { flex: 1; min-height: var(--tap); border-radius: 11px; font-size: 14px; font-weight: 700; }
+  .primary { background: var(--crema); color: #fff; }
+  .ghost { background: var(--surface-2); border: 1px solid var(--line); }
+  pre.preview {
+    white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; line-height: 1.5; background: var(--surface-2);
+    border: 1px solid var(--line); border-radius: 12px; padding: 12px;
+    max-height: 55vh; overflow: auto;
+  }
+  footer { text-align: center; font-size: 11.5px; color: var(--muted); padding: 18px 0 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-in">
+    <span class="logo" id="logo" aria-hidden="true">☕</span>
+    <div class="head-text">
+      <h1>CashFlow Lite</h1>
+      <p id="today"><span id="shopName">The Caffeine Ministry</span> · <span id="date"></span></p>
+    </div>
+    <button class="icon-btn" id="btnSettings" aria-label="Settings">⚙️</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="types" role="group" aria-label="When is this count">
+    <button class="type" data-type="opening" aria-pressed="true"><b>🌅</b>Start of day</button>
+    <button class="type" data-type="shift" aria-pressed="false"><b>🔁</b>Shift change</button>
+    <button class="type" data-type="closing" aria-pressed="false"><b>🌙</b>End of day</button>
+  </div>
+
+  <section class="card">
+    <label class="field">
+      <span>Counted by</span>
+      <input class="input" id="staff" placeholder="Your name" autocomplete="name" />
+    </label>
+    <label class="field">
+      <span>Shift (optional)</span>
+      <input class="input" id="shift" placeholder="e.g. Morning → Evening" />
+    </label>
+  </section>
+
+  <section class="card">
+    <h2>💵 Notes <span id="notesTotal">₹0</span></h2>
+    <div id="noteRows"></div>
+  </section>
+
+  <section class="card">
+    <h2>🪙 Coins <span id="coinsTotal">₹0</span></h2>
+    <div id="coinRows"></div>
+  </section>
+
+  <section class="card">
+    <label class="field">
+      <span>Remark (optional)</span>
+      <input class="input" id="remark" placeholder="Anything the owner should know" />
+    </label>
+  </section>
+
+  <h2 class="section">Recent counts</h2>
+  <div id="history"></div>
+
+  <footer>Counts are saved on this phone only · v1</footer>
+</main>
+
+<div class="bar">
+  <div class="bar-in">
+    <div class="bar-total">
+      <span id="pieces">0 pieces counted</span>
+      <strong id="grand">₹0</strong>
+    </div>
+    <button class="peek" id="btnPreview" aria-label="Preview the message">👁️</button>
+    <button class="send" id="btnSend">Send on WhatsApp</button>
+  </div>
+  <p class="note hint" id="note"></p>
+</div>
+
+<dialog id="dlgSettings">
+  <h2>Settings</h2>
+  <label class="field">
+    <span>Owner's WhatsApp number</span>
+    <input class="input" id="setPhone" inputmode="tel" placeholder="+919829222536" />
+  </label>
+  <label class="field">
+    <span>Shop name</span>
+    <input class="input" id="setShop" />
+  </label>
+  <div class="dlg-acts">
+    <button class="ghost" id="setCancel">Cancel</button>
+    <button class="primary" id="setSave">Save</button>
+  </div>
+</dialog>
+
+<dialog id="dlgPreview">
+  <h2>Message to the owner</h2>
+  <pre class="preview" id="previewText"></pre>
+  <div class="dlg-acts">
+    <button class="ghost" id="prevClose">Close</button>
+    <button class="primary" id="prevCopy">Copy</button>
+  </div>
+</dialog>
+
+<script>
+(function () {
+  'use strict';
+
+  // The owner's number this app reports to. Changeable in Settings on the phone.
+  var DEFAULT_PHONE = '+919829222536';
+  var DEFAULT_SHOP = 'The Caffeine Ministry';
+  var CURRENCY = '₹';
+
+  // Indian notes and coins, highest first.
+  var DENOMS = [
+    { v: 500, kind: 'note' }, { v: 200, kind: 'note' }, { v: 100, kind: 'note' },
+    { v: 50, kind: 'note' }, { v: 20, kind: 'note' }, { v: 10, kind: 'note' },
+    { v: 20, kind: 'coin' }, { v: 10, kind: 'coin' }, { v: 5, kind: 'coin' },
+    { v: 2, kind: 'coin' }, { v: 1, kind: 'coin' }
+  ];
+
+  var TYPES = {
+    opening: { label: 'Start of day', icon: '🌅' },
+    shift:   { label: 'Shift change', icon: '🔁' },
+    closing: { label: 'End of day',   icon: '🌙' }
+  };
+
+  var KEY = 'tcm-cash-counter';
+  var $ = function (id) { return document.getElementById(id); };
+
+  var state = {
+    type: 'opening',
+    qty: {},                       // keyed by denomination index
+    settings: { phone: DEFAULT_PHONE, shop: DEFAULT_SHOP, staff: '' },
+    history: []
+  };
+
+  /* ------------------------------------------------------------ storage -- */
+
+  function load() {
+    try {
+      var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      if (saved.settings) {
+        state.settings.phone = saved.settings.phone || DEFAULT_PHONE;
+        state.settings.shop = saved.settings.shop || DEFAULT_SHOP;
+        state.settings.staff = saved.settings.staff || '';
+      }
+      if (Array.isArray(saved.history)) state.history = saved.history;
+    } catch (e) { /* first run, or storage cleared */ }
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({
+        settings: state.settings,
+        history: state.history.slice(0, 30)
+      }));
+    } catch (e) { /* private mode — the app still works for this session */ }
+  }
+
+  /* --------------------------------------------------------------- math -- */
+
+  function qtyAt(i) {
+    var n = parseInt(state.qty[i], 10);
+    return n > 0 ? n : 0;
+  }
+
+  function lines() {
+    var out = [];
+    for (var i = 0; i < DENOMS.length; i++) {
+      var n = qtyAt(i);
+      if (n > 0) out.push({ value: DENOMS[i].v, kind: DENOMS[i].kind, qty: n, amount: DENOMS[i].v * n });
+    }
+    return out;
+  }
+
+  function sum(list) {
+    return list.reduce(function (s, l) { return s + l.amount; }, 0);
+  }
+
+  function money(n) {
+    return CURRENCY + Math.round(n * 100) / 100;
+  }
+
+  /* ------------------------------------------------------------ message -- */
+
+  function stamp(iso) {
+    var d = new Date(iso);
+    return d.toLocaleString('en-IN', {
+      weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  function buildMessage(c) {
+    var rule = '━━━━━━━━━━━━━━━━━━';
+    var notes = c.lines.filter(function (l) { return l.kind === 'note'; });
+    var coins = c.lines.filter(function (l) { return l.kind === 'coin'; });
+    var row = function (l) { return CURRENCY + l.value + ' × ' + l.qty + ' = ' + money(l.amount); };
+    var out = [
+      '☕ *' + c.shop + '*',
+      '🧮 *CASH COUNT · ' + TYPES[c.type].label.toUpperCase() + '* ' + TYPES[c.type].icon,
+      rule,
+      '🗓 ' + stamp(c.at),
+      '👤 Counted by: ' + c.staff
+    ];
+    if (c.shift) out.push('🔁 Shift: ' + c.shift);
+
+    out.push('', '💵 *NOTES*');
+    if (notes.length) {
+      out = out.concat(notes.map(row));
+      out.push('Notes subtotal: *' + money(sum(notes)) + '*');
+    } else { out.push('— none counted —'); }
+
+    out.push('', '🪙 *COINS*');
+    if (coins.length) {
+      out = out.concat(coins.map(row));
+      out.push('Coins subtotal: *' + money(sum(coins)) + '*');
+    } else { out.push('— none counted —'); }
+
+    out.push('', rule, '💰 *TOTAL CASH: ' + money(c.total) + '*', rule);
+    out.push(c.pieces + ' notes & coins counted');
+    if (c.remark) out.push('', '📝 Remark: ' + c.remark);
+    return out.join('\n');
+  }
+
+  function sendToOwner(text) {
+    var digits = String(state.settings.phone).replace(/\D/g, '');
+    if (!digits) { flash('No owner number set — open ⚙️ Settings.', 'warn'); return; }
+    var url = 'https://wa.me/' + digits + '?text=' + encodeURIComponent(text);
+    var win = window.open(url, '_blank');
+    if (!win) {
+      // Some in-app browsers block the new tab; hand the user a link instead,
+      // and point at 👁 → Copy as the way out if the link is blocked too.
+      $('note').className = 'note warn';
+      $('note').innerHTML =
+        '<a href="' + url + '" target="_blank" rel="noreferrer">Tap to open WhatsApp</a> — or use 👁 to copy the message.';
+      return;
+    }
+    flash('Sent to the owner on +' + digits, 'ok');
+  }
+
+  var flashTimer;
+  function flash(msg, kind) {
+    var el = $('note');
+    el.className = 'note ' + (kind || 'hint');
+    el.textContent = msg;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () {
+      if (el.textContent === msg) { el.textContent = ''; el.className = 'note hint'; }
+    }, 6000);
+  }
+
+  /* --------------------------------------------------------------- view -- */
+
+  function drawRows() {
+    ['note', 'coin'].forEach(function (kind) {
+      var host = $(kind === 'note' ? 'noteRows' : 'coinRows');
+      host.innerHTML = '';
+      DENOMS.forEach(function (d, i) {
+        if (d.kind !== kind) return;
+        var row = document.createElement('div');
+        row.className = 'row';
+        row.dataset.index = i;
+        row.innerHTML =
+          '<span class="face">' + CURRENCY + d.v + '</span>' +
+          '<button class="step" data-step="-1" aria-label="One less ' + CURRENCY + d.v + '">&minus;</button>' +
+          '<input class="qty" type="number" min="0" step="1" inputmode="numeric" pattern="[0-9]*" placeholder="0" ' +
+                 'aria-label="Number of ' + CURRENCY + d.v + ' ' + kind + 's" />' +
+          '<button class="step" data-step="1" aria-label="One more ' + CURRENCY + d.v + '">+</button>' +
+          '<span class="amt">' + money(0) + '</span>';
+        host.appendChild(row);
+      });
+    });
+  }
+
+  function paint() {
+    var all = lines();
+    var notesTotal = sum(all.filter(function (l) { return l.kind === 'note'; }));
+    var coinsTotal = sum(all.filter(function (l) { return l.kind === 'coin'; }));
+    var total = notesTotal + coinsTotal;
+    var pieces = all.reduce(function (s, l) { return s + l.qty; }, 0);
+
+    document.querySelectorAll('.row').forEach(function (row) {
+      var i = Number(row.dataset.index);
+      var n = qtyAt(i);
+      var input = row.querySelector('.qty');
+      var want = state.qty[i] === undefined ? '' : String(state.qty[i]);
+      if (document.activeElement !== input && input.value !== want) input.value = want;
+      row.querySelector('.amt').textContent = money(DENOMS[i].v * n);
+      row.classList.toggle('on', n > 0);
+      row.querySelector('[data-step="-1"]').disabled = n === 0;
+    });
+
+    $('notesTotal').textContent = money(notesTotal);
+    $('coinsTotal').textContent = money(coinsTotal);
+    $('grand').textContent = money(total);
+    $('pieces').textContent = pieces + (pieces === 1 ? ' piece counted' : ' pieces counted');
+    $('btnSend').disabled = pieces === 0;
+    $('btnPreview').disabled = pieces === 0;
+  }
+
+  function drawHistory() {
+    var host = $('history');
+    host.innerHTML = '';
+    if (!state.history.length) {
+      host.innerHTML = '<div class="empty">No counts yet.<br />Count the drawer and send it across.</div>';
+      return;
+    }
+    state.history.slice(0, 10).forEach(function (c) {
+      var el = document.createElement('div');
+      el.className = 'hist';
+      el.innerHTML =
+        '<div class="hist-top"><strong>' + TYPES[c.type].icon + ' ' + TYPES[c.type].label + '</strong>' +
+        '<b>' + money(c.total) + '</b></div>' +
+        '<div class="hist-sub">' + stamp(c.at) + ' · ' + escapeHtml(c.staff) + (c.shift ? ' · ' + escapeHtml(c.shift) : '') + '</div>' +
+        '<div class="hist-acts">' +
+        '<button class="mini" data-resend="' + c.id + '">Send again</button>' +
+        '<button class="mini danger" data-del="' + c.id + '">Delete</button>' +
+        '</div>';
+      host.appendChild(el);
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+  }
+
+  /* ------------------------------------------------------------- actions -- */
+
+  function currentCount() {
+    var all = lines();
+    return {
+      id: String(Date.now()),
+      at: new Date().toISOString(),
+      type: state.type,
+      shop: state.settings.shop,
+      staff: ($('staff').value || '').trim() || 'Staff',
+      shift: ($('shift').value || '').trim(),
+      remark: ($('remark').value || '').trim(),
+      lines: all,
+      total: sum(all),
+      pieces: all.reduce(function (s, l) { return s + l.qty; }, 0)
+    };
+  }
+
+  function submit() {
+    var count = currentCount();
+    if (!count.pieces) return;
+    state.history.unshift(count);
+    state.settings.staff = count.staff;
+    save();
+    sendToOwner(buildMessage(count));
+    state.qty = {};
+    $('remark').value = '';
+    paint();
+    drawHistory();
+  }
+
+  /* --------------------------------------------------------------- wire -- */
+
+  load();
+  $('shopName').textContent = state.settings.shop;
+  $('date').textContent = new Date().toLocaleDateString('en-IN', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+
+  // The badge replaces the ☕ placeholder only once it has actually loaded, so
+  // a missing file degrades to the emoji instead of a broken image. It is the
+  // 192px copy: the header draws it at 46px, and the 512 is for the launcher.
+  var badge = new Image();
+  badge.alt = '';
+  badge.onload = function () { $('logo').textContent = ''; $('logo').appendChild(badge); };
+  badge.src = './logo-192.png';
+  $('staff').value = state.settings.staff;
+  drawRows();
+  paint();
+  drawHistory();
+
+  document.querySelectorAll('.type').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      state.type = btn.dataset.type;
+      document.querySelectorAll('.type').forEach(function (b) {
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+    });
+  });
+
+  document.addEventListener('input', function (e) {
+    if (!e.target.classList.contains('qty')) return;
+    var i = Number(e.target.closest('.row').dataset.index);
+    var raw = e.target.value.replace(/[^0-9]/g, '');
+    state.qty[i] = raw === '' ? undefined : Math.min(9999, parseInt(raw, 10));
+    paint();
+  });
+
+  document.addEventListener('click', function (e) {
+    var step = e.target.closest('[data-step]');
+    if (step) {
+      var i = Number(step.closest('.row').dataset.index);
+      var next = qtyAt(i) + Number(step.dataset.step);
+      state.qty[i] = next > 0 ? Math.min(9999, next) : undefined;
+      paint();
+      return;
+    }
+    var resend = e.target.closest('[data-resend]');
+    if (resend) {
+      var found = state.history.filter(function (c) { return c.id === resend.dataset.resend; })[0];
+      if (found) sendToOwner(buildMessage(found));
+      return;
+    }
+    var del = e.target.closest('[data-del]');
+    if (del && confirm('Delete this count?')) {
+      state.history = state.history.filter(function (c) { return c.id !== del.dataset.del; });
+      save();
+      drawHistory();
+    }
+  });
+
+  // Selecting the whole field makes overwriting a number one tap instead of three.
+  document.addEventListener('focusin', function (e) {
+    if (e.target.classList.contains('qty')) e.target.select();
+  });
+
+  $('btnSend').addEventListener('click', submit);
+
+  $('btnPreview').addEventListener('click', function () {
+    $('previewText').textContent = buildMessage(currentCount());
+    $('dlgPreview').showModal();
+  });
+  $('prevClose').addEventListener('click', function () { $('dlgPreview').close(); });
+  $('prevCopy').addEventListener('click', function () {
+    var text = $('previewText').textContent;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(function () {
+        $('dlgPreview').close();
+        flash('Message copied', 'ok');
+      });
+    }
+  });
+
+  $('btnSettings').addEventListener('click', function () {
+    $('setPhone').value = state.settings.phone;
+    $('setShop').value = state.settings.shop;
+    $('dlgSettings').showModal();
+  });
+  $('setCancel').addEventListener('click', function () { $('dlgSettings').close(); });
+  $('setSave').addEventListener('click', function () {
+    state.settings.phone = ($('setPhone').value || '').trim() || DEFAULT_PHONE;
+    state.settings.shop = ($('setShop').value || '').trim() || DEFAULT_SHOP;
+    save();
+    $('shopName').textContent = state.settings.shop;
+    $('dlgSettings').close();
+    flash('Settings saved', 'ok');
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('./sw.js').catch(function () { /* offline support is optional */ });
+    });
+  }
+})();
+</script>
+</body>
+</html>

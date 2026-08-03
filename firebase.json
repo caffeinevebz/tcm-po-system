@@ -14,7 +14,8 @@
       "functions/**",
       "**/.*",
       "**/node_modules/**",
-      "*.md"
+      "**/*.md",
+      "cash-counter/screenshot.png"
     ],
     "cleanUrls": false,
     "headers": [
@@ -43,6 +44,17 @@
       {
         "source": "/sw.js",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "/cash-counter/sw.js",
+        "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+      },
+      {
+        "source": "/cash-counter/manifest.webmanifest",
+        "headers": [
+          { "key": "Content-Type", "value": "application/manifest+json" },
+          { "key": "Cache-Control", "value": "no-cache" }
+        ]
       }
     ]
   }
