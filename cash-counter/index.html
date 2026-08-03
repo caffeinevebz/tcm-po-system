@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#2a1a12" />
+<meta name="theme-color" content="#32200f" />
 <meta name="description" content="Count the cash drawer and send the breakdown to the owner on WhatsApp." />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,21 +14,28 @@
 <link rel="apple-touch-icon" href="./logo.png" />
 <title>CashFlow Lite</title>
 <style>
+  /* Palette lifted from the CashFlow Lite badge: the poster's sepia ground and
+     sunburst, the mascot cup's orange, its dark chocolate outline, the cream of
+     its gloves, and the sage green of the banknotes it is holding. */
   :root {
-    --espresso: #2a1a12;
-    --crema: #c67c4e;
-    --crema-dark: #a9633a;
-    --crema-soft: #f0d9c6;
-    --page: #f4ece2;
-    --surface: #fffdfa;
-    --surface-2: #faf3ea;
-    --ink: #2a211c;
-    --ink-2: #6b5d52;
-    --muted: #9c8d80;
-    --line: #e7dbcc;
-    --good: #2f8f4e;
-    --warn: #a06a1f;
-    --danger: #c0453b;
+    --espresso: #32200f;     /* badge border, header ground */
+    --espresso-2: #241408;
+    --crema: #d98a3e;        /* the cup itself */
+    --crema-dark: #b36b27;
+    --crema-ink: #96551a;    /* the same orange, dark enough to set text in */
+    --crema-soft: #f6ddb5;
+    --page: #f6e7c8;         /* the poster behind the mascot */
+    --surface: #fffbf2;      /* the cream of the gloves */
+    --surface-2: #fbf0dc;
+    --ink: #33210f;
+    --ink-2: #6e543a;
+    --muted: #7d6344;        /* dark enough to clear 4.5:1 on the page ground */
+    --line: #e7d3ae;
+    --good: #6f7a45;         /* the sage of the banknotes */
+    --warn: #b0761e;
+    --danger: #b5462f;
+    --send: #128c7e;         /* WhatsApp's deep green, at home on this ground */
+    --send-dark: #0e7568;
     --radius: 14px;
     --tap: 44px;
     --bar: 96px;
@@ -49,7 +56,11 @@
 
   /* ------------------------------------------------------------- header -- */
   header {
-    background: linear-gradient(165deg, var(--espresso), #22150e);
+    background-color: var(--espresso-2);
+    background-image:
+      repeating-conic-gradient(from -96deg at 50% 128%,
+        rgba(217, 138, 62, 0.15) 0deg 6deg, rgba(217, 138, 62, 0) 6deg 13deg),
+      linear-gradient(165deg, var(--espresso), var(--espresso-2));
     color: #fff;
     padding: calc(18px + env(safe-area-inset-top)) 14px 18px;
   }
@@ -100,7 +111,7 @@
     width: 100%; min-height: var(--tap); border: 1px solid var(--line);
     background: var(--surface); border-radius: 10px; padding: 10px 12px; font-size: 16px;
   }
-  .input:focus { outline: none; border-color: var(--crema); box-shadow: 0 0 0 3px rgba(198,124,78,0.16); }
+  .input:focus { outline: none; border-color: var(--crema); box-shadow: 0 0 0 3px rgba(217,138,62,0.24); }
 
   /* -------------------------------------------------------------- rows --- */
   .row {
@@ -123,9 +134,9 @@
     appearance: textfield; -moz-appearance: textfield;
   }
   .qty::-webkit-outer-spin-button, .qty::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-  .qty:focus { outline: none; border-color: var(--crema); box-shadow: 0 0 0 3px rgba(198,124,78,0.16); }
+  .qty:focus { outline: none; border-color: var(--crema); box-shadow: 0 0 0 3px rgba(217,138,62,0.24); }
   .amt { text-align: right; font-size: 13px; font-weight: 700; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-  .row.on .face { color: var(--crema-dark); }
+  .row.on .face { color: var(--crema-ink); }
   .row.on .amt { color: var(--ink); }
 
   /* ------------------------------------------------------------ history -- */
@@ -149,7 +160,7 @@
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
     background: var(--surface); border-top: 1px solid var(--line);
     padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
-    box-shadow: 0 -6px 22px rgba(42,26,18,0.1);
+    box-shadow: 0 -6px 22px rgba(50,32,15,0.13);
   }
   .bar-in { max-width: 560px; margin: 0 auto; display: flex; align-items: center; gap: 8px; }
   .bar-total { flex: 1; min-width: 0; }
@@ -163,10 +174,10 @@
   }
   .send {
     flex: none; min-height: 52px; padding: 0 16px; border-radius: 13px;
-    background: #25d366; color: #fff; font-size: 14.5px; font-weight: 750;
-    white-space: nowrap; box-shadow: 0 6px 16px rgba(37,211,102,0.35);
+    background: var(--send); color: #fff; font-size: 14.5px; font-weight: 750;
+    white-space: nowrap; box-shadow: 0 6px 16px rgba(18,140,126,0.32);
   }
-  .send:active { background: #1eb955; }
+  .send:active { background: var(--send-dark); }
   .send:disabled { background: var(--line); color: var(--muted); box-shadow: none; }
   .peek {
     flex: none; width: 48px; height: 52px; border-radius: 13px; font-size: 18px;
@@ -197,7 +208,7 @@
     border: none; border-radius: 18px; padding: 18px; width: min(440px, calc(100vw - 28px));
     background: var(--surface); color: var(--ink);
   }
-  dialog::backdrop { background: rgba(42,26,18,0.5); }
+  dialog::backdrop { background: rgba(50,32,15,0.55); }
   dialog h2 { font-size: 16px; color: var(--espresso); margin-bottom: 14px; }
   .dlg-acts { display: flex; gap: 8px; margin-top: 16px; }
   .dlg-acts button { flex: 1; min-height: var(--tap); border-radius: 11px; font-size: 14px; font-weight: 700; }
