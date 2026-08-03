@@ -1,6 +1,6 @@
 // Offline shell for the Cash Counter. Bump CACHE when the app files change.
-const CACHE = 'tcm-cash-counter-v2'
-const SHELL = ['./', './index.html', './manifest.webmanifest', './icon.svg']
+const CACHE = 'tcm-cash-counter-v3'
+const SHELL = ['./', './index.html', './manifest.webmanifest', './logo-192.png', './icon.svg']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

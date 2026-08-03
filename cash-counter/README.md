@@ -94,10 +94,15 @@ the script in `index.html` for a different currency.
 
 ## The logo
 
-The app looks for `logo.png` in this folder and shows it in the header, on the
-home screen and on the browser tab. Drop a square PNG in (512×512 is ideal) and
-it is picked up automatically — no code change. Until then the header falls
-back to a ☕ and the icons to `icon.svg`.
+`logo.png` (512×512) is the launcher icon; `logo-192.png` is the same badge at
+192×192, used for the header and older Android launchers — the header draws it
+at 46px, so it loads the small copy rather than the large one. Both are
+resized from the original 1254×1254 artwork, which came in at 3.1 MB — too
+heavy to ship to a phone on every open.
+
+To change the logo, replace both files, keeping the names and sizes. If either
+is missing the header falls back to a ☕ and the launcher to `icon.svg`, so a
+bad file degrades rather than breaks.
 
 ## How the WhatsApp send works
 

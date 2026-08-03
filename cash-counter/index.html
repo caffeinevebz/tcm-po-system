@@ -12,6 +12,7 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="icon" href="./icon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="./logo.png" />
+<link rel="icon" sizes="192x192" href="./logo-192.png" />
 <title>CashFlow Lite</title>
 <style>
   /* Palette lifted from the CashFlow Lite badge: the poster's sepia ground and
@@ -580,11 +581,12 @@
   });
 
   // The badge replaces the ☕ placeholder only once it has actually loaded, so
-  // a missing logo.png degrades to the emoji instead of a broken image.
+  // a missing file degrades to the emoji instead of a broken image. It is the
+  // 192px copy: the header draws it at 46px, and the 512 is for the launcher.
   var badge = new Image();
   badge.alt = '';
   badge.onload = function () { $('logo').textContent = ''; $('logo').appendChild(badge); };
-  badge.src = './logo.png';
+  badge.src = './logo-192.png';
   $('staff').value = state.settings.staff;
   drawRows();
   paint();
