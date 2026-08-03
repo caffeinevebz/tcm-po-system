@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Cash Counter">
+  <rect width="512" height="512" fill="#2a1a12"/>
+  <!-- banknote -->
+  <rect x="96" y="150" width="320" height="150" rx="18" fill="#f0d9c6"/>
+  <rect x="120" y="174" width="272" height="102" rx="8" fill="none" stroke="#c67c4e" stroke-width="7"/>
+  <circle cx="256" cy="225" r="34" fill="#c67c4e"/>
+  <!-- rupee stroke inside the note -->
+  <path d="M241 209h30M241 222h30M264 209c9 0 14 6 14 13s-5 13-14 13h-13l19 20"
+        fill="none" stroke="#2a1a12" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- stacked coins -->
+  <ellipse cx="256" cy="384" rx="96" ry="26" fill="#c67c4e"/>
+  <ellipse cx="256" cy="360" rx="96" ry="26" fill="#e0a06b"/>
+  <ellipse cx="256" cy="336" rx="96" ry="26" fill="#c67c4e"/>
+  <ellipse cx="256" cy="336" rx="60" ry="15" fill="#e0a06b"/>
+</svg>
