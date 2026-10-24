@@ -63,6 +63,12 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, 'recipes/REC-MINE'), { id: 'REC-MINE', name: 'My Mocha', ingredients: [], createdBy: 'baristaUid' });
   await setDoc(doc(db, 'requests/REQ-1'), { id: 'REQ-1', items: [{ name: 'Sugar', qty: 1, unit: 'Kg' }] });
   await setDoc(doc(db, '_userSecrets/baristaUid'), { keyHash: 'x:y' });
+  await setDoc(doc(db, 'site/info'), { phone: '9800000000', open: '09:00', close: '23:00' });
+  await setDoc(doc(db, 'site/menu'), { categories: [{ id: 'c1', name: 'Coffee', items: [] }] });
+  await setDoc(doc(db, 'reservations/RES-1'), {
+    ref: 'TCM-ABCDE', name: 'Asha', phone: '919829012345', guests: 2,
+    date: '2026-10-25', time: '19:30', status: 'pending'
+  });
 });
 
 let pass = 0; const fails = [];
@@ -146,6 +152,29 @@ await t('reads every PO',      () => assertSucceeds(getDocs(collection(owner, 'p
 await t('edits cost prices',   () => assertSucceeds(updateDoc(doc(owner, 'settings/main'), { prices: { Sugar: { price: 50, unit: 'Kg' } } })));
 await t('raises a PO',         () => assertSucceeds(setDoc(doc(owner, 'pos/TCM-08-26-002'), { id: 'TCM/08-26/002', status: 'Approved', items: [] })));
 await t('deletes any recipe',  () => assertSucceeds(deleteDoc(doc(owner, 'recipes/REC-MINE'))));
+
+console.log('\npublic website');
+await t('anyone reads the café details',   () => assertSucceeds(getDoc(doc(anon, 'site/info'))));
+await t('anyone reads the menu',           () => assertSucceeds(getDoc(doc(anon, 'site/menu'))));
+await t('a stranger cannot edit the menu', () => assertFails(setDoc(doc(anon, 'site/menu'), { categories: [] })));
+await t('staff cannot edit the menu',      () => assertFails(setDoc(doc(manager, 'site/menu'), { categories: [] })));
+await t('no other site documents exist',   () => assertFails(getDoc(doc(anon, 'site/secret'))));
+await t('the owner publishes the menu',    () => assertSucceeds(setDoc(doc(owner, 'site/menu'), { categories: [{ id: 'c2', name: 'Tea', items: [] }] })));
+await t('the owner edits café details',    () => assertSucceeds(setDoc(doc(owner, 'site/info'), { phone: '9811111111' }, { merge: true })));
+await t('a menu must hold a category list', () => assertFails(setDoc(doc(owner, 'site/menu'), { categories: 'Coffee' })));
+await t('the owner cannot write other site docs', () => assertFails(setDoc(doc(owner, 'site/other'), { a: 1 })));
+
+console.log('\nreservations');
+await t('a guest cannot book directly',    () => assertFails(setDoc(doc(anon, 'reservations/X'), { name: 'Bot', status: 'pending' })));
+await t('a guest cannot read bookings',    () => assertFails(getDoc(doc(anon, 'reservations/RES-1'))));
+await t('a guest cannot list bookings',    () => assertFails(getDocs(collection(anon, 'reservations'))));
+await t('staff cannot read bookings',      () => assertFails(getDoc(doc(manager, 'reservations/RES-1'))));
+await t('the owner lists bookings',        () => assertSucceeds(getDocs(collection(owner, 'reservations'))));
+await t('the owner confirms a booking',    () => assertSucceeds(updateDoc(doc(owner, 'reservations/RES-1'), { status: 'confirmed', table: '4' })));
+await t('the owner cannot invent a status', () => assertFails(updateDoc(doc(owner, 'reservations/RES-1'), { status: 'vip' })));
+await t('the guest\'s details stay as sent', () => assertFails(updateDoc(doc(owner, 'reservations/RES-1'), { phone: '910000000000' })));
+await t('even the owner cannot create one', () => assertFails(setDoc(doc(owner, 'reservations/Y'), { name: 'x', status: 'pending' })));
+await t('booking throttle is closed to all', () => assertFails(getDoc(doc(owner, '_siteThrottle/abc'))));
 
 console.log('\ndefaults');
 await t('login throttle is closed to all', () => assertFails(getDoc(doc(owner, '_authThrottle/abc'))));

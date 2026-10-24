@@ -39,6 +39,14 @@ the app *locks* and asks for the access key again.
 
 The owner can also use the staff terminal; staff cannot open the owner terminal.
 
+### `website/` — thecaffeineministry.in
+The café's public website: home, QR menu, table reservations, story, events and
+contact pages. It is a separate Firebase Hosting site in the same project. The
+owner runs it from **Website & Bookings** in the owner terminal: booking
+requests arrive there live, and the menu, hours and contact details are edited
+and published from there. Setup and the GoDaddy domain steps are in
+**[website/README.md](website/README.md)**.
+
 ---
 
 ## Architecture
@@ -69,13 +77,17 @@ uploaded.
 │   ├── tcm-core.js         Firebase handles, unit maths, costing, ids, auth
 │   ├── tcm-theme.js        Shared Tailwind theme
 │   └── *.jpg, *.png        Web-sized image derivatives
+├── website/              thecaffeineministry.in, the public site (own README)
 ├── functions/
 │   ├── index.js            accounts, permissions, sign-in, rate limiting
+│   ├── website.js          createReservation (public booking endpoint)
+│   ├── lib/reservation.js  booking validation, shared with the tests
 │   └── lib/auth-guard.js   requireRole() for other callables
 └── tools/
     ├── test-costing.mjs    Unit tests for the costing engine
     ├── test-rules.mjs      Security tests for firestore.rules
     ├── test-auth-flows.mjs Sign-in journeys against the emulators
+    ├── test-reservations.mjs Website booking validation
     ├── sri.mjs             Regenerate/verify CDN integrity hashes
     └── optimize-images.mjs Rebuild the assets/ image derivatives
 ```
@@ -150,7 +162,8 @@ Run the tests for the engine:
 
 ```bash
 npm test            # costing, unit conversion, id allocation  (23 tests)
-npm run test:rules  # firestore.rules access boundary         (49 tests, needs Java)
+npm run test:site   # website booking validation              (11 tests)
+npm run test:rules  # firestore.rules access boundary         (68 tests, needs Java)
 npm run test:auth   # account journeys against the emulators  (33 tests, needs Java)
 ```
 
@@ -187,7 +200,8 @@ Static hosting of the repository root is all that is required. With Firebase
 Hosting you also get the security headers defined in `firebase.json`:
 
 ```bash
-firebase deploy --only hosting
+firebase deploy --only hosting:brewops     # BrewOps
+firebase deploy --only hosting:website     # thecaffeineministry.in
 ```
 
 Rules and functions deploy separately — see [SECURITY.md](SECURITY.md).

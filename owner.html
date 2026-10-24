@@ -420,6 +420,7 @@
                 { id: 'conversions', label: 'Prep Kitchen Engine' },
                 { id: 'vendors', label: 'Vendor Directory' },
                 { id: 'inventory', label: 'Raw Material Master' },
+                { id: 'website', label: 'Website & Bookings' },
                 { id: 'team', label: 'Users & Access' },
                 { id: 'workbench', label: "Brewster's Workbench" }
             ];
@@ -433,6 +434,417 @@
                     </div>
                     <header className="bg-gradient-to-r from-[#e8dfd1] to-[#FAF8F5] border-b-2 border-brandBrown/30 px-4 py-3 shadow-md sticky top-0 z-30"><div className="flex items-center justify-between max-w-6xl mx-auto relative"><button onClick={() => setSidebarOpen(true)} className="text-victorian hover:text-brandBrown transition-colors p-2 rounded-lg hover:bg-black/5"><Icons.Menu/></button><div className="flex-1 flex justify-center py-1"><img src="assets/page-header.png" alt="TCM BrewOps" width="1200" height="201" className="h-12 sm:h-16 md:h-20 lg:h-24 object-contain drop-shadow-sm" /></div><div className="w-12"></div></div></header>
                     <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">{children}</main>
+                </div>
+            );
+        }
+
+        /**
+         * Website — what guests see at thecaffeineministry.in.
+         *
+         *   Reservations  booking requests from the website, live. Confirm,
+         *                 seat or decline them and message the guest on WhatsApp.
+         *   Menu          the QR menu. Edit here, press Publish, and every table
+         *                 sees the change on its next scan.
+         *   Café details  hours, phone, socials, booking rules, announcement.
+         *
+         * site/info and site/menu are PUBLIC documents (firestore.rules), so
+         * nothing private may ever be written to them. Bookings are created
+         * only by the createReservation function; this view just works them.
+         */
+        const SITE_URL = 'https://thecaffeineministry.in';
+        const RES_STATUSES = {
+            pending:   { label: 'Awaiting reply', cls: 'bg-antiqueLight/60 text-victorian border-antique/40' },
+            confirmed: { label: 'Confirmed',      cls: 'bg-vintageGreen/10 text-vintageGreen border-vintageGreen/30' },
+            seated:    { label: 'Seated',         cls: 'bg-victorian text-paper border-victorian' },
+            completed: { label: 'Completed',      cls: 'bg-gray-100 text-gray-500 border-gray-200' },
+            declined:  { label: 'Declined',       cls: 'bg-dangerLight text-danger border-danger/20' },
+            cancelled: { label: 'Cancelled',      cls: 'bg-gray-100 text-gray-500 border-gray-200' },
+            'no-show': { label: 'No-show',        cls: 'bg-dangerLight text-danger border-danger/20' }
+        };
+        const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+        const istToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
+        const shiftDate = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+        const niceDate = (iso) => new Date(iso + 'T00:00:00Z').toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+        const niceTime = (hhmm) => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''} ${h >= 12 ? 'PM' : 'AM'}`; };
+        const newId = () => Math.random().toString(36).slice(2, 9);
+
+        function WebsiteView({ recipes, showToast, confirmAction }) {
+            const [tab, setTab] = useState('reservations');
+            const [bookings, setBookings] = useState([]);
+            const [loadError, setLoadError] = useState('');
+
+            // Everything from a week ago onwards, live.
+            useEffect(() => {
+                const from = shiftDate(istToday(), -7);
+                return db.collection('reservations').where('date', '>=', from).orderBy('date')
+                    .onSnapshot(
+                        snap => { setBookings(snap.docs.map(d => ({ docId: d.id, ...d.data() }))); setLoadError(''); },
+                        err => setLoadError(err.code === 'permission-denied'
+                            ? 'Reservations are not readable yet. Deploy the updated firestore.rules (npm run deploy:rules).'
+                            : err.message)
+                    );
+            }, []);
+
+            const pending = bookings.filter(b => b.status === 'pending').length;
+            const tabs = [
+                { id: 'reservations', label: 'Reservations', badge: pending },
+                { id: 'menu', label: 'Menu' },
+                { id: 'info', label: 'Café details' },
+                { id: 'qr', label: 'QR codes' }
+            ];
+
+            return (
+                <div className="animate-fade-in space-y-6 pb-16">
+                    <div className="flex flex-wrap justify-between items-end gap-3">
+                        <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm border-b-2 border-brandBrown/30 pb-2 inline-block">Website</h2>
+                        <a href={SITE_URL} target="_blank" rel="noopener" className="text-xs font-bold uppercase tracking-widest text-brandBrown hover:text-victorian">thecaffeineministry.in ↗</a>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto hide-scrollbar">
+                        {tabs.map(t => (
+                            <button key={t.id} onClick={() => setTab(t.id)} className={`px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest whitespace-nowrap transition-all border ${tab === t.id ? 'bg-victorian text-paper border-victorian shadow-md' : 'bg-white/80 text-victorian border-gray-200 hover:border-brandBrown/40'}`}>
+                                {t.label}{t.badge ? <span className="ml-2 bg-antique text-victorian rounded-full px-2 py-0.5">{t.badge}</span> : null}
+                            </button>
+                        ))}
+                    </div>
+                    {tab === 'reservations' && <ReservationsPanel bookings={bookings} loadError={loadError} showToast={showToast} confirmAction={confirmAction} />}
+                    {tab === 'menu' && <MenuEditor recipes={recipes} showToast={showToast} confirmAction={confirmAction} />}
+                    {tab === 'info' && <SiteInfoEditor showToast={showToast} />}
+                    {tab === 'qr' && (
+                        <div className="bg-white/80 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 space-y-4 max-w-2xl">
+                            <h3 className="font-serif text-xl text-victorian">Table QR codes</h3>
+                            <p className="text-sm text-gray-600">Each table gets its own code. Scanning it opens the menu with the table number shown, so your team knows where an order came from.</p>
+                            <div className="flex flex-wrap gap-3">
+                                <a href={SITE_URL + '/qr'} target="_blank" rel="noopener" className="bg-victorian text-paper px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-victorianLight">Open the printable QR sheet ↗</a>
+                                <a href={SITE_URL + '/menu?table=1'} target="_blank" rel="noopener" className="bg-white border border-gray-200 text-victorian px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-widest hover:border-brandBrown/40">Preview the menu ↗</a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function ReservationsPanel({ bookings, loadError, showToast, confirmAction }) {
+            const [filter, setFilter] = useState('upcoming');
+            const today = istToday();
+            const sorted = [...bookings].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+            const filters = {
+                today:    b => b.date === today,
+                upcoming: b => b.date >= today && !['declined', 'cancelled', 'completed', 'no-show'].includes(b.status),
+                pending:  b => b.status === 'pending',
+                past:     b => b.date < today || ['completed', 'no-show', 'declined', 'cancelled'].includes(b.status)
+            };
+            let shown = sorted.filter(filters[filter]);
+            if (filter === 'past') shown = shown.reverse();
+            const todayGuests = sorted.filter(b => b.date === today && ['pending', 'confirmed', 'seated'].includes(b.status)).reduce((s, b) => s + (Number(b.guests) || 0), 0);
+
+            const setStatus = (b, status, extra = {}) =>
+                db.collection('reservations').doc(b.docId)
+                    .update({ status, ...extra, updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+                    .then(() => showToast(`${b.name}: ${RES_STATUSES[status].label}`, 'success'))
+                    .catch(e => showToast(e.message, 'error'));
+
+            const whatsapp = (b, kind) => {
+                const when = `${niceDate(b.date)} at ${niceTime(b.time)}`;
+                const text = kind === 'confirm'
+                    ? `Hello ${b.name}! Your table for ${b.guests} at The Caffeine Ministry on ${when} is confirmed. Booking ref ${b.ref}. We look forward to seeing you!`
+                    : `Hello ${b.name}, thank you for booking with The Caffeine Ministry. Unfortunately we are fully booked on ${when}. Could another time work for you? (Ref ${b.ref})`;
+                window.open(`https://wa.me/${TCM.normalizePhone(b.phone)}?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+            };
+
+            const setTable = (b) => {
+                const t = window.prompt(`Table for ${b.name}:`, b.table || '');
+                if (t === null) return;
+                db.collection('reservations').doc(b.docId).update({ table: t.trim().slice(0, 12), updatedAt: firebase.firestore.FieldValue.serverTimestamp() })
+                    .catch(e => showToast(e.message, 'error'));
+            };
+
+            const btn = 'px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border transition-all';
+
+            return (
+                <div className="space-y-5">
+                    {loadError && <div className="bg-dangerLight text-danger border border-danger/20 rounded-xl p-4 text-sm">{loadError}</div>}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        <DashboardMetric title="Awaiting reply" value={sorted.filter(filters.pending).length} subtitle="Need a yes or no" icon={<Icons.Activity/>} borderColor={sorted.some(filters.pending) ? 'border-antique' : 'border-gray-200'} />
+                        <DashboardMetric title="Today" value={sorted.filter(b => b.date === today && !['declined', 'cancelled'].includes(b.status)).length} subtitle={`${todayGuests} guests expected`} icon={<Icons.Users/>} borderColor="border-vintageGreen" />
+                        <DashboardMetric title="Upcoming" value={sorted.filter(filters.upcoming).length} subtitle="From today on" icon={<Icons.FileText/>} borderColor="border-brandBrown" />
+                        <DashboardMetric title="No-shows" value={sorted.filter(b => b.status === 'no-show').length} subtitle="Past 7 days" icon={<Icons.Box/>} borderColor="border-gray-200" />
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {[['upcoming', 'Upcoming'], ['today', 'Today'], ['pending', 'Awaiting reply'], ['past', 'Past week']].map(([id, label]) => (
+                            <button key={id} onClick={() => setFilter(id)} className={`${btn} ${filter === id ? 'bg-brandBrown text-white border-brandBrown' : 'bg-white text-gray-600 border-gray-200'}`}>{label}</button>
+                        ))}
+                    </div>
+                    {shown.length === 0 && <div className="bg-white/70 rounded-2xl p-10 text-center text-sm text-gray-500 border border-white/50">Nothing here. Bookings made on the website appear the moment they are sent.</div>}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        {shown.map(b => {
+                            const st = RES_STATUSES[b.status] || RES_STATUSES.pending;
+                            return (
+                                <div key={b.docId} className={`bg-white/90 backdrop-blur-xl p-5 rounded-2xl shadow-elegant border ${b.status === 'pending' ? 'border-antique animate-alert-flash' : 'border-white/50'}`}>
+                                    <div className="flex justify-between items-start gap-3 mb-3">
+                                        <div>
+                                            <p className="font-serif text-lg font-bold text-victorian leading-tight">{b.name}</p>
+                                            <p className="text-xs text-gray-500 mt-1 font-mono">{b.ref}</p>
+                                        </div>
+                                        <span className={`text-[9px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-lg border whitespace-nowrap ${st.cls}`}>{st.label}</span>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                                        <div className="bg-paper rounded-xl py-2"><p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Date</p><p className="text-sm font-bold text-victorian">{niceDate(b.date)}</p></div>
+                                        <div className="bg-paper rounded-xl py-2"><p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Time</p><p className="text-sm font-bold text-victorian">{niceTime(b.time)}</p></div>
+                                        <div className="bg-paper rounded-xl py-2"><p className="text-[9px] uppercase tracking-widest text-gray-400 font-bold">Guests</p><p className="text-sm font-bold text-victorian">{b.guests}</p></div>
+                                    </div>
+                                    <div className="text-sm text-gray-700 space-y-1 mb-4">
+                                        <p><a className="font-semibold text-brandBrown" href={`tel:+${b.phone}`}>+{b.phone}</a>{b.email ? <span className="text-gray-500"> · {b.email}</span> : null}</p>
+                                        {b.occasion && <p><span className="text-gray-400">Occasion:</span> {b.occasion}</p>}
+                                        {b.notes && <p className="bg-paper/80 rounded-lg px-3 py-2 italic">“{b.notes}”</p>}
+                                        {b.table && <p><span className="text-gray-400">Table:</span> <b>{b.table}</b></p>}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {b.status === 'pending' && <>
+                                            <button className={`${btn} bg-vintageGreen text-white border-vintageGreen`} onClick={() => { setStatus(b, 'confirmed'); whatsapp(b, 'confirm'); }}>Confirm + WhatsApp</button>
+                                            <button className={`${btn} bg-white text-vintageGreen border-vintageGreen/40`} onClick={() => setStatus(b, 'confirmed')}>Confirm only</button>
+                                            <button className={`${btn} bg-white text-danger border-danger/30`} onClick={() => confirmAction(`Decline ${b.name}'s booking?`, () => { setStatus(b, 'declined'); whatsapp(b, 'decline'); })}>Decline</button>
+                                        </>}
+                                        {b.status === 'confirmed' && <>
+                                            <button className={`${btn} bg-victorian text-paper border-victorian`} onClick={() => setStatus(b, 'seated')}>Seated</button>
+                                            <button className={`${btn} bg-white text-danger border-danger/30`} onClick={() => setStatus(b, 'no-show')}>No-show</button>
+                                            <button className={`${btn} bg-white text-gray-500 border-gray-200`} onClick={() => confirmAction(`Cancel ${b.name}'s booking?`, () => setStatus(b, 'cancelled'))}>Cancel</button>
+                                        </>}
+                                        {b.status === 'seated' && <button className={`${btn} bg-white text-gray-600 border-gray-200`} onClick={() => setStatus(b, 'completed')}>Completed</button>}
+                                        {['pending', 'confirmed', 'seated'].includes(b.status) && <button className={`${btn} bg-white text-victorian border-gray-200`} onClick={() => setTable(b)}>{b.table ? 'Change table' : 'Assign table'}</button>}
+                                        <a className={`${btn} bg-white text-[#128C7E] border-[#25D366]/40`} href={`https://wa.me/${TCM.normalizePhone(b.phone)}`} target="_blank" rel="noopener">WhatsApp</a>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        }
+
+        function MenuEditor({ recipes, showToast, confirmAction }) {
+            const [menu, setMenu] = useState(null);
+            const [dirty, setDirty] = useState(false);
+            const [busy, setBusy] = useState(false);
+            const [openCat, setOpenCat] = useState(null);
+
+            useEffect(() => {
+                db.collection('site').doc('menu').get().then(snap => {
+                    const m = snap.exists ? snap.data() : {};
+                    setMenu({ currency: m.currency || '₹', footnote: m.footnote || 'Prices are in Indian rupees and include GST.', categories: m.categories || [] });
+                    setOpenCat(((m.categories || [])[0] || {}).id || null);
+                }).catch(e => showToast(e.message, 'error'));
+            }, []);
+
+            if (!menu) return <div className="text-sm text-gray-500 p-6">Loading the menu…</div>;
+
+            const change = (fn) => { setMenu(m => { const next = JSON.parse(JSON.stringify(m)); fn(next); return next; }); setDirty(true); };
+            const move = (list, i, d) => { const j = i + d; if (j < 0 || j >= list.length) return; [list[i], list[j]] = [list[j], list[i]]; };
+
+            const addCategory = () => { const name = window.prompt('Section name (e.g. Cold Coffee):'); if (!name || !name.trim()) return; const id = newId(); change(m => m.categories.push({ id, name: name.trim(), note: '', items: [] })); setOpenCat(id); };
+            const addItem = (ci) => change(m => m.categories[ci].items.push({ id: newId(), name: '', desc: '', price: '', veg: true, tags: [], available: true }));
+
+            // Pull dish names from the recipe book into matching sections. Names
+            // only: recipes hold cost data, which must never reach this public document.
+            const importRecipes = () => {
+                const bySection = { Beverages: 'Beverages', Kitchen: 'Kitchen', Desserts: 'Desserts' };
+                const existing = new Set(menu.categories.flatMap(c => c.items.map(i => (i.name || '').trim().toLowerCase())));
+                const fresh = (recipes || []).filter(r => bySection[r.category] && r.name && !existing.has(r.name.trim().toLowerCase()));
+                if (!fresh.length) return showToast('Every recipe is already on the menu', 'info');
+                change(m => {
+                    fresh.forEach(r => {
+                        let cat = m.categories.find(c => c.name === bySection[r.category]);
+                        if (!cat) { cat = { id: newId(), name: bySection[r.category], note: '', items: [] }; m.categories.push(cat); }
+                        cat.items.push({ id: newId(), name: r.name.trim(), desc: '', price: '', veg: true, tags: [], available: true });
+                    });
+                });
+                showToast(`Added ${fresh.length} dishes. Add prices, then publish.`, 'success');
+            };
+
+            const publish = () => {
+                const problems = [];
+                menu.categories.forEach(c => { if (!c.name.trim()) problems.push('A section has no name'); c.items.forEach(i => { if (!i.name.trim()) problems.push(`An item in ${c.name || 'a section'} has no name`); }); });
+                if (problems.length) return showToast(problems[0], 'error');
+                const clean = {
+                    currency: menu.currency || '₹',
+                    footnote: (menu.footnote || '').trim().slice(0, 300),
+                    categories: menu.categories.map(c => ({
+                        id: c.id, name: c.name.trim().slice(0, 60), note: (c.note || '').trim().slice(0, 200), hidden: !!c.hidden,
+                        items: c.items.map(i => ({
+                            id: i.id, name: i.name.trim().slice(0, 80), desc: (i.desc || '').trim().slice(0, 200),
+                            price: i.price === '' || i.price === null ? null : Number(i.price),
+                            veg: i.veg === true ? true : i.veg === false ? false : null,
+                            tags: (i.tags || []).filter(Boolean), available: i.available !== false, hidden: !!i.hidden
+                        }))
+                    })),
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                setBusy(true);
+                db.collection('site').doc('menu').set(clean)
+                    .then(() => { setDirty(false); showToast('Menu published to the website', 'success'); })
+                    .catch(e => showToast(e.code === 'permission-denied' ? 'Not allowed. Deploy the updated firestore.rules first.' : e.message, 'error'))
+                    .then(() => setBusy(false));
+            };
+
+            const input = 'w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm';
+            const count = menu.categories.reduce((s, c) => s + c.items.length, 0);
+
+            return (
+                <div className="space-y-4">
+                    <div className="bg-white/90 backdrop-blur-xl p-4 rounded-2xl shadow-elegant border border-white/50 flex flex-wrap items-center gap-3 sticky top-28 z-20">
+                        <p className="text-sm text-gray-600 flex-1 min-w-[200px]">{menu.categories.length} sections · {count} items{dirty ? <span className="ml-2 text-danger font-bold">· Unpublished changes</span> : <span className="ml-2 text-vintageGreen font-bold">· Live</span>}</p>
+                        <button onClick={importRecipes} className="px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-gray-200 bg-white text-victorian">Import from recipe book</button>
+                        <button onClick={addCategory} className="px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-gray-200 bg-white text-victorian">+ Section</button>
+                        <button onClick={publish} disabled={busy || !dirty} className="px-5 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest bg-antique text-victorian shadow-md disabled:opacity-40">{busy ? 'Publishing…' : 'Publish'}</button>
+                    </div>
+                    {!menu.categories.length && <div className="bg-white/70 rounded-2xl p-8 text-center text-sm text-gray-600 border border-white/50">No menu published yet, so the website is showing its built-in sample menu. Add sections, or import your recipe names, then publish.</div>}
+                    {menu.categories.map((c, ci) => (
+                        <div key={c.id} className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-elegant border border-white/50 overflow-hidden">
+                            <div className="flex items-center gap-2 p-4 cursor-pointer" onClick={() => setOpenCat(openCat === c.id ? null : c.id)}>
+                                <span className="text-brandBrown font-bold w-4">{openCat === c.id ? '−' : '+'}</span>
+                                <p className={`font-serif text-lg font-bold flex-1 ${c.hidden ? 'text-gray-400 line-through' : 'text-victorian'}`}>{c.name || 'Untitled section'} <span className="text-xs font-sans font-normal text-gray-400">({c.items.length})</span></p>
+                                <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                                    <button title="Move up" className="px-2 py-1 text-gray-400 hover:text-victorian" onClick={() => change(m => move(m.categories, ci, -1))}>↑</button>
+                                    <button title="Move down" className="px-2 py-1 text-gray-400 hover:text-victorian" onClick={() => change(m => move(m.categories, ci, 1))}>↓</button>
+                                </div>
+                            </div>
+                            {openCat === c.id && (
+                                <div className="border-t border-gray-100 p-4 space-y-3 bg-paper/40">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <input className={input} value={c.name} placeholder="Section name" onChange={e => { const v = e.target.value; change(m => { m.categories[ci].name = v; }); }} />
+                                        <input className={input} value={c.note || ''} placeholder="Note under the heading (optional)" onChange={e => { const v = e.target.value; change(m => { m.categories[ci].note = v; }); }} />
+                                    </div>
+                                    {c.items.map((it, ii) => {
+                                        const setI = (k, v) => change(m => { m.categories[ci].items[ii][k] = v; });
+                                        const tag = (t) => (it.tags || []).includes(t);
+                                        const toggleTag = (t) => change(m => { const tg = m.categories[ci].items[ii].tags || []; m.categories[ci].items[ii].tags = tg.includes(t) ? tg.filter(x => x !== t) : [...tg, t]; });
+                                        return (
+                                            <div key={it.id} className={`bg-white rounded-xl border p-3 space-y-2 ${it.available === false ? 'border-danger/30' : 'border-gray-200'}`}>
+                                                <div className="grid grid-cols-12 gap-2">
+                                                    <input className={`${input} col-span-8 font-semibold`} value={it.name} placeholder="Item name" onChange={e => setI('name', e.target.value)} />
+                                                    <div className="col-span-4 relative"><span className="absolute left-3 top-2 text-sm text-gray-400">₹</span><input className={`${input} pl-6`} type="number" min="0" inputMode="numeric" value={it.price ?? ''} placeholder="Price" onChange={e => setI('price', e.target.value)} /></div>
+                                                    <input className={`${input} col-span-12`} value={it.desc || ''} placeholder="Short description (optional)" onChange={e => setI('desc', e.target.value)} />
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
+                                                    <select className="px-2 py-1.5 rounded-lg border border-gray-200 bg-white" value={it.veg === true ? 'veg' : it.veg === false ? 'nonveg' : 'none'} onChange={e => setI('veg', e.target.value === 'veg' ? true : e.target.value === 'nonveg' ? false : null)}>
+                                                        <option value="veg">Veg</option><option value="nonveg">Non-veg</option><option value="none">No mark</option>
+                                                    </select>
+                                                    {['Signature', 'New'].map(t => <button key={t} onClick={() => toggleTag(t)} className={`px-2.5 py-1.5 rounded-lg border ${tag(t) ? 'bg-antique/30 border-antique text-victorian' : 'bg-white border-gray-200 text-gray-400'}`}>{t}</button>)}
+                                                    <button onClick={() => setI('available', it.available === false)} className={`px-2.5 py-1.5 rounded-lg border ${it.available === false ? 'bg-dangerLight border-danger/30 text-danger' : 'bg-white border-gray-200 text-vintageGreen'}`}>{it.available === false ? 'Sold out' : 'Available'}</button>
+                                                    <span className="flex-1"></span>
+                                                    <button title="Move up" className="px-2 text-gray-400 hover:text-victorian" onClick={() => change(m => move(m.categories[ci].items, ii, -1))}>↑</button>
+                                                    <button title="Move down" className="px-2 text-gray-400 hover:text-victorian" onClick={() => change(m => move(m.categories[ci].items, ii, 1))}>↓</button>
+                                                    <button title="Remove" className="px-2 text-danger/60 hover:text-danger" onClick={() => change(m => { m.categories[ci].items.splice(ii, 1); })}><Icons.Trash/></button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                    <div className="flex flex-wrap gap-2 pt-1">
+                                        <button onClick={() => addItem(ci)} className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest bg-victorian text-paper">+ Item</button>
+                                        <button onClick={() => change(m => { m.categories[ci].hidden = !m.categories[ci].hidden; })} className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-gray-200 bg-white text-gray-600">{c.hidden ? 'Show section' : 'Hide section'}</button>
+                                        <button onClick={() => confirmAction(`Delete the whole "${c.name}" section?`, () => change(m => { m.categories.splice(ci, 1); }))} className="px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-danger/30 bg-white text-danger">Delete section</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                    <div className="bg-white/90 rounded-2xl p-4 border border-white/50 shadow-elegant">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Note at the bottom of the menu</label>
+                        <input className={`${input} mt-2`} value={menu.footnote} onChange={e => { const v = e.target.value; change(m => { m.footnote = v; }); }} />
+                    </div>
+                </div>
+            );
+        }
+
+        // Declared out here, not inside SiteInfoEditor: a component defined during
+        // render is a new type every keystroke, so its input would lose focus.
+        function F({ label, hint, children }) {
+            return (<div><label className="block text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1.5">{label}</label>{children}{hint && <p className="text-[11px] text-gray-400 mt-1">{hint}</p>}</div>);
+        }
+
+        function SiteInfoEditor({ showToast }) {
+            const blank = { tagline: '', address: '', mapsQuery: '', phone: '', whatsapp: '', email: '', instagram: '', open: '09:00', close: '23:00', closedWeekdays: [], hoursNote: '', announcement: '',
+                            reservations: { enabled: true, maxGuests: 12, slotMinutes: 30, lastSeatingMinutes: 60, daysAhead: 30, leadMinutes: 30, closedDates: [] } };
+            const [info, setInfo] = useState(null);
+            const [busy, setBusy] = useState(false);
+
+            useEffect(() => {
+                db.collection('site').doc('info').get().then(snap => {
+                    const d = snap.exists ? snap.data() : {};
+                    setInfo({ ...blank, ...d, reservations: { ...blank.reservations, ...(d.reservations || {}) } });
+                }).catch(e => showToast(e.message, 'error'));
+            }, []);
+            if (!info) return <div className="text-sm text-gray-500 p-6">Loading…</div>;
+
+            const set = (k, v) => setInfo(i => ({ ...i, [k]: v }));
+            const setR = (k, v) => setInfo(i => ({ ...i, reservations: { ...i.reservations, [k]: v } }));
+
+            const save = () => {
+                if (info.close <= info.open) return showToast('Closing time must be after opening time', 'error');
+                const r = info.reservations;
+                const out = {
+                    ...['tagline', 'address', 'mapsQuery', 'phone', 'whatsapp', 'email', 'instagram', 'hoursNote', 'announcement']
+                        .reduce((o, k) => ({ ...o, [k]: String(info[k] || '').trim().slice(0, 300) }), {}),
+                    open: info.open, close: info.close,
+                    closedWeekdays: info.closedWeekdays.map(Number),
+                    reservations: {
+                        enabled: !!r.enabled, maxGuests: Number(r.maxGuests) || 12, slotMinutes: Number(r.slotMinutes) || 30,
+                        lastSeatingMinutes: Number(r.lastSeatingMinutes) || 0, daysAhead: Number(r.daysAhead) || 30,
+                        leadMinutes: Number(r.leadMinutes) || 0,
+                        closedDates: (Array.isArray(r.closedDates) ? r.closedDates : String(r.closedDates).split(','))
+                            .map(s => String(s).trim()).filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s))
+                    },
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                setBusy(true);
+                db.collection('site').doc('info').set(out)
+                    .then(() => showToast('Café details saved. The website updates within a few minutes.', 'success'))
+                    .catch(e => showToast(e.code === 'permission-denied' ? 'Not allowed. Deploy the updated firestore.rules first.' : e.message, 'error'))
+                    .then(() => setBusy(false));
+            };
+
+            const input = 'w-full px-3 py-2.5 rounded-xl border border-gray-200 bg-white text-sm';
+            const card = 'bg-white/90 backdrop-blur-xl p-6 rounded-2xl shadow-elegant border border-white/50 space-y-4';
+
+            return (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className={card}>
+                        <h3 className="font-serif text-xl text-victorian">Contact &amp; location</h3>
+                        <F label="Phone" hint="Shown on the website as a tap-to-call link."><input className={input} value={info.phone} onChange={e => set('phone', e.target.value)} placeholder="98xxxxxxxx" /></F>
+                        <F label="WhatsApp number" hint="Adds the green WhatsApp button and receives event enquiries."><input className={input} value={info.whatsapp} onChange={e => set('whatsapp', e.target.value)} placeholder="98xxxxxxxx" /></F>
+                        <F label="Email"><input className={input} value={info.email} onChange={e => set('email', e.target.value)} placeholder="hello@thecaffeineministry.in" /></F>
+                        <F label="Instagram"><input className={input} value={info.instagram} onChange={e => set('instagram', e.target.value)} placeholder="@thecaffeineministry" /></F>
+                        <F label="Address"><input className={input} value={info.address} onChange={e => set('address', e.target.value)} placeholder="'Parasudai', 672, 12th C Road, Sardarpura, Jodhpur" /></F>
+                        <F label="Google Maps search" hint="What the directions button searches for. The café's name on Google Maps works best."><input className={input} value={info.mapsQuery} onChange={e => set('mapsQuery', e.target.value)} placeholder="The Caffeine Ministry, Sardarpura, Jodhpur" /></F>
+                        <F label="Tagline"><input className={input} value={info.tagline} onChange={e => set('tagline', e.target.value)} placeholder="Specialty coffee & all-day plates in Sardarpura, Jodhpur" /></F>
+                    </div>
+                    <div className="space-y-6">
+                        <div className={card}>
+                            <h3 className="font-serif text-xl text-victorian">Opening hours</h3>
+                            <div className="grid grid-cols-2 gap-3">
+                                <F label="Opens"><input type="time" className={input} value={info.open} onChange={e => set('open', e.target.value)} /></F>
+                                <F label="Closes"><input type="time" className={input} value={info.close} onChange={e => set('close', e.target.value)} /></F>
+                            </div>
+                            <F label="Closed on">
+                                <div className="flex flex-wrap gap-2">{WEEKDAYS.map((d, i) => { const on = info.closedWeekdays.includes(i); return <button key={d} onClick={() => set('closedWeekdays', on ? info.closedWeekdays.filter(x => x !== i) : [...info.closedWeekdays, i])} className={`px-3 py-2 rounded-lg text-xs font-bold border ${on ? 'bg-danger text-white border-danger' : 'bg-white text-gray-600 border-gray-200'}`}>{d}</button>; })}</div>
+                            </F>
+                            <F label="Hours note (optional)"><input className={input} value={info.hoursNote} onChange={e => set('hoursNote', e.target.value)} placeholder="Kitchen closes 30 minutes before the café" /></F>
+                            <F label="Announcement bar (optional)" hint="A strip across the top of every page. Leave empty to hide it."><input className={input} value={info.announcement} onChange={e => set('announcement', e.target.value)} placeholder="Closed on 1 Nov for a private event" /></F>
+                        </div>
+                        <div className={card}>
+                            <div className="flex items-center justify-between"><h3 className="font-serif text-xl text-victorian">Online booking</h3>
+                                <button onClick={() => setR('enabled', !info.reservations.enabled)} className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest ${info.reservations.enabled ? 'bg-vintageGreen text-white' : 'bg-gray-200 text-gray-600'}`}>{info.reservations.enabled ? 'On' : 'Paused'}</button></div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <F label="Largest party"><input type="number" min="1" max="100" className={input} value={info.reservations.maxGuests} onChange={e => setR('maxGuests', e.target.value)} /></F>
+                                <F label="Slot every"><select className={input} value={info.reservations.slotMinutes} onChange={e => setR('slotMinutes', Number(e.target.value))}><option value={15}>15 min</option><option value={30}>30 min</option><option value={60}>60 min</option></select></F>
+                                <F label="Last booking (min before close)"><input type="number" min="0" max="240" className={input} value={info.reservations.lastSeatingMinutes} onChange={e => setR('lastSeatingMinutes', e.target.value)} /></F>
+                                <F label="Same-day notice (min)"><input type="number" min="0" max="1440" className={input} value={info.reservations.leadMinutes} onChange={e => setR('leadMinutes', e.target.value)} /></F>
+                                <F label="Book up to (days ahead)"><input type="number" min="1" max="180" className={input} value={info.reservations.daysAhead} onChange={e => setR('daysAhead', e.target.value)} /></F>
+                            </div>
+                            <F label="Closed dates" hint="Comma-separated, e.g. 2026-11-01, 2026-12-25"><input className={input} value={Array.isArray(info.reservations.closedDates) ? info.reservations.closedDates.join(', ') : info.reservations.closedDates} onChange={e => setR('closedDates', e.target.value)} /></F>
+                        </div>
+                        <button onClick={save} disabled={busy} className="w-full bg-antique text-victorian py-4 rounded-2xl text-xs font-bold uppercase tracking-widest shadow-md disabled:opacity-50">{busy ? 'Saving…' : 'Save café details'}</button>
+                    </div>
                 </div>
             );
         }
@@ -758,6 +1170,8 @@
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
                     {ownerTab === 'team' && <UsersView users={team} showToast={showToast} confirmAction={confirmAction} />}
+
+                    {ownerTab === 'website' && <WebsiteView recipes={recipes} showToast={showToast} confirmAction={confirmAction} />}
 
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">

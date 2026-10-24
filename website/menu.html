@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en-IN" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Menu · The Caffeine Ministry, Jodhpur</title>
+  <meta name="description" content="The full menu at The Caffeine Ministry: espresso, slow brews, cold coffee, all-day plates and desserts.">
+  <link rel="canonical" href="https://thecaffeineministry.in/menu">
+  <meta name="theme-color" content="#132A1B">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Caffeine Ministry">
+  <meta property="og:title" content="Menu · The Caffeine Ministry, Jodhpur">
+  <meta property="og:description" content="The full menu at The Caffeine Ministry: espresso, slow brews, cold coffee, all-day plates and desserts.">
+  <meta property="og:url" content="https://thecaffeineministry.in/menu">
+  <meta property="og:image" content="https://thecaffeineministry.in/img/og-card.jpg">
+  <meta property="og:locale" content="en_IN">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500&display=swap">
+  <link rel="stylesheet" href="/css/site.css">
+  <script src="/js/site.js" defer></script>
+</head>
+<body class="menu-page">
+<header class="menu-top">
+  <a class="menu-back" href="/">← Home</a>
+  <img src="/img/logo.png" alt="" width="84" height="84">
+  <h1>The Menu</h1>
+  <p>The Caffeine Ministry · Sardarpura, Jodhpur</p>
+  <span class="table-chip" id="table-chip" hidden></span>
+</header>
+<div class="announce" id="announce" role="status" hidden></div>
+<div class="menu-tools">
+  <div class="wrap">
+    <div class="row">
+      <label class="search"><span class="sr-only">Search the menu</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="menu-search" type="search" placeholder="Search…" autocomplete="off">
+      </label>
+      <button class="veg-toggle" id="veg-toggle" type="button" aria-pressed="false"><i class="diet veg"></i> Veg only</button>
+    </div>
+    <nav class="cat-tabs" id="cat-tabs" aria-label="Menu sections"></nav>
+  </div>
+</div>
+<main id="main" class="wrap narrow-menu">
+  <div id="menu-root"><p class="menu-empty">Loading the menu…</p></div>
+  <div class="menu-foot">
+    <p id="menu-footnote"></p>
+    <p id="menu-sample" class="alert alert-info sample-note" hidden>This is a preview menu. Please ask your server about today's dishes and prices.</p>
+    <a class="btn btn-ghost" href="/reserve" data-needs="reservations">Book a table for next time</a>
+  </div>
+</main>
+  <script src="/js/menu.js" defer></script>
+</body>
+</html>

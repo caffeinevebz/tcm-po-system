@@ -619,3 +619,8 @@ exports.suggestAccessKey = functions.runWith({ memory: '128MB', timeoutSeconds: 
 // A reusable guard for other callables (notably scanInvoice) lives in
 // ./lib/auth-guard.js. It is deliberately NOT exported from this file: the
 // Firebase CLI treats every export of index.js as a deployable function.
+
+// =============================================================================
+// The public website (thecaffeineministry.in) — see website.js.
+// =============================================================================
+exports.createReservation = require('./website').createReservation;

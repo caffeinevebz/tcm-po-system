@@ -166,6 +166,41 @@ service cloud.firestore {
       allow update, delete: if can('recipesEdit');
     }
 
+    // --- the public website (thecaffeineministry.in) ------------------------
+    // site/info  — hours, phone, address, booking settings, announcement
+    // site/menu  — the menu guests see when they scan the table QR code
+    // Anyone may read these two documents; that is their whole purpose, so
+    // nothing private (cost prices, recipes, suppliers) may ever be put here.
+    // Only the owner edits them, from the Website tab of the owner terminal.
+    match /site/{docId} {
+      allow read: if docId in ['info', 'menu'];
+      allow create, update: if isOwner()
+                            && docId in ['info', 'menu']
+                            && (docId != 'menu'
+                                || (request.resource.data.categories is list
+                                    && request.resource.data.categories.size() <= 60));
+      allow delete: if false;
+    }
+
+    // Guest table bookings. Created ONLY by the createReservation function,
+    // which validates them and rate-limits the sender — a client can never
+    // create one directly, so the collection cannot be flooded or forged. Guests
+    // cannot read any booking, including their own: phone numbers live here.
+    match /reservations/{id} {
+      allow read: if isOwner();
+      allow create: if false;
+      // The owner works the booking (confirm, seat, decline…) but the guest's
+      // own details stay as they were submitted.
+      allow update: if isOwner()
+                    && touched().hasOnly(['status', 'table', 'ownerNote', 'updatedAt'])
+                    && request.resource.data.status in
+                         ['pending', 'confirmed', 'seated', 'completed', 'declined', 'cancelled', 'no-show'];
+      allow delete: if isOwner();
+    }
+
+    // Booking rate-limit counters. Cloud Functions only.
+    match /_siteThrottle/{document=**} { allow read, write: if false; }
+
     // --- default deny -------------------------------------------------------
     // Anything not named above is closed, including collections added later.
     match /{document=**} {

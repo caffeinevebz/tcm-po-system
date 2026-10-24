@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /qr
+
+Sitemap: https://thecaffeineministry.in/sitemap.xml

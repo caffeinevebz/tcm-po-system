@@ -1,0 +1,73 @@
+{
+  "sample": true,
+  "currency": "₹",
+  "footnote": "Prices are in Indian rupees and include GST. Please tell us about any allergies before you order.",
+  "categories": [
+    {
+      "id": "espresso",
+      "name": "Espresso Bar",
+      "note": "Double shots of our house blend. Oat or almond milk on request.",
+      "items": [
+        { "id": "e1", "name": "Espresso", "desc": "A short, syrupy double shot.", "price": 140, "veg": true, "tags": [], "available": true },
+        { "id": "e2", "name": "Americano", "desc": "Espresso lengthened with hot water.", "price": 170, "veg": true, "tags": [], "available": true },
+        { "id": "e3", "name": "Cappuccino", "desc": "Equal parts espresso, steamed milk and foam.", "price": 210, "veg": true, "tags": [], "available": true },
+        { "id": "e4", "name": "Flat White", "desc": "A ristretto double under velvety microfoam.", "price": 230, "veg": true, "tags": ["Signature"], "available": true },
+        { "id": "e5", "name": "Café Latte", "desc": "Espresso with plenty of silky steamed milk.", "price": 220, "veg": true, "tags": [], "available": true },
+        { "id": "e6", "name": "Café Mocha", "desc": "Espresso, dark chocolate and steamed milk.", "price": 250, "veg": true, "tags": [], "available": true }
+      ]
+    },
+    {
+      "id": "brew",
+      "name": "Slow Brews",
+      "note": "Single-origin Indian estates, brewed to order. Ask what's on the shelf this week.",
+      "items": [
+        { "id": "b1", "name": "Pour Over", "desc": "Clean and bright, brewed by hand.", "price": 260, "veg": true, "tags": ["Signature"], "available": true },
+        { "id": "b2", "name": "AeroPress", "desc": "Full-bodied and smooth.", "price": 240, "veg": true, "tags": [], "available": true },
+        { "id": "b3", "name": "French Press", "desc": "Rich and heavy, for two.", "price": 320, "veg": true, "tags": [], "available": true }
+      ]
+    },
+    {
+      "id": "cold",
+      "name": "Cold Coffee",
+      "items": [
+        { "id": "c1", "name": "Cold Brew", "desc": "Steeped for 18 hours. Served over ice.", "price": 240, "veg": true, "tags": ["Signature"], "available": true },
+        { "id": "c2", "name": "Iced Americano", "desc": "Espresso over ice and cold water.", "price": 190, "veg": true, "tags": [], "available": true },
+        { "id": "c3", "name": "Iced Latte", "desc": "Espresso, cold milk, ice.", "price": 230, "veg": true, "tags": [], "available": true },
+        { "id": "c4", "name": "Classic Cold Coffee", "desc": "Blended, frothy and sweet — the Jodhpur summer staple.", "price": 220, "veg": true, "tags": [], "available": true },
+        { "id": "c5", "name": "Vietnamese Iced Coffee", "desc": "Strong coffee with condensed milk.", "price": 250, "veg": true, "tags": ["New"], "available": true }
+      ]
+    },
+    {
+      "id": "notcoffee",
+      "name": "Not Coffee",
+      "items": [
+        { "id": "n1", "name": "Masala Chai", "desc": "Assam tea simmered with our own spice mix.", "price": 120, "veg": true, "tags": [], "available": true },
+        { "id": "n2", "name": "Hot Chocolate", "desc": "Dark chocolate melted into steamed milk.", "price": 230, "veg": true, "tags": [], "available": true },
+        { "id": "n3", "name": "Matcha Latte", "desc": "Ceremonial-grade matcha, hot or iced.", "price": 270, "veg": true, "tags": [], "available": true },
+        { "id": "n4", "name": "Lemon Iced Tea", "desc": "Brewed in-house, lightly sweetened.", "price": 170, "veg": true, "tags": [], "available": true }
+      ]
+    },
+    {
+      "id": "plates",
+      "name": "All-Day Plates",
+      "items": [
+        { "id": "p1", "name": "Avocado Toast", "desc": "Sourdough, smashed avocado, chilli flakes, lime.", "price": 340, "veg": true, "tags": ["Signature"], "available": true },
+        { "id": "p2", "name": "Tomato & Basil Bruschetta", "desc": "Toasted baguette, marinated tomatoes, fresh basil.", "price": 260, "veg": true, "tags": [], "available": true },
+        { "id": "p3", "name": "Paneer Tikka Sandwich", "desc": "Tandoori paneer, mint mayo, pickled onion.", "price": 290, "veg": true, "tags": [], "available": true },
+        { "id": "p4", "name": "Grilled Chicken Sandwich", "desc": "Herbed chicken, cheddar, caramelised onion.", "price": 320, "veg": false, "tags": [], "available": true },
+        { "id": "p5", "name": "Pasta Arrabbiata", "desc": "Penne in a slow-cooked spicy tomato sauce.", "price": 330, "veg": true, "tags": [], "available": true },
+        { "id": "p6", "name": "Peri-Peri Fries", "desc": "Crisp fries tossed in house peri-peri.", "price": 180, "veg": true, "tags": [], "available": true }
+      ]
+    },
+    {
+      "id": "sweet",
+      "name": "Bakes & Desserts",
+      "items": [
+        { "id": "s1", "name": "Banana Bread", "desc": "Warm slice, salted butter.", "price": 160, "veg": true, "tags": [], "available": true },
+        { "id": "s2", "name": "Walnut Brownie", "desc": "Fudgy, served warm. Add ice cream +₹60.", "price": 190, "veg": true, "tags": [], "available": true },
+        { "id": "s3", "name": "Tiramisu", "desc": "Espresso-soaked sponge, mascarpone, cocoa.", "price": 290, "veg": true, "tags": ["Signature"], "available": true },
+        { "id": "s4", "name": "Baked Cheesecake", "desc": "New York-style, with berry compote.", "price": 280, "veg": true, "tags": [], "available": true }
+      ]
+    }
+  ]
+}
