@@ -65,14 +65,15 @@ const PERMISSIONS = [
   'inventory',     // edit the raw-material catalogue and prep rules
   'prices',        // see and edit cost prices and food cost
   'vendors',       // manage the vendor directory
+  'guests',        // website orders, table bookings and loyalty stamps
   'team'           // create and manage other users
 ];
 
 // Sensible starting points the owner can adjust per person.
 const ROLE_PRESETS = {
-  staff:   { requests: true, recipesView: true, recipesAdd: true, receive: true },
+  staff:   { requests: true, recipesView: true, recipesAdd: true, receive: true, guests: true },
   manager: { requests: true, recipesView: true, recipesAdd: true, recipesEdit: true,
-             receive: true, poManage: true, inventory: true, vendors: true },
+             receive: true, poManage: true, inventory: true, vendors: true, guests: true },
   viewer:  { recipesView: true }
 };
 
@@ -624,3 +625,7 @@ exports.suggestAccessKey = functions.runWith({ memory: '128MB', timeoutSeconds: 
 // The public website (thecaffeineministry.in) — see website.js.
 // =============================================================================
 exports.createReservation = require('./website').createReservation;
+exports.placeOrder = require('./website').placeOrder;
+exports.trackOrder = require('./website').trackOrder;
+exports.submitFeedback = require('./website').submitFeedback;
+exports.loyaltyCard = require('./website').loyaltyCard;

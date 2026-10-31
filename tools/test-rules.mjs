@@ -25,7 +25,7 @@ const env = await initializeTestEnvironment({
 
 const NONE = {};
 const ALL = ['requests','recipesView','recipesAdd','recipesEdit','receive',
-             'poManage','inventory','prices','vendors'];
+             'poManage','inventory','prices','vendors','guests'];
 const perms = (...on) => Object.fromEntries(ALL.map(p => [p, on.includes(p)]));
 
 const anon    = env.unauthenticatedContext().firestore();
@@ -34,6 +34,7 @@ const barista = env.authenticatedContext('baristaUid', { role: 'user' }).firesto
 const manager = env.authenticatedContext('managerUid', { role: 'user' }).firestore();
 const viewer  = env.authenticatedContext('viewerUid',  { role: 'user' }).firestore();
 const gone    = env.authenticatedContext('goneUid',    { role: 'user' }).firestore();
+const floor   = env.authenticatedContext('floorUid',   { role: 'user' }).firestore();
 // Signed in somehow, but no account record at all.
 const ghost   = env.authenticatedContext('ghostUid',   { role: 'user' }).firestore();
 
@@ -49,6 +50,7 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await account('baristaUid', 'rahul',  perms('requests','recipesView','recipesAdd','receive'));
   await account('managerUid', 'priya',  perms('requests','recipesView','recipesAdd','recipesEdit','receive','poManage','inventory','vendors'));
   await account('viewerUid',  'guest',  perms('recipesView'));
+  await account('floorUid',   'meera',  perms('guests'));
   await account('goneUid',    'exstaff', perms('requests','recipesView'), 'suspended');
 
   await setDoc(doc(db, 'settings/main'), {
@@ -69,6 +71,12 @@ await env.withSecurityRulesDisabled(async (ctx) => {
     ref: 'TCM-ABCDE', name: 'Asha', phone: '919829012345', guests: 2,
     date: '2026-10-25', time: '19:30', status: 'pending'
   });
+  await setDoc(doc(db, 'orders/ORD-1'), {
+    code: 'K7Q2', type: 'table', table: '7', status: 'new', total: 460, token: 'secret',
+    lines: [{ id: 'flat', name: 'Flat White', price: 230, qty: 2 }]
+  });
+  await setDoc(doc(db, 'feedback/FB-1'), { rating: 2, comment: 'Slow service', resolved: false });
+  await setDoc(doc(db, 'loyalty/919829012345'), { phone: '919829012345', name: 'Asha', stamps: 3, lifetime: 3, redeemed: 0 });
 });
 
 let pass = 0; const fails = [];
@@ -170,11 +178,44 @@ await t('a guest cannot read bookings',    () => assertFails(getDoc(doc(anon, 'r
 await t('a guest cannot list bookings',    () => assertFails(getDocs(collection(anon, 'reservations'))));
 await t('staff cannot read bookings',      () => assertFails(getDoc(doc(manager, 'reservations/RES-1'))));
 await t('the owner lists bookings',        () => assertSucceeds(getDocs(collection(owner, 'reservations'))));
+await t('floor staff read bookings',       () => assertSucceeds(getDoc(doc(floor, 'reservations/RES-1'))));
+await t('floor staff seat a booking',      () => assertSucceeds(updateDoc(doc(floor, 'reservations/RES-1'), { status: 'seated' })));
 await t('the owner confirms a booking',    () => assertSucceeds(updateDoc(doc(owner, 'reservations/RES-1'), { status: 'confirmed', table: '4' })));
 await t('the owner cannot invent a status', () => assertFails(updateDoc(doc(owner, 'reservations/RES-1'), { status: 'vip' })));
 await t('the guest\'s details stay as sent', () => assertFails(updateDoc(doc(owner, 'reservations/RES-1'), { phone: '910000000000' })));
 await t('even the owner cannot create one', () => assertFails(setDoc(doc(owner, 'reservations/Y'), { name: 'x', status: 'pending' })));
 await t('booking throttle is closed to all', () => assertFails(getDoc(doc(owner, '_siteThrottle/abc'))));
+
+console.log('\nguest orders');
+await t('a guest cannot place an order directly', () => assertFails(setDoc(doc(anon, 'orders/X'), { status: 'new', total: 1 })));
+await t('a guest cannot read orders',      () => assertFails(getDoc(doc(anon, 'orders/ORD-1'))));
+await t('staff without the permission cannot', () => assertFails(getDoc(doc(manager, 'orders/ORD-1'))));
+await t('floor staff read orders',         () => assertSucceeds(getDocs(collection(floor, 'orders'))));
+await t('floor staff move an order along', () => assertSucceeds(updateDoc(doc(floor, 'orders/ORD-1'), { status: 'preparing', handledBy: 'Meera' })));
+await t('nobody can reprice an order',     () => assertFails(updateDoc(doc(owner, 'orders/ORD-1'), { total: 1 })));
+await t('nobody can rewrite the lines',    () => assertFails(updateDoc(doc(floor, 'orders/ORD-1'), { lines: [] })));
+await t('no made-up order statuses',       () => assertFails(updateDoc(doc(floor, 'orders/ORD-1'), { status: 'free' })));
+await t('floor staff cannot delete an order', () => assertFails(deleteDoc(doc(floor, 'orders/ORD-1'))));
+
+console.log('\nfeedback');
+await t('a guest cannot write feedback directly', () => assertFails(setDoc(doc(anon, 'feedback/X'), { rating: 5 })));
+await t('floor staff cannot read feedback', () => assertFails(getDoc(doc(floor, 'feedback/FB-1'))));
+await t('the owner reads feedback',        () => assertSucceeds(getDocs(collection(owner, 'feedback'))));
+await t('the owner marks it resolved',     () => assertSucceeds(updateDoc(doc(owner, 'feedback/FB-1'), { resolved: true, ownerNote: 'Called them' })));
+await t('the owner cannot edit what the guest said', () => assertFails(updateDoc(doc(owner, 'feedback/FB-1'), { rating: 5 })));
+
+console.log('\nloyalty stamps');
+const card = (stamps, extra = {}) => ({ phone: '919829012345', name: 'Asha', stamps, lifetime: stamps, redeemed: 0, ...extra });
+await t('a guest cannot read a stamp card', () => assertFails(getDoc(doc(anon, 'loyalty/919829012345'))));
+await t('a guest cannot stamp their own card', () => assertFails(setDoc(doc(anon, 'loyalty/919829012345'), card(9))));
+await t('staff without the permission cannot', () => assertFails(getDoc(doc(manager, 'loyalty/919829012345'))));
+await t('floor staff add a stamp',         () => assertSucceeds(setDoc(doc(floor, 'loyalty/919829012345'), card(4))));
+await t('floor staff open a new card',     () => assertSucceeds(setDoc(doc(floor, 'loyalty/919414000000'), { ...card(1), phone: '919414000000' })));
+await t('the card id must match its phone', () => assertFails(setDoc(doc(floor, 'loyalty/919414000001'), card(1))));
+await t('the id must be a phone number',   () => assertFails(setDoc(doc(floor, 'loyalty/asha'), { ...card(1), phone: 'asha' })));
+await t('stamps cannot go negative',       () => assertFails(setDoc(doc(floor, 'loyalty/919829012345'), card(-1))));
+await t('no extra fields on a card',       () => assertFails(setDoc(doc(floor, 'loyalty/919829012345'), card(4, { vip: true }))));
+await t('floor staff cannot delete a card', () => assertFails(deleteDoc(doc(floor, 'loyalty/919829012345'))));
 
 console.log('\ndefaults');
 await t('login throttle is closed to all', () => assertFails(getDoc(doc(owner, '_authThrottle/abc'))));

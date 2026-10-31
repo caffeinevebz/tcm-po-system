@@ -9,7 +9,7 @@
   "scripts": {
     "deploy:auth": "firebase deploy --only functions:setupOwner,functions:claimOwner,functions:createUser,functions:updateUser,functions:resetAccessKey,functions:deleteUser,functions:signIn,functions:changeMyKey,functions:me,functions:suggestAccessKey",
     "logs": "firebase functions:log",
-    "deploy:website": "firebase deploy --only functions:createReservation"
+    "deploy:website": "firebase deploy --only functions:createReservation,functions:placeOrder,functions:trackOrder,functions:submitFeedback,functions:loyaltyCard"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

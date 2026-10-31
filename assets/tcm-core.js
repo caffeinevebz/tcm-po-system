@@ -426,7 +426,7 @@
   var LOGIN_PAGE = 'index.html';
 
   var PERMISSIONS = ['requests', 'recipesView', 'recipesAdd', 'recipesEdit', 'receive',
-                     'poManage', 'inventory', 'prices', 'vendors', 'team'];
+                     'poManage', 'inventory', 'prices', 'vendors', 'guests', 'team'];
 
   var PERMISSION_LABELS = {
     requests:    'Raise material requests',
@@ -438,6 +438,7 @@
     inventory:   'Edit the catalogue and prep rules',
     prices:      'See and edit cost prices',
     vendors:     'Manage vendors',
+    guests:      'Guest orders, bookings & loyalty stamps',
     team:        'Manage users'
   };
 

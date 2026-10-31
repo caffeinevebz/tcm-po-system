@@ -38,10 +38,14 @@
     closedWeekdays: [],
     hoursNote: '',
     announcement: '',
+    googleReviewUrl: '',
     reservations: {
       enabled: true, maxGuests: 12, slotMinutes: 30, lastSeatingMinutes: 60,
       daysAhead: 30, leadMinutes: 30, closedDates: []
-    }
+    },
+    // Mirror ORDER_DEFAULTS / LOYALTY_DEFAULTS in functions/lib/guest.js.
+    ordering: { tableEnabled: true, takeawayEnabled: true, prepMinutes: 20 },
+    loyalty: { enabled: true, stampsForReward: 9, reward: 'a coffee on us' }
   };
 
   var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -122,6 +126,8 @@
         ? SITE_DEFAULTS[k] : v;
     });
     out.reservations = Object.assign({}, SITE_DEFAULTS.reservations, i.reservations || {});
+    out.ordering = Object.assign({}, SITE_DEFAULTS.ordering, i.ordering || {});
+    out.loyalty = Object.assign({}, SITE_DEFAULTS.loyalty, i.loyalty || {});
     out.closedWeekdays = Array.isArray(out.closedWeekdays) ? out.closedWeekdays.map(Number) : [];
     return out;
   }
@@ -212,6 +218,15 @@
     return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(info.mapsQuery || info.address);
   }
 
+  /** On/off switches the pages can show or hide blocks by. */
+  function feature(info, k) {
+    if (k === 'reservations') return info.reservations.enabled !== false;
+    if (k === 'tableOrdering') return info.ordering.tableEnabled !== false;
+    if (k === 'takeaway') return info.ordering.takeawayEnabled !== false;
+    if (k === 'loyalty') return info.loyalty.enabled !== false;
+    return !!info[k];
+  }
+
   /** Fill every [data-info] slot and show/hide [data-needs] blocks. */
   function hydrate(info) {
     var values = {
@@ -227,7 +242,9 @@
       announcement: info.announcement,
       open: fmtTime(info.open),
       close: fmtTime(info.close),
-      maxGuests: String(info.reservations.maxGuests)
+      maxGuests: String(info.reservations.maxGuests),
+      stampsForReward: String(info.loyalty.stampsForReward),
+      reward: info.loyalty.reward
     };
     var hrefs = {
       phone: info.phone ? 'tel:+' + waNumber(info.phone) : '',
@@ -247,12 +264,12 @@
     });
     document.querySelectorAll('[data-needs]').forEach(function (el) {
       var keys = el.getAttribute('data-needs').split(/\s+/);
-      var any = keys.some(function (k) { return k === 'reservations' ? info.reservations.enabled : !!info[k]; });
+      var any = keys.some(function (k) { return feature(info, k); });
       el.hidden = !any;
     });
     document.querySelectorAll('[data-needs-not]').forEach(function (el) {
       var k = el.getAttribute('data-needs-not');
-      el.hidden = k === 'reservations' ? info.reservations.enabled : !!info[k];
+      el.hidden = feature(info, k);
     });
     document.querySelectorAll('[data-open-state]').forEach(function (el) {
       var s = openState(info);
@@ -369,6 +386,7 @@
     waNumber: waNumber,
     prettyPhone: prettyPhone,
     money: money,
+    openState: openState,
     DAYS: DAYS
   };
 

@@ -187,5 +187,5 @@ function referenceCode(randomBytes) {
 module.exports = {
   TZ, DEFAULT_SITE, OCCASIONS,
   siteSettings, localNow, slotsFor, dateProblem, normalizePhone,
-  validateReservation, referenceCode
+  validateReservation, referenceCode, clean, isClock, toMinutes, weekday
 };

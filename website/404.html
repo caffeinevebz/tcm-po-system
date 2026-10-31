@@ -36,6 +36,8 @@
       <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg></button>
       <nav class="nav" id="site-nav" aria-label="Main">
         <a href="/menu">Menu</a>
+        <a href="/takeaway">Order Ahead</a>
+        <a href="/rewards">Rewards</a>
         <a href="/about">Our Story</a>
         <a href="/events">Events</a>
         <a href="/visit">Visit</a>
@@ -75,7 +77,10 @@
           <h4>Explore</h4>
           <ul>
             <li><a href="/menu">Menu</a></li>
+            <li data-needs="takeaway" hidden><a href="/takeaway">Order ahead for pickup</a></li>
             <li><a href="/reserve">Reservations</a></li>
+            <li data-needs="loyalty" hidden><a href="/rewards">Rewards card</a></li>
+            <li><a href="/feedback">Share feedback</a></li>
             <li><a href="/about">Our story</a></li>
             <li><a href="/events">Events &amp; private hire</a></li>
             <li><a href="/visit">Find us</a></li>
