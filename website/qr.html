@@ -47,24 +47,20 @@
     </div>
   </header>
 <main id="main">
-  <section class="page-hero no-print">
+  <section class="page-hero">
     <div class="wrap narrow">
       <span class="eyebrow">For the team</span>
       <h1>Table QR codes</h1>
-      <p class="lede">Print these and stand one on each table. Scanning opens the menu with the table number already filled in.</p>
+      <p class="lede">Table codes are printed from the POS: each one carries its table and a key, so an order can only come from that table. Scanning opens the menu, where guests sign up for their loyalty beans and order to the table.</p>
     </div>
   </section>
   <section class="section">
-    <div class="wrap">
-      <form class="form-card no-print qr-form" id="qr-form">
-        <div class="form-grid">
-          <div class="field"><label for="qr-from">First table</label><input id="qr-from" type="number" min="1" max="200" value="1"></div>
-          <div class="field"><label for="qr-to">Last table</label><input id="qr-to" type="number" min="1" max="200" value="12"></div>
-          <div class="field full"><label><input type="checkbox" id="qr-plain"> Also make one general code (no table number) for the door or counter</label></div>
-        </div>
-        <p class="actions-row"><button class="btn btn-forest" type="submit">Make codes</button> <button class="btn btn-gold" type="button" id="qr-print">Print</button></p>
-      </form>
-      <div class="qr-grid mt" id="qr-grid"></div>
+    <div class="wrap narrow">
+      <div class="form-card">
+        <h3>Print them from the Owner Dashboard</h3>
+        <p><strong>Menu QR</strong> → <strong>Print all codes</strong>, or one table at a time. The codes open <code>thecaffeineministry.web.app/m/…</code>, which brings guests to the menu.</p>
+        <p class="actions-row"><a class="btn btn-forest" href="https://tcm-pos-owner.web.app/qr">Open Menu QR</a></p>
+      </div>
     </div>
   </section>
 </main>
@@ -116,7 +112,5 @@
     </div>
   </footer>
   <a class="fab" href="#" data-href="whatsapp" data-needs="whatsapp" aria-label="Message us on WhatsApp" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-.9 1.2-.3.2-.6.1a8.2 8.2 0 0 1-4-3.5c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.6c1.9.8 2.7.9 3.6.7a3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.2-.3-.3-.6-.4zM12 21.8a9.8 9.8 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zM20.5 3.5A11.9 11.9 0 0 0 1.8 17.9L.1 24l6.3-1.6A11.9 11.9 0 0 0 24 12a11.8 11.8 0 0 0-3.5-8.5z"/></svg></a>
-  <script src="/js/vendor/qrcode.js" defer></script>
-  <script src="/js/qr.js" defer></script>
 </body>
 </html>
