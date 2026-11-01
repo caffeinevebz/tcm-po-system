@@ -36,8 +36,23 @@ the app *locks* and asks for the access key again.
 - Book in deliveries against an open PO, with AI invoice scanning
 - Read the whole recipe book, and **add** new recipes
 - Cannot edit or delete any recipe, and never sees cost prices
+- **Guest Desk** (with the *guests* permission): website orders, table
+  bookings and loyalty stamps, live
 
 The owner can also use the staff terminal; staff cannot open the owner terminal.
+
+### `website/` — thecaffeineministry.in
+The café's public website: home, menu with ordering from the table (QR code),
+takeaway pre-orders, live order tracking, table reservations, a rewards stamp
+card, feedback with Google-review prompts, story, events and contact pages. It
+is a separate Firebase Hosting site in the same project.
+
+It is run from the **guest desk** (`assets/tcm-guest.jsx`): **Website &
+Guests** in the owner terminal, and **Guest Desk** in the staff terminal for
+anyone with the *Guest orders, bookings & loyalty stamps* permission. Orders,
+bookings and stamps are handled there live; the owner also reads feedback and
+edits the menu, hours and settings. Setup and the GoDaddy domain steps are in
+**[website/README.md](website/README.md)**.
 
 ---
 
@@ -68,14 +83,21 @@ uploaded.
 │   ├── tcm-boot.js         Load guard; reports missing dependencies
 │   ├── tcm-core.js         Firebase handles, unit maths, costing, ids, auth
 │   ├── tcm-theme.js        Shared Tailwind theme
+│   ├── tcm-guest.jsx       Guest desk: website orders, bookings, stamps, feedback
 │   └── *.jpg, *.png        Web-sized image derivatives
+├── website/              thecaffeineministry.in, the public site (own README)
 ├── functions/
 │   ├── index.js            accounts, permissions, sign-in, rate limiting
+│   ├── website.js          public endpoints: bookings, orders, feedback, stamps
+│   ├── lib/reservation.js  booking validation, shared with the tests
+│   ├── lib/guest.js        order, feedback and loyalty validation
 │   └── lib/auth-guard.js   requireRole() for other callables
 └── tools/
     ├── test-costing.mjs    Unit tests for the costing engine
     ├── test-rules.mjs      Security tests for firestore.rules
     ├── test-auth-flows.mjs Sign-in journeys against the emulators
+    ├── test-reservations.mjs Website booking validation
+    ├── test-guest.mjs      Website ordering, feedback and loyalty validation
     ├── sri.mjs             Regenerate/verify CDN integrity hashes
     └── optimize-images.mjs Rebuild the assets/ image derivatives
 ```
@@ -150,7 +172,8 @@ Run the tests for the engine:
 
 ```bash
 npm test            # costing, unit conversion, id allocation  (23 tests)
-npm run test:rules  # firestore.rules access boundary         (49 tests, needs Java)
+npm run test:site   # website bookings, orders, feedback      (22 tests)
+npm run test:rules  # firestore.rules access boundary         (94 tests, needs Java)
 npm run test:auth   # account journeys against the emulators  (33 tests, needs Java)
 ```
 
@@ -187,7 +210,8 @@ Static hosting of the repository root is all that is required. With Firebase
 Hosting you also get the security headers defined in `firebase.json`:
 
 ```bash
-firebase deploy --only hosting
+firebase deploy --only hosting:brewops     # BrewOps
+firebase deploy --only hosting:website     # thecaffeineministry.in
 ```
 
 Rules and functions deploy separately — see [SECURITY.md](SECURITY.md).

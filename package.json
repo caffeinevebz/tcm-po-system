@@ -12,7 +12,8 @@
     "deploy:rules": "firebase deploy --only firestore:rules",
     "deploy:auth": "firebase deploy --only functions:setupOwner,functions:claimOwner,functions:createUser,functions:updateUser,functions:resetAccessKey,functions:deleteUser,functions:signIn,functions:changeMyKey,functions:me,functions:suggestAccessKey",
     "test:rules": "firebase emulators:exec --only firestore \"node tools/test-rules.mjs\"",
-    "test:auth": "firebase emulators:exec --only firestore,auth \"node tools/test-auth-flows.mjs\""
+    "test:auth": "firebase emulators:exec --only firestore,auth \"node tools/test-auth-flows.mjs\"",
+    "test:site": "node tools/test-reservations.mjs && node tools/test-guest.mjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",

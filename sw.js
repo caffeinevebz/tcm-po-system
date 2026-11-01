@@ -12,7 +12,7 @@
  *   - anything non-GET        -> not intercepted at all
  * ========================================================================== */
 
-const CACHE_NAME = 'tcm-po-v4';
+const CACHE_NAME = 'tcm-po-v5';
 
 // Only genuinely static, non-sensitive files. HTML is deliberately absent: the
 // dashboards are behind a login and must not be served from a stale cache to

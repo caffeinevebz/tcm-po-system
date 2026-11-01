@@ -1,0 +1,122 @@
+# Publishes the public website (website/) to its own Firebase Hosting site and
+# connects thecaffeineministry.in to it. BrewOps is not touched.
+#
+# Uses the same FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS secret as deploy-hosting.yml.
+# Safe to run any number of times: each step skips what already exists.
+#
+#   1. create the Hosting site if it doesn't exist yet
+#   2. deploy website/ to it
+#   3. register thecaffeineministry.in (and www → redirect) on it
+#   4. print the DNS records to add at GoDaddy in the run summary
+#
+# Runs on pushes that change the website, or on demand from the Actions tab.
+name: Deploy Website
+
+on:
+  push:
+    branches: [main, claude/wonderful-dirac-6gwvmq]
+    paths:
+      - 'website/**'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-live
+  cancel-in-progress: false
+
+env:
+  PROJECT: tcm-orders
+  DOMAIN: thecaffeineministry.in
+  # Tried in order: Hosting site ids are unique across all of Firebase.
+  SITE_IDS: thecaffeineministry thecaffeineministry-in tcm-website
+
+jobs:
+  website:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Sign in to Google Cloud
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS }}
+        run: |
+          printf '%s' "$SA" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+
+      - name: Find or create the Hosting site
+        id: site
+        run: |
+          set -u
+          TOKEN=$(gcloud auth print-access-token)
+          API=https://firebasehosting.googleapis.com/v1beta1/projects/$PROJECT/sites
+          for id in $SITE_IDS; do
+            code=$(curl -s -o /tmp/site.json -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/$id")
+            if [ "$code" = 200 ]; then echo "Using existing site $id"; echo "id=$id" >> "$GITHUB_OUTPUT"; exit 0; fi
+          done
+          for id in $SITE_IDS; do
+            code=$(curl -s -o /tmp/create.json -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN" \
+                   -H 'Content-Type: application/json' -d '{}' "$API?siteId=$id")
+            if [ "$code" = 200 ]; then echo "Created site $id"; echo "id=$id" >> "$GITHUB_OUTPUT"; exit 0; fi
+            echo "Could not create $id (HTTP $code):"; cat /tmp/create.json; echo
+          done
+          echo "::error::No Hosting site could be created. See the responses above."
+          exit 1
+
+      - name: Deploy website/
+        run: |
+          npx --yes firebase-tools@13 target:apply hosting website "${{ steps.site.outputs.id }}" --project "$PROJECT"
+          npx --yes firebase-tools@13 deploy --only hosting:website --project "$PROJECT" --non-interactive
+
+      - name: Connect the domain
+        run: |
+          set -u
+          TOKEN=$(gcloud auth print-access-token)
+          SITE="${{ steps.site.outputs.id }}"
+          API=https://firebasehosting.googleapis.com/v1beta1/projects/$PROJECT/sites/$SITE/customDomains
+          add() {   # $1 domain, $2 optional redirect target
+            code=$(curl -s -o /tmp/get.json -w '%{http_code}' -H "Authorization: Bearer $TOKEN" "$API/$1")
+            if [ "$code" = 200 ]; then echo "$1 already registered"; return; fi
+            body='{}'
+            [ -n "${2:-}" ] && body="{\"redirectTarget\":\"$2\"}"
+            code=$(curl -s -o /tmp/add.json -w '%{http_code}' -X POST -H "Authorization: Bearer $TOKEN" \
+                   -H 'Content-Type: application/json' -d "$body" "$API?customDomainId=$1")
+            echo "Register $1: HTTP $code"; cat /tmp/add.json; echo
+          }
+          add "$DOMAIN"
+          add "www.$DOMAIN" "$DOMAIN"
+
+      - name: DNS records for GoDaddy
+        if: always() && steps.site.outputs.id != ''
+        run: |
+          TOKEN=$(gcloud auth print-access-token)
+          SITE="${{ steps.site.outputs.id }}"
+          API=https://firebasehosting.googleapis.com/v1beta1/projects/$PROJECT/sites/$SITE/customDomains
+          {
+            echo "## thecaffeineministry.in"
+            echo
+            echo "Website deployed to https://$SITE.web.app"
+            echo
+            for d in "$DOMAIN" "www.$DOMAIN"; do
+              curl -s -H "Authorization: Bearer $TOKEN" "$API/$d" > /tmp/d.json
+              echo "### $d"
+              echo
+              echo "Status: \`$(jq -r '.hostState // "unknown"' /tmp/d.json)\` · ownership \`$(jq -r '.ownershipState // "unknown"' /tmp/d.json)\` · certificate \`$(jq -r '.cert.state // "unknown"' /tmp/d.json)\`"
+              echo
+              echo "| Action | Type | Name | Value |"
+              echo "|---|---|---|---|"
+              jq -r '(.requiredDnsUpdates.desired // [])[] | .domainName as $n |
+                     (.records // [])[] | "| \(.requiredAction // "ADD") | \(.type) | \($n) | `\(.rdata)` |"' /tmp/d.json
+              echo
+            done
+            echo "<details><summary>Raw API response</summary>"
+            echo
+            echo '```json'
+            for d in "$DOMAIN" "www.$DOMAIN"; do curl -s -H "Authorization: Bearer $TOKEN" "$API/$d"; echo; done
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"

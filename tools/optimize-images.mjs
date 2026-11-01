@@ -81,6 +81,48 @@ for (const job of JOBS) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// The public website (website/img). Separate folder, separate Hosting site.
+// ---------------------------------------------------------------------------
+const webOut = path.join(root, 'website', 'img');
+fs.mkdirSync(webOut, { recursive: true });
+
+const WEB_JOBS = [
+  { src: 'DSC_8010.jpg',     dest: 'hero-interior.jpg', width: 1800, quality: 72 },
+  { src: 'DSC_8017.jpg',     dest: 'corner-lamp.jpg',   width: 1600, quality: 72 },
+  { src: 'DSC_8038.jpg',     dest: 'window-table.jpg',  width: 900,  quality: 74 },
+  { src: 'DSC_8052.jpg',     dest: 'latte.jpg',         width: 1000, quality: 74 },
+  { src: 'TCM logo.png',     dest: 'logo.png',          width: 480,  quality: 90 },
+  { src: 'Brewster-Pen.jpg', dest: 'brewster.png',      width: 420,  quality: 90 },
+  { src: 'right_coffee.png', dest: 'beans.png',         width: 400,  quality: 90 },
+  { src: 'leaf-pattern.png', dest: 'leaf-pattern.png',  width: 600,  quality: 90 }
+];
+
+for (const job of WEB_JOBS) {
+  const src = path.join(root, job.src);
+  if (!fs.existsSync(src)) { console.warn(`skip   ${job.src} (not found)`); continue; }
+  let pipeline = sharp(src).rotate().resize({ width: job.width, withoutEnlargement: true });
+  pipeline = job.dest.endsWith('.png')
+    ? pipeline.png({ compressionLevel: 9, palette: true, quality: job.quality })
+    : pipeline.jpeg({ quality: job.quality, progressive: true, mozjpeg: true });
+  await pipeline.toFile(path.join(webOut, job.dest));
+  console.log(`website/img/${job.dest.padEnd(18)} ${(fs.statSync(path.join(webOut, job.dest)).size / 1024).toFixed(0)} KB`);
+}
+
+// Social-share card (WhatsApp, Instagram DMs, Google): 1200x630.
+await sharp(path.join(root, 'DSC_8052.jpg')).rotate()
+  .resize(1200, 630, { fit: 'cover', position: 'centre' })
+  .jpeg({ quality: 76, progressive: true, mozjpeg: true })
+  .toFile(path.join(webOut, 'og-card.jpg'));
+// Favicons from the badge.
+await sharp(path.join(root, 'TCM logo.png')).resize(180, 180).png({ compressionLevel: 9 })
+  .toFile(path.join(webOut, 'apple-touch-icon.png'));
+await sharp(path.join(root, 'TCM logo.png')).resize(64, 64).png({ compressionLevel: 9 })
+  .toFile(path.join(webOut, 'favicon.png'));
+await sharp(path.join(root, 'TCM logo.png')).resize(512, 512).png({ compressionLevel: 9, palette: true })
+  .toFile(path.join(webOut, 'icon-512.png'));
+console.log('website/img/og-card.jpg, favicons  rebuilt');
+
 const icon = path.join(root, 'icon-192.png');
 if (fs.existsSync(icon)) {
   await sharp(icon).resize(180, 180).png({ compressionLevel: 9 }).toFile(path.join(out, 'favicon.png'));

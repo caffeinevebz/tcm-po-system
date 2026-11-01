@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en-IN" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Book a Table · The Caffeine Ministry, Jodhpur</title>
+  <meta name="description" content="Reserve a table at The Caffeine Ministry, Sardarpura, Jodhpur. Choose a date, time and party size and we will confirm on WhatsApp.">
+  <link rel="canonical" href="https://thecaffeineministry.in/reserve">
+  <meta name="theme-color" content="#132A1B">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Caffeine Ministry">
+  <meta property="og:title" content="Book a Table · The Caffeine Ministry, Jodhpur">
+  <meta property="og:description" content="Reserve a table at The Caffeine Ministry, Sardarpura, Jodhpur. Choose a date, time and party size and we will confirm on WhatsApp.">
+  <meta property="og:url" content="https://thecaffeineministry.in/reserve">
+  <meta property="og:image" content="https://thecaffeineministry.in/img/og-card.jpg">
+  <meta property="og:locale" content="en_IN">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500&display=swap">
+  <link rel="stylesheet" href="/css/site.css">
+  <script src="/js/site.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="announce" id="announce" role="status" hidden></div>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/" aria-label="The Caffeine Ministry — home">
+        <img src="/img/logo.png" alt="" width="46" height="46">
+        <span class="brand-name">The Caffeine Ministry<small>Jodhpur</small></span>
+      </a>
+      <button class="menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="site-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18"/></svg></button>
+      <nav class="nav" id="site-nav" aria-label="Main">
+        <a href="/menu">Menu</a>
+        <a href="/takeaway">Order Ahead</a>
+        <a href="/rewards">Rewards</a>
+        <a href="/about">Our Story</a>
+        <a href="/events">Events</a>
+        <a href="/visit">Visit</a>
+        <a class="btn btn-gold" href="/reserve" data-needs="reservations" aria-current="page">Book a table</a>
+      </nav>
+    </div>
+  </header>
+<main id="main">
+  <section class="page-hero">
+    <div class="wrap narrow">
+      <span class="eyebrow">Reservations</span>
+      <h1>Book a table.</h1>
+      <p class="lede">Choose a day and time and we'll confirm your table by phone or WhatsApp.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap split split-top">
+      <div class="form-card reveal">
+        <div id="booking-paused" class="alert alert-info" data-needs-not="reservations" hidden>
+          Online booking is paused right now. Please <a href="#" data-href="phone">call</a> or <a href="#" data-href="whatsapp">message us</a> and we'll find you a table.
+        </div>
+        <form id="booking-form" novalidate data-needs="reservations">
+          <div class="form-grid">
+            <div class="field full">
+              <span class="label" id="guests-label">Guests</span>
+              <div class="chips" role="radiogroup" aria-labelledby="guests-label" id="guest-chips"></div>
+              <p class="hint">More than <span data-info="maxGuests">12</span>? <a href="/events#enquire">Send an events enquiry</a>.</p>
+            </div>
+            <div class="field">
+              <label for="date">Date</label>
+              <input id="date" name="date" type="date" required>
+            </div>
+            <div class="field">
+              <label for="occasion">Occasion <span class="opt">(optional)</span></label>
+              <select id="occasion" name="occasion">
+                <option value="">None</option><option>Birthday</option><option>Anniversary</option><option>Date night</option><option>Business</option><option>Celebration</option><option>Other</option>
+              </select>
+            </div>
+            <div class="field full">
+              <span class="label" id="time-label">Time</span>
+              <div class="time-grid" role="radiogroup" aria-labelledby="time-label" id="time-slots"><p class="muted small">Choose a date first.</p></div>
+            </div>
+            <div class="field">
+              <label for="name">Your name</label>
+              <input id="name" name="name" autocomplete="name" required maxlength="60">
+            </div>
+            <div class="field">
+              <label for="phone">Mobile number</label>
+              <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" required maxlength="20" placeholder="98xxx xxxxx">
+            </div>
+            <div class="field full">
+              <label for="email">Email <span class="opt">(optional)</span></label>
+              <input id="email" name="email" type="email" autocomplete="email" maxlength="100">
+            </div>
+            <div class="field full">
+              <label for="notes">Anything we should know? <span class="opt">(optional)</span></label>
+              <textarea id="notes" name="notes" maxlength="500" placeholder="A window seat, a high chair, an allergy…"></textarea>
+            </div>
+            <div class="hp" aria-hidden="true"><label for="company">Company</label><input id="company" name="company" tabindex="-1" autocomplete="off"></div>
+          </div>
+          <p class="alert alert-error" id="form-error" role="alert" hidden></p>
+          <p class="submit-row"><button class="btn btn-gold btn-block" type="submit" id="submit-btn">Request this table</button></p>
+          <p class="small muted">By booking you agree to us contacting you about this reservation. See our <a href="/privacy">privacy note</a>.</p>
+        </form>
+
+        <div id="booking-done" class="success" hidden aria-live="polite">
+          <div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></div>
+          <h2>Request received</h2>
+          <p class="muted">We'll confirm your table shortly. Please quote this reference if you get in touch:</p>
+          <div class="ref-code" id="done-ref">TCM-XXXXX</div>
+          <ul class="summary-list" id="done-summary"></ul>
+          <div class="actions">
+            <a class="btn btn-forest" href="#" id="done-wa" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-.9 1.2-.3.2-.6.1a8.2 8.2 0 0 1-4-3.5c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.6c1.9.8 2.7.9 3.6.7a3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.2-.3-.3-.6-.4zM12 21.8a9.8 9.8 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zM20.5 3.5A11.9 11.9 0 0 0 1.8 17.9L.1 24l6.3-1.6A11.9 11.9 0 0 0 24 12a11.8 11.8 0 0 0-3.5-8.5z"/></svg> Also send on WhatsApp</a>
+            <a class="btn btn-ghost" href="#" id="done-ics" download="caffeine-ministry.ics"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Add to calendar</a>
+          </div>
+          <p class="small mt"><a href="/reserve" id="book-another">Make another booking</a></p>
+        </div>
+      </div>
+
+      <aside class="reveal">
+        <div class="photo photo-wide"><img src="/img/corner-lamp.jpg" alt="A warm corner of the café" width="1600" height="1115" loading="lazy"></div>
+        <ul class="aside-list mt">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Tables are held for 15 minutes after your booking time.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg><span>Booking for more than <span data-info="maxGuests">12</span>? See <a href="/events">events &amp; private hire</a>.</span></li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 8h1a4 4 0 0 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg><span>Walk-ins are always welcome. We keep tables free for them.</span></li>
+          <li data-needs="phone whatsapp" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span>Need to change or cancel? <a href="#" data-href="whatsapp">WhatsApp</a> or <a href="#" data-href="phone">call us</a>.</span></li>
+        </ul>
+      </aside>
+    </div>
+  </section>
+</main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img src="/img/logo.png" alt="The Caffeine Ministry" width="88" height="88" loading="lazy">
+          <p data-info="tagline">Specialty coffee &amp; all-day plates in Sardarpura, Jodhpur</p>
+          <div class="socials">
+            <a href="#" data-href="instagram" data-needs="instagram" aria-label="Instagram" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r=".8" fill="currentColor"/></svg></a>
+            <a href="#" data-href="whatsapp" data-needs="whatsapp" aria-label="WhatsApp" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-.9 1.2-.3.2-.6.1a8.2 8.2 0 0 1-4-3.5c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.6c1.9.8 2.7.9 3.6.7a3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.2-.3-.3-.6-.4zM12 21.8a9.8 9.8 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zM20.5 3.5A11.9 11.9 0 0 0 1.8 17.9L.1 24l6.3-1.6A11.9 11.9 0 0 0 24 12a11.8 11.8 0 0 0-3.5-8.5z"/></svg></a>
+            <a href="#" data-href="email" data-needs="email" aria-label="Email" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></a>
+          </div>
+        </div>
+        <div>
+          <h4>Visit</h4>
+          <p><a href="#" data-href="maps" target="_blank" rel="noopener"><span data-info="address">'Parasudai', 672, 12th C Road, Sardarpura, Jodhpur</span></a></p>
+          <p data-info="hours">Open daily</p>
+        </div>
+        <div>
+          <h4>Explore</h4>
+          <ul>
+            <li><a href="/menu">Menu</a></li>
+            <li data-needs="takeaway" hidden><a href="/takeaway">Order ahead for pickup</a></li>
+            <li><a href="/reserve">Reservations</a></li>
+            <li data-needs="loyalty" hidden><a href="/rewards">Rewards card</a></li>
+            <li><a href="/feedback">Share feedback</a></li>
+            <li><a href="/about">Our story</a></li>
+            <li><a href="/events">Events &amp; private hire</a></li>
+            <li><a href="/visit">Find us</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Say hello</h4>
+          <ul>
+            <li data-needs="phone" hidden><a href="#" data-href="phone" data-info="phone"></a></li>
+            <li data-needs="whatsapp" hidden><a href="#" data-href="whatsapp">WhatsApp us</a></li>
+            <li data-needs="email" hidden><a href="#" data-href="email" data-info="email"></a></li>
+            <li data-needs="instagram" hidden><a href="#" data-href="instagram" data-info="instagram"></a></li>
+            <li><a href="/visit#contact">Contact page</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>&copy; <span data-year>2026</span> The Caffeine Ministry, Jodhpur</span>
+        <span><a href="/privacy">Privacy</a></span>
+      </div>
+    </div>
+  </footer>
+  <a class="fab" href="#" data-href="whatsapp" data-needs="whatsapp" aria-label="Message us on WhatsApp" target="_blank" rel="noopener" hidden><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.8-.9-2-1s-.5-.1-.7.1-.8 1-.9 1.2-.3.2-.6.1a8.2 8.2 0 0 1-4-3.5c-.3-.5.3-.5.9-1.6.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4 3.4 3.4 0 0 0-1 2.5 5.9 5.9 0 0 0 1.2 3.1 13.4 13.4 0 0 0 5.2 4.6c1.9.8 2.7.9 3.6.7a3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.2-.3-.3-.6-.4zM12 21.8a9.8 9.8 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zM20.5 3.5A11.9 11.9 0 0 0 1.8 17.9L.1 24l6.3-1.6A11.9 11.9 0 0 0 24 12a11.8 11.8 0 0 0-3.5-8.5z"/></svg></a>
+  <script src="/js/reserve.js" defer></script>
+</body>
+</html>

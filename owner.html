@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrewOps - Owner Command Center</title>
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
@@ -78,6 +78,8 @@
     </div>
     <div id="root" hidden></div>
 
+    <!-- Website orders, bookings, stamps and feedback; shared with staff.html. -->
+    <script type="text/babel" data-presets="react" src="assets/tcm-guest.jsx"></script>
     <script type="text/babel" data-presets="react">
         /** @jsx React.createElement */
         /** @jsxFrag React.Fragment */
@@ -130,9 +132,9 @@
             const [issued, setIssued] = useState(null);
 
             const ROLE_PRESETS = {
-                staff:   { requests: true, recipesView: true, recipesAdd: true, receive: true },
+                staff:   { requests: true, recipesView: true, recipesAdd: true, receive: true, guests: true },
                 manager: { requests: true, recipesView: true, recipesAdd: true, recipesEdit: true,
-                           receive: true, poManage: true, inventory: true, vendors: true },
+                           receive: true, poManage: true, inventory: true, vendors: true, guests: true },
                 viewer:  { recipesView: true }
             };
 
@@ -420,6 +422,7 @@
                 { id: 'conversions', label: 'Prep Kitchen Engine' },
                 { id: 'vendors', label: 'Vendor Directory' },
                 { id: 'inventory', label: 'Raw Material Master' },
+                { id: 'website', label: 'Website & Guests' },
                 { id: 'team', label: 'Users & Access' },
                 { id: 'workbench', label: "Brewster's Workbench" }
             ];
@@ -758,6 +761,8 @@
                     {ownerTab === 'dashboard' && <OwnerDashboardSummary pos={pos} requests={requests} recipes={recipes} prepItems={prepItems} suppliers={suppliers} setOwnerTab={setOwnerTab} />}
 
                     {ownerTab === 'team' && <UsersView users={team} showToast={showToast} confirmAction={confirmAction} />}
+
+                    {ownerTab === 'website' && <TCMGuest.GuestDesk isOwner={true} recipes={recipes} showToast={showToast} confirmAction={confirmAction} />}
 
                     {ownerTab === 'workbench' && (
                         <div className="animate-fade-in space-y-8">

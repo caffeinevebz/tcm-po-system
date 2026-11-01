@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrewOps - Staff Terminal</title>
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://unpkg.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://*.googleapis.com https://*.cloudfunctions.net https://*.firebaseio.com wss://*.firebaseio.com; base-uri 'self'; form-action 'none'; object-src 'none'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <meta name="robots" content="noindex, nofollow">
     <meta name="theme-color" content="#132A1B">
@@ -67,6 +67,8 @@
     </div>
     <div id="root" hidden></div>
 
+    <!-- Website orders, bookings and stamps; shared with owner.html. -->
+    <script type="text/babel" data-presets="react" src="assets/tcm-guest.jsx"></script>
     <script type="text/babel" data-presets="react">
         /** @jsx React.createElement */
         /** @jsxFrag React.Fragment */
@@ -93,7 +95,8 @@
 
         function App() {
             const [loading, setLoading] = useState(true);
-            const [activeTab, setActiveTab] = useState('dashboard');
+            const [activeTab, setActiveTab] = useState(() =>
+                TCM.can('guests') && !TCM.can('requests') && !TCM.can('receive') ? 'guests' : 'dashboard');
             const [isSidebarOpen, setSidebarOpen] = useState(false);
             
             const [inventory, setInventory] = useState({});
@@ -378,7 +381,7 @@
                         <div className="p-4 space-y-2 flex flex-col h-[calc(100vh-120px)]">
                             <div className="flex-1 space-y-2 mt-4">
                                 <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold px-4 mb-4">Staff Navigation</p>
-                                {[{ id: 'dashboard', label: 'Dashboard' }, { id: 'order', label: 'Draft BrewOps Order' }, { id: 'recipes', label: 'Recipe Book' }].map(item => (
+                                {[{ id: 'dashboard', label: 'Dashboard' }, ...(TCM.can('guests') ? [{ id: 'guests', label: 'Guest Desk' }] : []), { id: 'order', label: 'Draft BrewOps Order' }, { id: 'recipes', label: 'Recipe Book' }].map(item => (
                                     <button key={item.id} onClick={() => { setActiveTab(item.id); setSidebarOpen(false); }} className={`w-full text-left px-4 py-3.5 font-bold text-xs uppercase tracking-widest rounded-xl transition-all ${activeTab === item.id ? 'bg-brandBrown text-white shadow-md' : 'text-gray-300 hover:bg-white/10 hover:text-white'}`}>{item.label}</button>
                                 ))}
                             </div>
@@ -391,6 +394,8 @@
                     </header>
 
                     <main className="max-w-6xl mx-auto mt-6 px-4 lg:px-6">
+                        {activeTab === 'guests' && TCM.can('guests') && <TCMGuest.GuestDesk isOwner={false} showToast={showToast} />}
+
                         {activeTab === 'dashboard' && (
                             <div className="animate-fade-in space-y-6">
                                 <h2 className="text-2xl font-serif font-bold text-victorian drop-shadow-sm mb-2">Terminal Overview</h2>
@@ -614,7 +619,7 @@
         // Any account the owner gave a shop-floor permission to. Each action
         // inside is separately gated by the Firestore rules, so a person who
         // only holds "read the recipe book" simply finds nothing else works.
-        TCM.guard(['requests', 'receive', 'recipesView']).then((session) => {
+        TCM.guard(['requests', 'receive', 'recipesView', 'guests']).then((session) => {
             document.getElementById('auth-gate').remove();
             const rootEl = document.getElementById('root');
             rootEl.hidden = false;

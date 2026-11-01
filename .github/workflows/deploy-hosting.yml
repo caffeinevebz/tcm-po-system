@@ -1,4 +1,5 @@
-# Publishes the site to Firebase Hosting — BrewOps and /cash-counter/ alike.
+# Publishes BrewOps and /cash-counter/ to tcm-orders.web.app.
+# The public website has its own workflow: deploy-website.yml.
 #
 # Inert until the repository has a FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS secret:
 # Firebase console → Project settings → Service accounts → Generate new private
@@ -22,15 +23,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  brewops:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to the live channel
+      - name: Deploy BrewOps to the live channel
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS }}
           projectId: tcm-orders
+          target: brewops
           channelId: live
+

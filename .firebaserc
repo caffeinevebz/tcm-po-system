@@ -1,5 +1,17 @@
 {
   "projects": {
     "default": "tcm-orders"
+  },
+  "targets": {
+    "tcm-orders": {
+      "hosting": {
+        "brewops": [
+          "tcm-orders"
+        ],
+        "website": [
+          "thecaffeineministry"
+        ]
+      }
+    }
   }
 }

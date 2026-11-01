@@ -166,6 +166,86 @@ service cloud.firestore {
       allow update, delete: if can('recipesEdit');
     }
 
+    // --- the public website (thecaffeineministry.in) ------------------------
+    // site/info  — hours, phone, address, booking settings, announcement
+    // site/menu  — the menu guests see when they scan the table QR code
+    // Anyone may read these two documents; that is their whole purpose, so
+    // nothing private (cost prices, recipes, suppliers) may ever be put here.
+    // Only the owner edits them, from the Website tab of the owner terminal.
+    match /site/{docId} {
+      allow read: if docId in ['info', 'menu'];
+      allow create, update: if isOwner()
+                            && docId in ['info', 'menu']
+                            && (docId != 'menu'
+                                || (request.resource.data.categories is list
+                                    && request.resource.data.categories.size() <= 60));
+      allow delete: if false;
+    }
+
+    // Guest table bookings. Created ONLY by the createReservation function,
+    // which validates them and rate-limits the sender — a client can never
+    // create one directly, so the collection cannot be flooded or forged. Guests
+    // cannot read any booking, including their own: phone numbers live here.
+    // Staff with the `guests` permission work them on the floor.
+    match /reservations/{id} {
+      allow read: if can('guests');
+      allow create: if false;
+      // Staff work the booking (confirm, seat, decline…) but the guest's own
+      // details stay as they were submitted.
+      allow update: if can('guests')
+                    && touched().hasOnly(['status', 'table', 'ownerNote', 'updatedAt'])
+                    && request.resource.data.status in
+                         ['pending', 'confirmed', 'seated', 'completed', 'declined', 'cancelled', 'no-show'];
+      allow delete: if isOwner();
+    }
+
+    // Table and takeaway orders. Created ONLY by the placeOrder function, which
+    // prices every line from the published menu. Staff move an order along
+    // (new → preparing → ready → served/collected) and record a loyalty stamp;
+    // what was ordered, and for how much, cannot be changed from a client.
+    match /orders/{id} {
+      allow read: if can('guests');
+      allow create: if false;
+      allow update: if can('guests')
+                    && touched().hasOnly(['status', 'updatedAt', 'handledBy', 'stampAwarded'])
+                    && request.resource.data.status in
+                         ['new', 'preparing', 'ready', 'served', 'collected', 'cancelled'];
+      allow delete: if isOwner();
+    }
+
+    // "How was your visit?" Created only by submitFeedback. For the owner's
+    // eyes: comments can be about individual staff.
+    match /feedback/{id} {
+      allow read: if isOwner();
+      allow create: if false;
+      allow update: if isOwner() && touched().hasOnly(['resolved', 'ownerNote', 'updatedAt']);
+      allow delete: if isOwner();
+    }
+
+    // Loyalty stamp cards, keyed by phone number in international digits
+    // (919829012345). Staff add stamps when a guest pays; guests can only ask
+    // the loyaltyCard function for their count, never read or write here.
+    match /loyalty/{phone} {
+      function validCard(d) {
+        return d.keys().hasOnly(['phone', 'name', 'stamps', 'lifetime', 'redeemed',
+                                 'history', 'createdAt', 'updatedAt'])
+            && d.phone == phone
+            && d.stamps is int && d.stamps >= 0 && d.stamps <= 500
+            && d.lifetime is int && d.lifetime >= 0
+            && d.redeemed is int && d.redeemed >= 0
+            && d.name is string && d.name.size() <= 60
+            && (!('history' in d) || (d.history is list && d.history.size() <= 20));
+      }
+      allow read: if can('guests');
+      allow create, update: if can('guests')
+                            && phone.matches('^[1-9][0-9]{7,14}$')
+                            && validCard(request.resource.data);
+      allow delete: if isOwner();
+    }
+
+    // Booking rate-limit counters. Cloud Functions only.
+    match /_siteThrottle/{document=**} { allow read, write: if false; }
+
     // --- default deny -------------------------------------------------------
     // Anything not named above is closed, including collections added later.
     match /{document=**} {

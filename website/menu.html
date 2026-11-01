@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en-IN" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Menu · The Caffeine Ministry, Jodhpur</title>
+  <meta name="description" content="The full menu at The Caffeine Ministry: espresso, slow brews, cold coffee, all-day plates and desserts. Order from your table.">
+  <link rel="canonical" href="https://thecaffeineministry.in/menu">
+  <meta name="theme-color" content="#132A1B">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Caffeine Ministry">
+  <meta property="og:title" content="Menu · The Caffeine Ministry, Jodhpur">
+  <meta property="og:description" content="The full menu at The Caffeine Ministry: espresso, slow brews, cold coffee, all-day plates and desserts. Order from your table.">
+  <meta property="og:url" content="https://thecaffeineministry.in/menu">
+  <meta property="og:image" content="https://thecaffeineministry.in/img/og-card.jpg">
+  <meta property="og:locale" content="en_IN">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500&display=swap">
+  <link rel="stylesheet" href="/css/site.css">
+  <script src="/js/site.js" defer></script>
+</head>
+<body class="menu-page">
+<header class="menu-top">
+  <a class="menu-back" href="/">← Home</a>
+  <img src="/img/logo.png" alt="" width="84" height="84">
+  <h1>The Menu</h1>
+  <p>The Caffeine Ministry · Sardarpura, Jodhpur</p>
+  <span class="table-chip" id="table-chip" hidden></span>
+</header>
+<div class="announce" id="announce" role="status" hidden></div>
+<div class="menu-tools">
+  <div class="wrap">
+    <div class="row">
+      <label class="search"><span class="sr-only">Search the menu</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="menu-search" type="search" placeholder="Search…" autocomplete="off">
+      </label>
+      <button class="veg-toggle" id="veg-toggle" type="button" aria-pressed="false"><i class="diet veg"></i> Veg only</button>
+    </div>
+    <nav class="cat-tabs" id="cat-tabs" aria-label="Menu sections"></nav>
+  </div>
+</div>
+<main id="main" class="wrap narrow-menu">
+  <p class="alert alert-info order-note" id="order-note" hidden></p>
+  <p class="order-hint" id="order-hint" hidden>Tap <strong>Add</strong>, then send your order. We'll bring it to your table, and you pay at the counter when you leave.</p>
+  <div id="menu-root"><p class="menu-empty">Loading the menu…</p></div>
+  <div class="menu-foot">
+    <p id="menu-footnote"></p>
+    <p id="menu-sample" class="alert alert-info sample-note" hidden>This is a preview menu. Please ask a team member about today's dishes and prices.</p>
+    <p class="foot-links">
+      <a href="/takeaway" data-needs="takeaway" hidden>Order ahead for pickup</a>
+      <a href="/rewards" data-needs="loyalty" hidden>Your rewards card</a>
+      <a href="/feedback">Tell us how we did</a>
+      <a href="/reserve" data-needs="reservations">Book a table</a>
+    </p>
+  </div>
+</main>
+
+<div class="cart-bar" id="cart-bar" hidden>
+  <button type="button" id="cart-bar-open" class="cart-bar-btn">
+    <span><span id="cart-bar-count">0 items</span> · <strong id="cart-bar-total">₹0</strong></span>
+    <span>Review order <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </button>
+</div>
+
+<div class="sheet-backdrop" id="cart-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title">Your order</h2>
+      <button type="button" class="sheet-close" id="sheet-close" aria-label="Close">×</button>
+    </div>
+    <form id="order-form" novalidate>
+      <ul class="sheet-lines" id="sheet-lines"></ul>
+      <div class="form-grid">
+        <div class="field full"><label for="o-note">Anything else? <span class="opt">(optional)</span></label><input id="o-note" maxlength="300" placeholder="Bring the food with the coffee…"></div>
+            <div class="field full loyalty-ask" data-needs="loyalty" hidden>
+              <p class="small"><strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Collect a stamp for this visit?</strong> Add your number and we'll stamp your rewards card when you pay. <span class="muted">(optional)</span></p>
+            </div>
+            <div class="field" data-needs="loyalty" hidden><label for="o-name">Name <span class="opt">(optional)</span></label><input id="o-name" autocomplete="name" maxlength="60"></div>
+            <div class="field" data-needs="loyalty" hidden><label for="o-phone">Mobile <span class="opt">(optional)</span></label><input id="o-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="98xxx xxxxx"></div>
+        <div class="hp" aria-hidden="true"><label for="o-company">Company</label><input id="o-company" tabindex="-1" autocomplete="off"></div>
+      </div>
+      <div class="sheet-total"><span>Total</span><strong id="sheet-total">₹0</strong></div>
+      <p class="small muted">Pay at the counter when you leave: cash, card or UPI.</p>
+      <p class="alert alert-error" id="sheet-error" role="alert" hidden></p>
+      <button class="btn btn-gold btn-block" type="submit" id="send-order">Send order to the kitchen</button>
+    </form>
+  </div>
+</div>
+  <script src="/js/menu.js" defer></script>
+</body>
+</html>

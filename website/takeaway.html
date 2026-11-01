@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en-IN" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Order Ahead for Pickup · The Caffeine Ministry, Jodhpur</title>
+  <meta name="description" content="Order coffee and food ahead from The Caffeine Ministry, Sardarpura, and pick it up at a time that suits you.">
+  <link rel="canonical" href="https://thecaffeineministry.in/takeaway">
+  <meta name="theme-color" content="#132A1B">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="The Caffeine Ministry">
+  <meta property="og:title" content="Order Ahead for Pickup · The Caffeine Ministry, Jodhpur">
+  <meta property="og:description" content="Order coffee and food ahead from The Caffeine Ministry, Sardarpura, and pick it up at a time that suits you.">
+  <meta property="og:url" content="https://thecaffeineministry.in/takeaway">
+  <meta property="og:image" content="https://thecaffeineministry.in/img/og-card.jpg">
+  <meta property="og:locale" content="en_IN">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="/img/favicon.png">
+  <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;1,400;1,500&display=swap">
+  <link rel="stylesheet" href="/css/site.css">
+  <script src="/js/site.js" defer></script>
+</head>
+<body class="menu-page" data-mode="takeaway">
+<header class="menu-top">
+  <a class="menu-back" href="/">← Home</a>
+  <img src="/img/logo.png" alt="" width="84" height="84">
+  <h1>Order Ahead</h1>
+  <p>Pick up at 12th C Road, Sardarpura</p>
+  <span class="table-chip" id="table-chip" hidden></span>
+</header>
+<div class="announce" id="announce" role="status" hidden></div>
+<div class="menu-tools">
+  <div class="wrap">
+    <div class="row">
+      <label class="search"><span class="sr-only">Search the menu</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="menu-search" type="search" placeholder="Search…" autocomplete="off">
+      </label>
+      <button class="veg-toggle" id="veg-toggle" type="button" aria-pressed="false"><i class="diet veg"></i> Veg only</button>
+    </div>
+    <nav class="cat-tabs" id="cat-tabs" aria-label="Menu sections"></nav>
+  </div>
+</div>
+<main id="main" class="wrap narrow-menu">
+  <p class="alert alert-info order-note" id="order-note" hidden></p>
+  <p class="order-hint" id="order-hint" hidden>Choose what you'd like, then pick a pickup time. Pay when you collect.</p>
+  <div id="menu-root"><p class="menu-empty">Loading the menu…</p></div>
+  <div class="menu-foot">
+    <p id="menu-footnote"></p>
+    <p id="menu-sample" class="alert alert-info sample-note" hidden>This is a preview menu. Please ask a team member about today's dishes and prices.</p>
+    <p class="foot-links">
+      <a href="/menu">View the full menu</a>
+      <a href="/rewards" data-needs="loyalty" hidden>Your rewards card</a>
+      <a href="/feedback">Tell us how we did</a>
+      <a href="/reserve" data-needs="reservations">Book a table</a>
+    </p>
+  </div>
+</main>
+
+<div class="cart-bar" id="cart-bar" hidden>
+  <button type="button" id="cart-bar-open" class="cart-bar-btn">
+    <span><span id="cart-bar-count">0 items</span> · <strong id="cart-bar-total">₹0</strong></span>
+    <span>Checkout <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+  </button>
+</div>
+
+<div class="sheet-backdrop" id="cart-sheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="sheet-head">
+      <h2 id="sheet-title">Your pickup order</h2>
+      <button type="button" class="sheet-close" id="sheet-close" aria-label="Close">×</button>
+    </div>
+    <form id="order-form" novalidate>
+      <ul class="sheet-lines" id="sheet-lines"></ul>
+      <div class="form-grid">
+        <div class="field full"><label for="o-note">Anything else? <span class="opt">(optional)</span></label><input id="o-note" maxlength="300" placeholder="I'll be in a white car…"></div>
+            <div class="field"><label for="o-name">Your name</label><input id="o-name" autocomplete="name" maxlength="60" required></div>
+            <div class="field"><label for="o-phone">Mobile number</label><input id="o-phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" required placeholder="98xxx xxxxx"></div>
+            <div class="field full"><label for="pickup">Pickup time (today)</label><select id="pickup"></select></div>
+        <div class="hp" aria-hidden="true"><label for="o-company">Company</label><input id="o-company" tabindex="-1" autocomplete="off"></div>
+      </div>
+      <div class="sheet-total"><span>Total</span><strong id="sheet-total">₹0</strong></div>
+      <p class="small muted">Pay when you collect: cash, card or UPI.</p>
+      <p class="alert alert-error" id="sheet-error" role="alert" hidden></p>
+      <button class="btn btn-gold btn-block" type="submit" id="send-order">Place pickup order</button>
+    </form>
+  </div>
+</div>
+  <script src="/js/menu.js" defer></script>
+</body>
+</html>
