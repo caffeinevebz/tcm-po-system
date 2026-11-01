@@ -133,6 +133,9 @@
           "type": 301
         }
       ],
+      "rewrites": [
+        { "source": "/m/**", "destination": "/m.html" }
+      ],
       "headers": [
         {
           "source": "**",

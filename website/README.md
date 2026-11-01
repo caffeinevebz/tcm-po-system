@@ -46,13 +46,14 @@ default to 9 AM–11 PM daily.
 | `/takeaway` | `takeaway.html` | Order ahead for pickup today |
 | `/order` | `order.html` | The guest's own order, live (linked with a private key; not indexed) |
 | `/reserve` | `reserve.html` | Booking form → `createReservation` Cloud Function |
-| `/rewards` | `rewards.html` | How the rewards card works; check your stamps |
+| `/rewards` | `rewards.html` | Loyalty beans (the POS's points): welcome beans for signing up on the menu, earned on every bill; *See my beans* opens `/m` |
 | `/feedback` | `feedback.html` | "How was your visit?" |
 | `/about` | `about.html` | Our story |
 | `/events` | `events.html` | Events & private hire; enquiry opens in WhatsApp/email |
 | `/visit` | `visit.html` | Hours, map, contact, FAQ |
 | `/privacy` | `privacy.html` | What we do with booking details |
-| `/qr` | `qr.html` | Printable table QR codes (not indexed by search engines) |
+| `/qr` | `qr.html` | Where table QR codes come from: the POS (Owner Dashboard → Menu QR) |
+| `/m`, `/m/T4?k=…` | `m.html` | The table QR codes: forwards to the POS's guest menu (`tcm-pos-menu.web.app`) — sign-up, loyalty beans, ordering to the table. Not indexed |
 
 `/book`, `/reservations` and `/contact` redirect to the right page.
 
