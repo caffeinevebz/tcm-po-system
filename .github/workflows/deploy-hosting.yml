@@ -1,16 +1,10 @@
-# Publishes both Hosting sites in the tcm-orders Firebase project:
-#
-#   brewops  →  tcm-orders.web.app          BrewOps and /cash-counter/
-#   website  →  thecaffeineministry.in      the public café website (website/)
+# Publishes BrewOps and /cash-counter/ to tcm-orders.web.app.
+# The public website has its own workflow: deploy-website.yml.
 #
 # Inert until the repository has a FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS secret:
 # Firebase console → Project settings → Service accounts → Generate new private
 # key, then paste the whole JSON file into
 # Settings → Secrets and variables → Actions → New repository secret.
-#
-# The website job also needs the second Hosting site to exist — see
-# website/README.md. The two jobs are independent, so until it does, BrewOps
-# still deploys and only the website job fails.
 #
 # Runs on a push to main, or on demand from the Actions tab against any branch.
 # Only hosting is touched; Firestore rules and Cloud Functions are left alone.
@@ -43,16 +37,3 @@ jobs:
           target: brewops
           channelId: live
 
-  website:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Deploy the café website to the live channel
-        uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TCM_ORDERS }}
-          projectId: tcm-orders
-          target: website
-          channelId: live
