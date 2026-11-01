@@ -550,3 +550,5 @@ p { margin: 0 0 1em; }
 .stamp.reward:not(.on) { border-color: var(--gold); color: var(--gold); }
 .stamp-foot { margin: 1.2rem 0 0; color: rgba(250,248,245,.85); }
 #card-result.full .stamp-card { box-shadow: 0 0 0 3px var(--gold); }
+.diet.egg { color: #c99a06; }
+.menu-item .desc.sizes { font-size: .82rem; color: var(--brown); margin-top: .1rem; }

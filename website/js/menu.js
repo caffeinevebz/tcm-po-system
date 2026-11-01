@@ -152,14 +152,19 @@
 
       items.forEach(function (it) {
         var row = el('article', 'menu-item' + (it.available === false ? ' sold-out' : '') + (canOrder ? ' can-order' : ''));
-        var diet = el('i', 'diet ' + (it.veg === true ? 'veg' : it.veg === false ? 'nonveg' : 'none'));
+        var kind = it.veg === true ? 'veg' : it.veg === false ? 'nonveg' : it.veg === 'egg' ? 'egg' : 'none';
+        var diet = el('i', 'diet ' + kind);
         diet.setAttribute('role', 'img');
-        diet.setAttribute('aria-label', it.veg === true ? 'Vegetarian' : it.veg === false ? 'Non-vegetarian' : '');
-        if (it.veg !== true && it.veg !== false) diet.setAttribute('aria-hidden', 'true');
+        diet.setAttribute('aria-label', { veg: 'Vegetarian', nonveg: 'Non-vegetarian', egg: 'Contains egg', none: '' }[kind]);
+        if (kind === 'none') diet.setAttribute('aria-hidden', 'true');
         row.appendChild(diet);
         row.appendChild(el('h3', '', it.name));
-        row.appendChild(el('span', 'price', money(it.price)));
+        row.appendChild(el('span', 'price', (it.from ? 'from ' : '') + money(it.price)));
         if (it.desc) row.appendChild(el('p', 'desc', it.desc));
+        // Sizes from the POS: "Regular ₹190 · Large ₹230".
+        if (it.sizes && it.sizes.length > 1) {
+          row.appendChild(el('p', 'desc sizes', it.sizes.map(function (v) { return v.name + ' ' + money(v.price); }).join(' · ')));
+        }
 
         var tags = (it.tags || []).filter(Boolean);
         if (tags.length || it.available === false) {
@@ -224,6 +229,14 @@
   function orderingStatus() {
     if (mode === 'view') return { can: false };
     if (menu.sample) return { can: false, msg: 'Online ordering starts once our menu is published. Please order with a team member.' };
+    // The menu is the live POS catalogue. Website orders are priced against
+    // the BrewOps menu (functions/lib/guest.js), which these items are not
+    // in, so ordering here stays off until orders go to the POS itself.
+    if (menu.source === 'pos') {
+      return { can: false, msg: mode === 'takeaway'
+        ? 'To order ahead, please call or WhatsApp us. Online pickup ordering is coming soon.'
+        : '' };
+    }
     if (mode === 'table') {
       if (info.ordering.tableEnabled === false) return { can: false, msg: 'Ordering from the table is paused. A team member will take your order.' };
       if (!TCMSite.openState(info).open) return { can: false, msg: 'The kitchen is closed right now. ' + TCMSite.openState(info).text + '.' };
@@ -372,6 +385,7 @@
     canOrder = status.can;
     var note = $('order-note');
     if (note && status.msg) { note.textContent = status.msg; note.hidden = false; }
+    if (mode === 'view' || !status.can) { var hint = $('order-hint'); if (hint) hint.hidden = true; }
     if (canOrder) {
       $('order-hint').hidden = false;
       loadCart();

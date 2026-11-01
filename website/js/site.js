@@ -135,9 +135,17 @@
   var infoPromise = null;
   function loadInfo() {
     if (!infoPromise) {
-      infoPromise = getSiteDoc('info')
-        .then(merge)
-        .catch(function () { return merge(null); });
+      infoPromise = Promise.all([
+        getSiteDoc('info').catch(function () { return null; }),
+        // The POS's public settings fill in a phone number the owner has not
+        // set on the website yet.
+        posDoc('settings/public').catch(function () { return null; })
+      ]).then(function (r) {
+        var info = r[0] || {};
+        var pos = r[1] || {};
+        if (!info.phone && pos.phone) info = Object.assign({}, info, { phone: pos.phone });
+        return merge(info);
+      });
     }
     return infoPromise;
   }
@@ -332,15 +340,116 @@
   // ---------------------------------------------------------------------------
   // Signature items on the home page, from the published menu
   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // The menu, live from the café's POS
+  // ---------------------------------------------------------------------------
+  // The POS (caffeinevebz/tcm-pos) keeps its catalogue in the `tcmpos` database
+  // of Firebase project tcm-pos, and its rules let anyone read `categories`,
+  // `products` and `settings/public`; that is what its own QR menu uses. So
+  // the website reads the same documents: change an item, a price or "sold
+  // out" on the till and the website follows within minutes, with nothing to
+  // copy or publish. Items marked "keep off the QR menu" in the POS stay off.
+  var POS = {
+    base: 'https://firestore.googleapis.com/v1/projects/tcm-pos/databases/tcmpos/documents/',
+    // Public identifier of the POS web app, like API_KEY above.
+    key: 'AIzaSyA7zbfx4uJFQ-Az0u0vrbQAuSBPxNvDJCI'
+  };
+
+  /** Every document in a POS collection, only the fields we show. */
+  function posList(collection, fields) {
+    var mask = fields.map(function (f) { return '&mask.fieldPaths=' + f; }).join('');
+    var out = [];
+    function page(token) {
+      var url = POS.base + collection + '?pageSize=300&key=' + POS.key + mask +
+                (token ? '&pageToken=' + encodeURIComponent(token) : '');
+      return fetch(url, { cache: 'no-store' }).then(function (res) {
+        if (!res.ok) throw new Error('POS ' + collection + ' HTTP ' + res.status);
+        return res.json();
+      }).then(function (j) {
+        (j.documents || []).forEach(function (d) {
+          var doc = decodeFields(d.fields || {});
+          doc.id = doc.id || d.name.split('/').pop();
+          out.push(doc);
+        });
+        return j.nextPageToken ? page(j.nextPageToken) : out;
+      });
+    }
+    return page('');
+  }
+
+  function posDoc(path) {
+    return fetch(POS.base + path + '?key=' + POS.key, { cache: 'no-store' }).then(function (res) {
+      if (!res.ok) return null;
+      return res.json().then(function (j) { return decodeFields(j.fields || {}); });
+    });
+  }
+
+  /** The POS catalogue in the website's menu shape (see /data/menu.json). */
+  function posMenu() {
+    var cached = cacheGet('posMenu');
+    if (cached) return Promise.resolve(cached);
+    return Promise.all([
+      posList('categories', ['id', 'name', 'sort']),
+      posList('products', ['id', 'name', 'categoryId', 'description', 'price', 'available',
+                           'foodType', 'sort', 'hideOnQr', 'variations', 'variationLabel']),
+      posDoc('settings/public').catch(function () { return null; })
+    ]).then(function (r) {
+      var cats = r[0].slice().sort(function (a, b) { return (a.sort || 0) - (b.sort || 0); });
+      var byCat = {};
+      r[1].forEach(function (p) {
+        if (!p.name || p.hideOnQr === true) return;
+        var sizes = (p.variations || []).filter(function (v) { return v && v.name && isFinite(Number(v.price)); });
+        var low = sizes.length ? Math.min.apply(null, sizes.map(function (v) { return Number(v.price); })) : Number(p.price);
+        (byCat[p.categoryId] = byCat[p.categoryId] || []).push({
+          id: p.id,
+          name: p.name,
+          desc: p.description || '',
+          price: isFinite(low) ? low : null,
+          // "from ₹190" when the size decides the price; the sizes are listed.
+          from: sizes.length > 1,
+          sizes: sizes.map(function (v) { return { name: v.name, price: Number(v.price) }; }),
+          veg: p.foodType === 'veg' ? true : p.foodType === 'nonveg' ? false : p.foodType === 'egg' ? 'egg' : null,
+          tags: [],
+          available: p.available !== false,
+          sort: p.sort || 0
+        });
+      });
+      var pub = r[2] || {};
+      var menu = {
+        source: 'pos',
+        currency: pub.currency || '₹',
+        footnote: pub.taxMode === 'inclusive'
+          ? 'Prices are in Indian rupees and include GST.'
+          : 'Prices are in Indian rupees. GST is added to the bill.',
+        categories: cats.map(function (c) {
+          return {
+            id: c.id,
+            name: c.name,
+            items: (byCat[c.id] || []).sort(function (a, b) { return a.sort - b.sort; })
+          };
+        }).filter(function (c) { return c.items.length; })
+      };
+      if (!menu.categories.length) throw new Error('POS menu is empty');
+      cacheSet('posMenu', menu);
+      return menu;
+    });
+  }
+
+  /**
+   * The menu, in order of preference: live from the POS; else the menu
+   * published from BrewOps (site/menu); else the sample in /data/menu.json.
+   */
   var menuPromise = null;
   function loadMenu() {
     if (!menuPromise) {
-      menuPromise = getSiteDoc('menu')
-        .catch(function () { return null; })
-        .then(function (doc) {
-          if (doc && Array.isArray(doc.categories) && doc.categories.length) return doc;
-          return fetch('/data/menu.json').then(function (r) { return r.json(); });
-        });
+      menuPromise = posMenu().catch(function () {
+        return getSiteDoc('menu')
+          .catch(function () { return null; })
+          .then(function (doc) {
+            if (doc && Array.isArray(doc.categories) && doc.categories.length) return doc;
+            return fetch('/data/menu.json').then(function (r) { return r.json(); });
+          });
+      });
     }
     return menuPromise;
   }
